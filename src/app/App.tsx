@@ -110,7 +110,7 @@ function ChatInput({
 
 // ── header ────────────────────────────────────────────────────────────────────
 
-function ChatHeader({ title }: { title?: string }) {
+function ChatHeader({ title, onNewChat }: { title?: string; onNewChat?: () => void }) {
   return (
     <div className="absolute top-0 left-0 right-0 h-[48px] bg-white flex items-center gap-[8px] px-[16px] z-10">
       {/* sidebar icon */}
@@ -119,8 +119,8 @@ function ChatHeader({ title }: { title?: string }) {
           <path d={svgPaths.p2861a580} fill="black" fillOpacity="0.6" />
         </svg>
       </button>
-      {/* new chat icon */}
-      <button className="shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
+      {/* new chat icon — click to go home */}
+      <button className="shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]" onClick={onNewChat}>
         <svg width="20" height="20" viewBox="0 0 18.3333 18.75" fill="none">
           <path d={svgPaths.pad1cb00} fill="black" fillOpacity="0.6" />
         </svg>
@@ -244,11 +244,12 @@ function AIThinking() {
   );
 }
 
-function ChatView({ messages, input, onInputChange, onSend }: {
+function ChatView({ messages, input, onInputChange, onSend, onNewChat }: {
   messages: Message[];
   input: string;
   onInputChange: (v: string) => void;
   onSend: () => void;
+  onNewChat: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -260,7 +261,7 @@ function ChatView({ messages, input, onInputChange, onSend }: {
   return (
     <div className="relative w-full h-screen bg-white overflow-hidden flex flex-col">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-      <ChatHeader title={title} />
+      <ChatHeader title={title} onNewChat={onNewChat} />
 
       <div className="flex-1 flex flex-col items-center pt-[48px] px-[24px] pb-0 min-h-0">
         <div className="w-full max-w-[800px] flex flex-col flex-1 min-h-0">
@@ -315,8 +316,13 @@ export default function App() {
     }, 1200);
   };
 
+  const handleNewChat = () => {
+    setMessages([]);
+    setInput("");
+  };
+
   if (messages.length > 0) {
-    return <ChatView messages={messages} input={input} onInputChange={setInput} onSend={handleSend} />;
+    return <ChatView messages={messages} input={input} onInputChange={setInput} onSend={handleSend} onNewChat={handleNewChat} />;
   }
 
   return <HomeView input={input} onInputChange={setInput} onSend={handleSend} />;
