@@ -254,7 +254,7 @@ function RequirementPanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
                 className={`relative flex w-full items-center justify-between rounded-[8px] px-[12px] py-[8px] text-left cursor-pointer ${moreStylesOpen ? "bg-[#f7f7f7]" : "bg-white"}`}
               >
                 <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">更多</span>
-                <svg width="10" height="12" viewBox="0 0 5.30321 9.19243" fill="none"><path d={svgPanel.p5e65780} fill="black" fillOpacity="0.38" /></svg>
+                <svg width="10" height="12" viewBox="0 0 5.30321 9.19243" fill="none" className="-scale-x-100"><path d={svgPanel.p5e65780} fill="black" fillOpacity="0.38" /></svg>
                 <span aria-hidden className="absolute inset-0 rounded-[8px] border border-[#e6e6e6] pointer-events-none" />
               </button>
               {moreStylesOpen && (
@@ -269,7 +269,7 @@ function RequirementPanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
                       type="button"
                       onPointerDown={(event) => event.stopPropagation()}
                       onClick={() => { setStyle(option); setMoreStylesOpen(false); }}
-                      className={`flex w-full items-center justify-between rounded-[8px] px-[8px] py-[11px] text-left text-[14px] leading-[22px] transition-colors ${style === option ? "font-medium text-[rgba(0,0,0,0.88)]" : "text-[rgba(0,0,0,0.88)] hover:bg-[#f7f7f7]"}`}
+                      className={`flex w-full items-center justify-between rounded-[8px] px-[8px] py-[11px] text-left text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] transition-colors ${style === option ? "" : "hover:bg-[#f7f7f7]"}`}
                     >
                       <span>{option}</span>
                       {style === option && <span aria-hidden className="text-[16px] leading-[16px] text-[#1e63f5]">✓</span>}
