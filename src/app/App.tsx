@@ -755,9 +755,9 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true, on
   return (
     <div className="flex-1 min-h-0 bg-white flex flex-col">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-      <div className="flex-1 flex flex-col items-center px-[24px] pb-0 min-h-0">
-        <div className="w-full max-w-[800px] flex flex-col flex-1 min-h-0">
-          <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0 pt-[16px]">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
+        <div className="min-h-full px-[24px] pt-[16px]">
+          <div className="mx-auto w-full max-w-[800px]">
             <div className="flex flex-col gap-[32px] pb-[16px]">
               {messages.map((msg, i) => msg.role === "user" ? (
                 <div key={i} className="flex justify-end">
@@ -782,9 +782,11 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true, on
               ))}
             </div>
           </div>
-          <div aria-hidden={!showInput} className={`shrink-0 w-full transition-opacity duration-200 ${showInput ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-            <ChatInput value={input} onChange={onInputChange} onSend={onSend} pptGeneration={pptGeneration} onPptGenerationChange={onPptGenerationChange} />
-          </div>
+        </div>
+      </div>
+      <div aria-hidden={!showInput} className={`shrink-0 px-[24px] transition-opacity duration-200 ${showInput ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+        <div className="mx-auto w-full max-w-[800px]">
+          <ChatInput value={input} onChange={onInputChange} onSend={onSend} pptGeneration={pptGeneration} onPptGenerationChange={onPptGenerationChange} />
         </div>
       </div>
       <div className="shrink-0 flex items-center justify-center p-[4px]">
