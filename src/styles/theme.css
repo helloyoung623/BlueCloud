@@ -194,26 +194,3 @@
     line-height: 1.5;
   }
 }
-
-@layer components {
-  /* Content area: preserve the right-edge scrollbar while reserving the Figma canvas inset. */
-  .chat-content-area {
-    box-sizing: border-box;
-    width: 100%;
-    padding-inline: 16px;
-  }
-
-  /* The 800px conversation frame owns its own safe area, so cards never touch its edges. */
-  .chat-dialogue-frame {
-    box-sizing: border-box;
-    width: 100%;
-    max-width: 800px;
-  }
-
-  @media (max-width: 560px) {
-    .chat-content-area {
-      padding-inline: 0;
-    }
-
-  }
-}
