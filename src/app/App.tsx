@@ -545,7 +545,7 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
               <button key={label} onClick={action}
                 className="flex items-center gap-[8px] px-[8px] py-[11px] rounded-[8px] hover:bg-[#f7f7f7] cursor-pointer w-full text-left">
                 {isPin ? (
-                  <svg width="16" height="13" viewBox="0 0 12 12.6667" fill="none" className="shrink-0">
+                  <svg width="16" height="16" viewBox="0 0 12 12.6667" fill="none" className="shrink-0">
                     <path d={icon} fill="black" fillOpacity="0.26" />
                     <path d="M0 0H12V1.33333H0V0Z" fill="black" fillOpacity="0.26" />
                   </svg>
