@@ -665,11 +665,19 @@ function ChatHeader({ title, sidebarOpen, onSidebarToggle, onNewChat }: { title?
     <div className="relative shrink-0 w-full h-[48px] min-h-[48px] bg-white flex items-center gap-[8px] px-[16px] z-30">
       {!sidebarOpen && (
         <>
-          <button className="relative z-10 shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer" onClick={onSidebarToggle}>
-            <svg width="20" height="20" viewBox="0 0 17.5 17.5" fill="none"><path d={svgPaths.p2861a580} fill="black" fillOpacity="0.6" /></svg>
+          <button className="relative z-10 shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer" onClick={onSidebarToggle} aria-label="展开侧边栏">
+            <span aria-hidden className="relative size-[20px] overflow-hidden">
+              <svg className="absolute inset-[6.25%] size-[87.5%]" viewBox="0 0 17.5 17.5" fill="none" preserveAspectRatio="none">
+                <path d={svgPaths.p2861a580} fill="black" fillOpacity="0.6" />
+              </svg>
+            </span>
           </button>
-          <button className="relative z-10 shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer" onClick={onNewChat}>
-            <svg width="20" height="20" viewBox="0 0 18.3333 18.75" fill="none"><path d={svgPaths.pad1cb00} fill="black" fillOpacity="0.6" /></svg>
+          <button className="relative z-10 shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer" onClick={onNewChat} aria-label="新建对话">
+            <span aria-hidden className="relative size-[20px] overflow-hidden">
+              <svg className="absolute left-[8.33%] top-0 h-[93.75%] w-[91.67%]" viewBox="0 0 18.3333 18.75" fill="none" preserveAspectRatio="none">
+                <path d={svgPaths.pad1cb00} fill="black" fillOpacity="0.6" />
+              </svg>
+            </span>
           </button>
         </>
       )}
