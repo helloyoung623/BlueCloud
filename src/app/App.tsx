@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import svgPaths from "@/imports/默认首页-1/svg-4ly00k0kqz";
 import svgPanel from "@/imports/需求确认-1/svg-1yxmq1shfb";
+import svgOutline from "@/imports/大纲/svg-fzbroqn38q";
 import imgStyle1 from "@/imports/需求确认-1/29d4a489057188d7298a9a9f8b923d2d9c630925.png";
 import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c6709a8e1bdf.png";
 import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
@@ -10,15 +11,11 @@ import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09
 type Message = { role: "user" | "ai"; text: string; thinking?: boolean };
 type PptStage = "idle" | "requirement" | "outline_generating" | "outline" | "ppt_generating" | "preview";
 
-type OutlinePage = {
-  id: number;
-  title: string;
-  mode: "smart" | "visual";
-  visualMode?: "auto" | "specified";
-  chartType?: string;
-};
+type OutlinePageContent =
+  | { type: "text"; text: string }
+  | { type: "list"; items: string[] };
 
-type OutlineVersion = { id: number; pages: OutlinePage[] };
+type OutlinePage = { id: number; pageLabel: string; title: string; content: OutlinePageContent };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -26,14 +23,30 @@ const isPPTIntent = (t: string) => /ppt|演示|幻灯|slide/i.test(t) || t.inclu
 
 function mockOutlinePages(): OutlinePage[] {
   return [
-    { id: 1, title: "封面：项目名称 & 核心主题", mode: "smart" },
-    { id: 2, title: "目录：内容结构概览", mode: "smart" },
-    { id: 3, title: "背景与现状分析", mode: "visual", visualMode: "auto" },
-    { id: 4, title: "核心问题与解决方案", mode: "smart" },
-    { id: 5, title: "数据支撑：关键指标", mode: "visual", visualMode: "auto" },
-    { id: 6, title: "实施路径与时间节点", mode: "visual", visualMode: "auto" },
-    { id: 7, title: "团队介绍", mode: "smart" },
-    { id: 8, title: "总结与行动建议", mode: "smart" },
+    {
+      id: 1, pageLabel: "第1页", title: "交互设计简史：从命令行到空间计算",
+      content: { type: "text", text: "以一张科技感 hero image 奠定深色未来主义基调，交代主题—交互设计从命令行到空间计算的六十年演进历程。" },
+    },
+    {
+      id: 2, pageLabel: "第2页", title: "六大范式跃迁",
+      content: { type: "text", text: "以水平时间线形式呈现交互设计六大范式跃迁（CLI > GUI > Web > Mobile > Voice > Spatial），标注关键年份与代表产品，锚定观众对全局演进框架的认知。" },
+    },
+    {
+      id: 3, pageLabel: "第3页", title: "AI 对交互设计的影响",
+      content: { type: "list", items: ["AI Chat", "Agent", "Prompt", "Knowledge Base", "文件解析", "Office 集成"] },
+    },
+    {
+      id: 4, pageLabel: "第4页", title: "空间计算时代的交互范式",
+      content: { type: "text", text: "探讨 Apple Vision Pro 等设备带来的新交互维度：眼动追踪、手势识别、空间音频，以及设计师如何在三维空间中重构信息架构。" },
+    },
+    {
+      id: 5, pageLabel: "第5页", title: "设计师的新角色与技能图谱",
+      content: { type: "list", items: ["系统思维", "AI 协作能力", "多模态设计", "伦理与可解释性", "跨学科协作"] },
+    },
+    {
+      id: 6, pageLabel: "第6页", title: "总结与展望",
+      content: { type: "text", text: "回顾六十年演进脉络，提炼不变的设计本质——以人为中心，并对下一个十年的交互形态作出预判与倡导。" },
+    },
   ];
 }
 
@@ -267,54 +280,22 @@ function RequirementPanel({ visible, onClose, onConfirm }: {
 
 // ── outline panel ─────────────────────────────────────────────────────────────
 
-const CHART_TYPES = ["柱状图", "折线图", "饼图", "散点图", "漏斗图", "雷达图"];
-
-function OutlinePageRow({ page, onChange, onInteract }: {
-  page: OutlinePage;
-  onChange: (p: OutlinePage) => void;
-  onInteract: () => void;
-}) {
-  const isVisual = page.mode === "visual";
+function OutlinePageCard({ page }: { page: OutlinePage }) {
   return (
-    <div className="flex flex-col gap-[8px] py-[10px] border-b border-[#f2f2f2] last:border-0">
-      <div className="flex items-start gap-[12px]">
-        <span className="shrink-0 w-[20px] h-[20px] rounded-full bg-[#f2f2f2] flex items-center justify-center text-[11px] text-[rgba(0,0,0,0.38)] font-medium mt-[1px]">{page.id}</span>
-        <p className="flex-1 text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">{page.title}</p>
-        {/* mode toggle */}
-        <div className="shrink-0 flex items-center gap-[4px] rounded-[6px] p-[2px] bg-[#f7f7f7]" onClick={onInteract}>
-          <button
-            onClick={() => onChange({ ...page, mode: "smart" })}
-            className={`text-[12px] leading-[20px] px-[8px] py-[2px] rounded-[4px] transition-colors cursor-pointer ${!isVisual ? "bg-white text-[rgba(0,0,0,0.88)] shadow-sm" : "text-[rgba(0,0,0,0.38)]"}`}
-          >智能呈现</button>
-          <button
-            onClick={() => onChange({ ...page, mode: "visual", visualMode: page.visualMode || "auto" })}
-            className={`text-[12px] leading-[20px] px-[8px] py-[2px] rounded-[4px] transition-colors cursor-pointer ${isVisual ? "bg-white text-[rgba(0,0,0,0.88)] shadow-sm" : "text-[rgba(0,0,0,0.38)]"}`}
-          >可视化呈现</button>
-        </div>
+    <div className="bg-[#f7f7f7] relative rounded-[8px] shrink-0 w-full">
+      <div className="flex flex-col gap-[8px] items-start p-[8px]">
+        <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[12px] text-[rgba(0,0,0,0.38)] tracking-[0.012px] whitespace-nowrap">{page.pageLabel}</p>
+        <p className="font-medium leading-[24px] text-[16px] text-[rgba(0,0,0,0.88)] w-full">{page.title}</p>
+        {page.content.type === "text" ? (
+          <p className="leading-[22px] text-[14px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] w-full">{page.content.text}</p>
+        ) : (
+          <ul className="list-disc leading-[22px] text-[14px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] w-full">
+            {page.content.items.map((item, i) => (
+              <li key={i} className="ms-[21px]">{item}</li>
+            ))}
+          </ul>
+        )}
       </div>
-      {/* visual sub-mode */}
-      {isVisual && (
-        <div className="ml-[32px] flex items-center gap-[8px] flex-wrap" onClick={onInteract}>
-          <button
-            onClick={() => onChange({ ...page, visualMode: "auto", chartType: undefined })}
-            className={`text-[12px] leading-[20px] px-[10px] py-[2px] rounded-full border cursor-pointer transition-colors ${page.visualMode === "auto" ? "border-[#1e63f5] text-[#1e63f5]" : "border-[#e6e6e6] text-[rgba(0,0,0,0.6)]"}`}
-          >智能匹配</button>
-          <button
-            onClick={() => onChange({ ...page, visualMode: "specified", chartType: page.chartType || "柱状图" })}
-            className={`text-[12px] leading-[20px] px-[10px] py-[2px] rounded-full border cursor-pointer transition-colors ${page.visualMode === "specified" ? "border-[#1e63f5] text-[#1e63f5]" : "border-[#e6e6e6] text-[rgba(0,0,0,0.6)]"}`}
-          >指定图形</button>
-          {page.visualMode === "specified" && (
-            <div className="flex items-center gap-[6px] flex-wrap">
-              {CHART_TYPES.map(ct => (
-                <button key={ct}
-                  onClick={() => onChange({ ...page, chartType: ct })}
-                  className={`text-[12px] leading-[20px] px-[10px] py-[2px] rounded-full border cursor-pointer transition-colors ${page.chartType === ct ? "border-[#1e63f5] bg-[#ebf4ff] text-[#1e63f5]" : "border-[#e6e6e6] text-[rgba(0,0,0,0.6)]"}`}
-                >{ct}</button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -322,105 +303,110 @@ function OutlinePageRow({ page, onChange, onInteract }: {
 function OutlinePanel({ visible, onClose, onConfirm }: {
   visible: boolean; onClose: () => void; onConfirm: () => void;
 }) {
-  const [versions, setVersions] = useState<OutlineVersion[]>([]);
-  const [currentVersionIdx, setCurrentVersionIdx] = useState(0);
+  const [pages, setPages] = useState<OutlinePage[]>([]);
+  const [showAiEdit, setShowAiEdit] = useState(false);
   const [aiEditText, setAiEditText] = useState("");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const aiInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (visible) {
-      const initial: OutlineVersion = { id: 1, pages: mockOutlinePages() };
-      setVersions([initial]);
-      setCurrentVersionIdx(0);
-    }
+    if (visible) { setPages(mockOutlinePages()); setShowAiEdit(false); }
   }, [visible]);
 
   const handleConfirm = useCallback(() => onConfirm(), [onConfirm]);
-  const { count, cancelled, cancel } = useCountdown(visible && versions.length > 0, 30, handleConfirm);
+  const { count, cancelled, cancel } = useCountdown(visible && pages.length > 0, 30, handleConfirm);
 
-  const currentVersion = versions[currentVersionIdx];
-
-  const updatePage = (page: OutlinePage) => {
+  const handleAiEditClick = () => {
     cancel();
-    setVersions(vs => vs.map((v, i) => i === currentVersionIdx
-      ? { ...v, pages: v.pages.map(p => p.id === page.id ? page : p) }
-      : v
-    ));
+    setShowAiEdit(true);
+    setTimeout(() => aiInputRef.current?.focus(), 50);
   };
 
-  const handleAiEdit = () => {
+  const handleAiSubmit = () => {
     if (!aiEditText.trim()) return;
     cancel();
     setIsRegenerating(true);
     setAiEditText("");
+    setShowAiEdit(false);
     setTimeout(() => {
-      const newVersion: OutlineVersion = {
-        id: versions.length + 1,
-        pages: mockOutlinePages().map(p => ({ ...p, title: p.title + (versions.length === 1 ? "（已优化）" : " v" + (versions.length + 1)) })),
-      };
-      setVersions(prev => {
-        const next = [...prev, newVersion];
-        setCurrentVersionIdx(next.length - 1);
-        return next;
-      });
+      setPages(mockOutlinePages().map((p, i) => ({
+        ...p,
+        content: i === 0
+          ? { type: "text" as const, text: p.content.type === "text" ? p.content.text + "（已根据您的需求调整）" : p.content.text }
+          : p.content,
+      })));
       setIsRegenerating(false);
     }, 1500);
   };
 
-  const showVersions = versions.length > 1;
-
   return (
     <SlidePanel visible={visible} onClose={onClose}>
-      {/* header */}
-      <div className="shrink-0 px-[16px] pt-[16px] pb-[8px]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-[10px]">
-            <span className="text-[16px] font-medium leading-[24px] text-[rgba(0,0,0,0.88)]">确认大纲</span>
-            {showVersions && (
-              <div className="flex items-center gap-[4px] rounded-[6px] p-[2px] bg-[#f7f7f7]">
-                {versions.map((v, i) => (
-                  <button key={v.id} onClick={() => { setCurrentVersionIdx(i); cancel(); }}
-                    className={`text-[12px] leading-[20px] px-[8px] py-[1px] rounded-[4px] cursor-pointer transition-colors ${i === currentVersionIdx ? "bg-white text-[rgba(0,0,0,0.88)] shadow-sm" : "text-[rgba(0,0,0,0.38)]"}`}
-                  >v{v.id}</button>
-                ))}
-              </div>
-            )}
-          </div>
+      {/* header — matches Frame4 from design */}
+      <div className="shrink-0 bg-[rgba(255,255,255,0.5)] px-[16px] pt-[16px] pb-[12px]">
+        <div className="flex items-center justify-between w-full">
+          <p className="text-[16px] font-medium leading-[24px] text-[rgba(0,0,0,0.88)] tracking-[0.016px]">PPT大纲</p>
           <CloseBtn onClick={onClose} />
         </div>
-        <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.6)] mt-[2px]">确认后将生成 PPT，可对每页调整呈现方式</p>
+        <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.6)] tracking-[0.014px] mt-[2px] w-full">AI将依据此大纲生成PPT，请核对</p>
       </div>
 
-      {/* body */}
-      <div ref={scrollRef} onScroll={cancel} onClick={cancel} className="flex-1 overflow-y-auto min-h-0 px-[16px] pb-[8px]">
+      {/* body — scrollable page cards, matches Frame7 */}
+      <div ref={scrollRef} onScroll={cancel} onClick={cancel} className="flex-1 overflow-y-auto min-h-0 px-[16px] py-[12px] flex flex-col gap-[12px]">
         {isRegenerating ? (
           <div className="flex items-center justify-center py-[40px] gap-[8px] text-[14px] text-[rgba(0,0,0,0.38)]">
             <span className="animate-spin w-[16px] h-[16px] border-2 border-[#1e63f5] border-t-transparent rounded-full inline-block" />
             AI 正在优化大纲…
           </div>
-        ) : currentVersion ? (
-          currentVersion.pages.map(p => <OutlinePageRow key={p.id} page={p} onChange={updatePage} onInteract={cancel} />)
-        ) : null}
+        ) : (
+          pages.map(p => <OutlinePageCard key={p.id} page={p} />)
+        )}
       </div>
 
-      {/* AI edit bar */}
-      <div className="shrink-0 px-[16px] py-[10px] border-t border-[#f2f2f2] flex items-center gap-[8px]">
-        <AIIcon uid="outline-edit" />
-        <input
-          value={aiEditText}
-          onChange={e => setAiEditText(e.target.value)}
-          onFocus={cancel}
-          onKeyDown={e => e.key === "Enter" && handleAiEdit()}
-          className="flex-1 text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] placeholder:text-[rgba(0,0,0,0.26)] outline-none bg-transparent"
-          placeholder="描述你的修改需求，AI 将生成新版本…"
-        />
-        <button onClick={handleAiEdit} disabled={!aiEditText.trim() || isRegenerating}
-          className={`text-[13px] leading-[20px] px-[12px] py-[3px] rounded-[6px] transition-colors cursor-pointer ${aiEditText.trim() ? "bg-[#1e63f5] text-white" : "bg-[#f2f2f2] text-[rgba(0,0,0,0.26)]"}`}
-        >生成</button>
-      </div>
+      {/* AI edit inline input (shown when AI编辑 clicked) */}
+      {showAiEdit && (
+        <div className="shrink-0 px-[16px] py-[10px] border-t border-[#f2f2f2] flex items-center gap-[8px] bg-[#fafafa]">
+          <svg width="16" height="16" viewBox="0 0 14 14.6644" fill="none" className="shrink-0">
+            <path d={svgOutline.p3fbfc4c0} fill="black" fillOpacity="0.6" />
+          </svg>
+          <input
+            ref={aiInputRef}
+            value={aiEditText}
+            onChange={e => setAiEditText(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") handleAiSubmit(); if (e.key === "Escape") setShowAiEdit(false); }}
+            className="flex-1 text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] placeholder:text-[rgba(0,0,0,0.26)] outline-none bg-transparent"
+            placeholder="描述你的修改需求，Enter 确认…"
+          />
+          <button onClick={() => setShowAiEdit(false)}
+            className="text-[13px] text-[rgba(0,0,0,0.38)] px-[8px] py-[3px] cursor-pointer hover:text-[rgba(0,0,0,0.6)]">取消</button>
+          <button onClick={handleAiSubmit} disabled={!aiEditText.trim()}
+            className={`text-[13px] leading-[20px] px-[12px] py-[3px] rounded-[6px] transition-colors cursor-pointer ${aiEditText.trim() ? "bg-[#1e63f5] text-white" : "bg-[#f2f2f2] text-[rgba(0,0,0,0.26)]"}`}
+          >生成</button>
+        </div>
+      )}
 
-      <PanelFooter count={count} cancelled={cancelled} onConfirm={handleConfirm} />
+      {/* footer — matches Frame6: countdown | AI编辑 | 确认 */}
+      <div className="shrink-0 bg-[rgba(255,255,255,0.5)] border-t border-[#f2f2f2]">
+        <div className="flex items-center gap-[12px] px-[16px] py-[16px]">
+          <p className="flex-1 text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]">
+            {!cancelled && <><span className="text-[#1e63f5] font-medium">{count}S</span><span className="text-[rgba(0,0,0,0.88)]"> 后自动确认</span></>}
+          </p>
+          {/* AI编辑 button */}
+          <button onClick={handleAiEditClick}
+            className="relative flex items-center gap-[8px] px-[16px] py-[5px] rounded-[8px] cursor-pointer hover:bg-[#f7f7f7] transition-colors">
+            <div aria-hidden className="absolute inset-0 rounded-[8px] border border-[#e6e6e6] pointer-events-none" />
+            <svg width="16" height="16" viewBox="0 0 14 14.6644" fill="none" className="shrink-0">
+              <path d={svgOutline.p3fbfc4c0} fill="black" fillOpacity="0.88" />
+            </svg>
+            <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap">AI编辑</span>
+          </button>
+          {/* 确认 button */}
+          <button onClick={handleConfirm}
+            className="bg-[#1e63f5] text-[rgba(255,255,255,0.98)] text-[14px] leading-[22px] tracking-[0.014px] px-[16px] py-[5px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity">
+            确认
+          </button>
+        </div>
+      </div>
     </SlidePanel>
   );
 }
