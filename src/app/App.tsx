@@ -628,7 +628,7 @@ function MemoryModal({ onClose }: { onClose: () => void }) {
         <header className="relative h-[76px] shrink-0">
           <h2
             id="memory-title"
-            className="absolute left-[24px] top-[17px] font-['PingFang_SC:Medium'] text-[20px] leading-[28px] tracking-[0.02px] text-[rgba(0,0,0,0.88)]"
+            className="absolute left-[24px] top-[17px] font-['PingFang_SC:Medium'] text-[20px] font-semibold leading-[28px] tracking-[0.02px] text-[rgba(0,0,0,0.88)]"
           >
             记忆
           </h2>
@@ -644,7 +644,7 @@ function MemoryModal({ onClose }: { onClose: () => void }) {
 
         <div className="flex shrink-0 items-center gap-[12px] px-[24px]">
           <div className="min-w-0 flex-1">
-            <p className="font-['PingFang_SC:Medium'] text-[16px] leading-[24px] tracking-[0.016px] text-[rgba(0,0,0,0.88)]">允许记忆</p>
+            <p className="font-['PingFang_SC:Medium'] text-[16px] font-semibold leading-[24px] tracking-[0.016px] text-[rgba(0,0,0,0.88)]">允许记忆</p>
             <p className="mt-[4px] font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.6)]">
               允许 AI从对话中提取并记住相关上下文，以便在未来对话中提供更连贯、个性化的回应。
             </p>
