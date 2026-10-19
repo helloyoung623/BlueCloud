@@ -452,15 +452,14 @@ function PptPreview({ onClose }: { onClose: () => void }) {
 
 type HistoryItem = { id: number; title: string; pinned?: boolean };
 
-const INITIAL_HISTORY: HistoryItem[] = [];
-
-function Sidebar({ onClose, onNewChat, activeId, onSelect }: {
+function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }: {
+  history: HistoryItem[];
+  setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>;
   onClose: () => void;
   onNewChat: () => void;
   activeId: number | null;
   onSelect: (id: number) => void;
 }) {
-  const [history, setHistory] = useState<HistoryItem[]>(INITIAL_HISTORY);
   const [hoverId, setHoverId] = useState<number | null>(null);
   const [menuId, setMenuId] = useState<number | null>(null);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
@@ -767,6 +766,8 @@ export default function App() {
   const [stage, setStage] = useState<PptStage>("idle");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState<number | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const nextHistoryId = useRef(1);
 
   const resetPptFlow = useCallback(() => setStage("idle"), []);
 
@@ -774,7 +775,15 @@ export default function App() {
     const text = input.trim();
     if (!text) return;
     setInput("");
-    setMessages(prev => [...prev, { role: "user", text }, { role: "ai", text: "", thinking: true }]);
+    setMessages(prev => {
+      // create history entry only on first message of a new conversation
+      if (prev.length === 0) {
+        const id = nextHistoryId.current++;
+        setHistory(h => [{ id, title: text.slice(0, 20) }, ...h]);
+        setActiveHistoryId(id);
+      }
+      return [...prev, { role: "user", text }, { role: "ai", text: "", thinking: true }];
+    });
 
     // AI returns summary first
     setTimeout(() => {
@@ -833,6 +842,8 @@ export default function App() {
       {/* sidebar */}
       {sidebarOpen && (
         <Sidebar
+          history={history}
+          setHistory={setHistory}
           onClose={() => setSidebarOpen(false)}
           onNewChat={() => { handleNewChat(); setSidebarOpen(false); }}
           activeId={activeHistoryId}
