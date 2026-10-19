@@ -14,7 +14,8 @@ import imgEmpty from "@/imports/Frame427318236/9e55d93ab34e49b9baf8a7d585a49321a
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
-type Message = { role: "user" | "ai" | "process"; text: string; thinking?: boolean };
+type ProcessVariant = "requirement" | "outline" | "ppt";
+type Message = { role: "user" | "ai" | "process"; text: string; thinking?: boolean; variant?: ProcessVariant };
 type PptStage = "idle" | "requirement" | "outline_generating" | "outline" | "ppt_generating" | "preview";
 
 type OutlinePageContent =
@@ -757,7 +758,7 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true }: 
                   </div>
                 </div>
               ) : msg.role === "process" ? (
-                <div key={i}><ExecutionProcess running={Boolean(msg.thinking)} /></div>
+                <div key={i}><ExecutionProcess running={Boolean(msg.thinking)} variant={msg.variant ?? "requirement"} /></div>
               ) : (
                 <div key={i}>
                   {msg.thinking ? (
@@ -824,41 +825,82 @@ function ToolLoading({ text }: { text: string }) {
   </span>;
 }
 
-function ExecutionProcess({ running }: { running: boolean }) {
+const PROCESS_PRESETS: Record<ProcessVariant, { goal: string; running: string; actions: { label: string; icon: ToolKind }[] }> = {
+  requirement: {
+    goal: "任务目标：生成符合演示场景、受众与风格要求的 PPT",
+    running: "正在规划演示内容",
+    actions: [
+      { label: "搜索；检索演示主题相关资料", icon: "search" },
+      { label: "读取；加载关键信息", icon: "read" },
+      { label: "提取；归纳关键内容", icon: "extract" },
+      { label: "分析；提炼内容结构", icon: "analyze" },
+      { label: "生成；创建 PPT 制作方案", icon: "generate" },
+      { label: "校验；检查内容一致性", icon: "check" },
+      { label: "汇总；输出需求确认结果", icon: "summarize" },
+    ],
+  },
+  outline: {
+    goal: "任务目标：依据已确认的需求，生成完整的 PPT 大纲",
+    running: "正在生成演示大纲",
+    actions: [
+      { label: "读取；载入已确认的需求", icon: "read" },
+      { label: "搜索；补充章节所需素材", icon: "search" },
+      { label: "分析；拆解叙事逻辑与层级", icon: "analyze" },
+      { label: "提取；筛选每页核心论点", icon: "extract" },
+      { label: "生成；编排页面顺序与标题", icon: "generate" },
+      { label: "校验；检查大纲完整性", icon: "check" },
+      { label: "汇总；输出大纲确认结果", icon: "summarize" },
+    ],
+  },
+  ppt: {
+    goal: "任务目标：依据已确认的大纲，生成可预览的 PPT",
+    running: "正在生成 PPT",
+    actions: [
+      { label: "读取；载入已确认的大纲", icon: "read" },
+      { label: "生成；撰写每页正文内容", icon: "generate" },
+      { label: "分析；匹配版式与配图方案", icon: "analyze" },
+      { label: "执行；渲染页面与图表", icon: "execute" },
+      { label: "校验；检查排版与一致性", icon: "check" },
+      { label: "汇总；输出可预览文件", icon: "summarize" },
+    ],
+  },
+};
+
+function ExecutionProcess({ running, variant = "requirement" }: { running: boolean; variant?: ProcessVariant }) {
+  const preset = PROCESS_PRESETS[variant];
+  const actions = preset.actions;
+  const total = actions.length;
   const [expanded, setExpanded] = useState(false);
   const [visibleActions, setVisibleActions] = useState(0);
+  // index of the first item in the batch that is currently executing
+  const [batchStart, setBatchStart] = useState(0);
 
   useEffect(() => {
     if (!running) {
       setExpanded(false);
-      setVisibleActions(7);
+      setVisibleActions(total);
+      setBatchStart(total);
       return;
     }
     setExpanded(false);
     setVisibleActions(0);
+    setBatchStart(0);
     let shown = 0;
     let revealTimer: number | undefined;
     const expandTimer = window.setTimeout(() => {
       setExpanded(true);
       const revealBatch = () => {
         const batchSize = Math.random() > 0.58 ? 2 : 1;
-        shown = Math.min(7, shown + batchSize);
+        const start = shown;
+        shown = Math.min(total, shown + batchSize);
+        setBatchStart(start);
         setVisibleActions(shown);
-        if (shown < 7) revealTimer = window.setTimeout(revealBatch, 2000 + Math.floor(Math.random() * 3001));
+        if (shown < total) revealTimer = window.setTimeout(revealBatch, 2000 + Math.floor(Math.random() * 3001));
       };
       revealTimer = window.setTimeout(revealBatch, 320);
     }, 260);
     return () => { window.clearTimeout(expandTimer); if (revealTimer) window.clearTimeout(revealTimer); };
-  }, [running]);
-  const actions: { label: string; icon: ToolKind }[] = [
-    { label: "搜索；检索演示主题相关资料", icon: "search" },
-    { label: "读取；加载关键信息", icon: "read" },
-    { label: "提取；归纳关键内容", icon: "extract" },
-    { label: "分析；提炼内容结构", icon: "analyze" },
-    { label: "生成；创建 PPT 制作方案", icon: "generate" },
-    { label: "校验；检查内容一致性", icon: "check" },
-    { label: "汇总；输出需求确认结果", icon: "summarize" },
-  ];
+  }, [running, total]);
   if (!running) return (
     <div className="w-full max-w-[768px] overflow-hidden rounded-[8px] border border-[#f2f2f2] bg-white">
       <button onClick={() => setExpanded(v => !v)} className="w-full flex items-center justify-between px-[16px] py-[12px] text-left">
@@ -866,23 +908,23 @@ function ExecutionProcess({ running }: { running: boolean }) {
         <TaskIcon type="chevron" expanded={expanded} />
       </button>
       {expanded && <div className="flex flex-col gap-[12px] px-[16px] pb-[12px]">
-        <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">任务目标：生成符合演示场景、受众与风格要求的 PPT</p>
+        <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">{preset.goal}</p>
         {actions.map(({ label, icon }) => <div key={label} className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]"><TaskIcon type={icon} /><span>{label}</span></div>)}
       </div>}
     </div>
   );
   return (
     <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
-      <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">任务目标：生成符合演示场景、受众与风格要求的 PPT</p>
+      <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">{preset.goal}</p>
       <div className="rounded-[8px] border border-[#f2f2f2]">
         <button onClick={() => setExpanded(v => !v)} className="w-full flex items-center justify-between px-[16px] py-[12px] text-left">
-          <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">正在规划演示内容</span>
+          <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">{preset.running}</span>
           <TaskIcon type="chevron" expanded={expanded} />
         </button>
         {expanded && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} transition={{ duration: 0.2, ease: "easeOut" }} className="flex flex-col gap-[12px] overflow-hidden px-[16px] pb-[12px]">
           {actions.slice(0, visibleActions).map(({ label, icon }, index) => <motion.div key={label} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">
             <TaskIcon type={icon} />
-            {index === visibleActions - 1 ? <ToolLoading text={`正在${label.split("；")[0]}相关信息`} /> : <span>{label}</span>}
+            {index >= batchStart ? <ToolLoading text={`正在${label.split("；")[0]}相关信息`} /> : <span>{label}</span>}
           </motion.div>)}
         </motion.div>}
       </div>
@@ -935,7 +977,7 @@ export default function App() {
       setHistory(h => [{ id, title: text.slice(0, 20), messages: [] }, ...h]);
       setActiveHistoryId(id);
     }
-    setMessages(prev => [...prev, { role: "user", text }, { role: "process", text: "", thinking: true }]);
+    setMessages(prev => [...prev, { role: "user", text }, { role: "process", text: "", thinking: true, variant: "requirement" }]);
 
     // AI returns summary first
     setTimeout(() => {
@@ -963,30 +1005,32 @@ export default function App() {
 
   const handleRequirementConfirm = () => {
     setStage("outline_generating");
-    setMessages(prev => [...prev, { role: "ai", text: "", thinking: true }]);
+    setMessages(prev => [...prev, { role: "process", text: "", thinking: true, variant: "outline" }]);
     setTimeout(() => {
       setMessages(prev => {
         const next = [...prev];
-        const idx = next.findLastIndex(m => m.thinking);
-        if (idx !== -1) next[idx] = { role: "ai", text: "需求已确认，大纲生成完成，请确认以下结构。" };
+        const idx = next.findLastIndex(m => m.role === "process" && m.thinking);
+        if (idx !== -1) next[idx] = { ...next[idx], thinking: false };
+        next.push({ role: "ai", text: "需求已确认，大纲生成完成，请确认以下结构。" });
         return next;
       });
-      setStage("outline");
-    }, 1800);
+      setTimeout(() => setStage("outline"), 400);
+    }, 24000);
   };
 
   const handleOutlineConfirm = () => {
     setStage("ppt_generating");
-    setMessages(prev => [...prev, { role: "ai", text: "", thinking: true }]);
+    setMessages(prev => [...prev, { role: "process", text: "", thinking: true, variant: "ppt" }]);
     setTimeout(() => {
       setMessages(prev => {
         const next = [...prev];
-        const idx = next.findLastIndex(m => m.thinking);
-        if (idx !== -1) next[idx] = { role: "ai", text: "PPT 已生成完成，正在为您打开预览…" };
+        const idx = next.findLastIndex(m => m.role === "process" && m.thinking);
+        if (idx !== -1) next[idx] = { ...next[idx], thinking: false };
+        next.push({ role: "ai", text: "PPT 已生成完成，正在为您打开预览…" });
         return next;
       });
-      setStage("preview");
-    }, 2000);
+      setTimeout(() => setStage("preview"), 400);
+    }, 20000);
   };
 
   const handleNewChat = () => { setMessages([]); setInput(""); setStage("idle"); setActiveHistoryId(null); };
