@@ -5,6 +5,7 @@ import svgPanel from "@/imports/需求确认-1/svg-1yxmq1shfb";
 import svgOutline from "@/imports/大纲/svg-fzbroqn38q";
 import svgSidebar from "@/imports/历史对话操作项/svg-1dh84d0t2n";
 import svgTask from "@/imports/任务执行过程/svg-tkwirjnqmk";
+import svgProgress from "@/imports/渐进式ReAct/svg-x4n03n8we0";
 import imgStyle1 from "@/imports/需求确认-1/29d4a489057188d7298a9a9f8b923d2d9c630925.png";
 import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c6709a8e1bdf.png";
 import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
@@ -783,11 +784,14 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true }: 
 
 // ── root ──────────────────────────────────────────────────────────────────────
 
-function TaskIcon({ type, expanded = false }: { type: "search" | "read" | "chevron"; expanded?: boolean }) {
-  if (type === "search") return <span className="relative size-[16px] shrink-0 overflow-hidden"><svg className="absolute inset-[4.16%_7.02%_7.02%_8.33%]" viewBox="0 0 13.543 14.2102" fill="none" preserveAspectRatio="none"><path d={svgTask.p3b5d3c00} fill="black" fillOpacity="0.38" /><path d={svgTask.p313b1700} fill="black" fillOpacity="0.38" /></svg></span>;
-  if (type === "read") return <span className="relative size-[16px] shrink-0 overflow-hidden"><svg className="absolute left-[1.33px] top-[1.33px] size-[13.333px]" viewBox="0 0 13.3333 13.3333" fill="none" preserveAspectRatio="none"><path d={svgTask.p27585af0} fill="black" fillOpacity="0.38" /><path d={svgTask.p10b3d540} fill="black" fillOpacity="0.38" /><path d={svgTask.p376ce200} fill="black" fillOpacity="0.38" /></svg></span>;
-  if (expanded) return <span className="relative block h-[22px] w-[16px] shrink-0"><svg className="absolute inset-[33.8%_23.48%_33.79%_23.48%]" viewBox="0 0 8.48533 5.18533" fill="none" preserveAspectRatio="none"><path d={svgTask.p33898580} fill="black" fillOpacity="0.38" /></svg></span>;
-  return <span className="relative block h-[22px] w-[16px] shrink-0"><svg className="absolute inset-[23.48%_33.8%_23.48%_33.79%]" viewBox="0 0 5.18533 8.48533" fill="none" preserveAspectRatio="none"><path d={svgTask.p13a1fe00} fill="black" fillOpacity="0.38" /></svg></span>;
+type ToolKind = "search" | "read" | "extract" | "analyze" | "generate" | "check" | "summarize" | "execute" | "fail" | "chevron";
+function TaskIcon({ type, expanded = false }: { type: ToolKind; expanded?: boolean }) {
+  const box = (content: React.ReactNode) => <span className="relative size-[16px] shrink-0 overflow-hidden">{content}</span>;
+  if (type === "search") return box(<svg className="absolute inset-[4.16%_7.02%_7.02%_8.33%]" viewBox="0 0 13.543 14.2102" fill="none"><path d={svgProgress.p3b5d3c00} fill="black" fillOpacity="0.38"/><path d={svgProgress.p313b1700} fill="black" fillOpacity="0.38"/></svg>);
+  if (type === "read") return box(<svg className="absolute left-[1.33px] top-[1.33px] size-[13.333px]" viewBox="0 0 13.3333 13.3333" fill="none"><path d={svgProgress.p27585af0} fill="black" fillOpacity="0.38"/><path d={svgProgress.p10b3d540} fill="black" fillOpacity="0.38"/><path d={svgProgress.p376ce200} fill="black" fillOpacity="0.38"/></svg>);
+  const pathMap: Record<string, string[]> = { extract: [svgProgress.p31938000, svgProgress.p1528fd00], analyze: [svgProgress.p39797f00, svgProgress.p3d6ffbf0], generate: [svgProgress.p21d54700], check: [svgProgress.p2e680a00, svgProgress.pce82500, svgProgress.p2a4faf00, svgProgress.p2dfb8000, svgProgress.p375f7200, svgProgress.p14ac9ef0], summarize: [svgProgress.p1305b900, svgProgress.p3d125080, svgProgress.p3fde1480], execute: [svgProgress.p2a822e00], fail: [svgProgress.p16dcd200] };
+  if (type !== "chevron") return box(<svg className="absolute inset-[8.33%]" viewBox="0 0 16 16" fill="none">{pathMap[type].map((d, i) => <path key={i} d={d} fill={type === "fail" ? "#FC5926" : "black"} fillOpacity={type === "fail" ? 1 : "0.38"}/>)}</svg>);
+  return expanded ? <span className="relative block h-[22px] w-[16px] shrink-0"><svg className="absolute inset-[33.8%_23.48%_33.79%_23.48%]" viewBox="0 0 8.48533 5.18533" fill="none"><path d={svgProgress.p33898580} fill="black" fillOpacity="0.38"/></svg></span> : <span className="relative block h-[22px] w-[16px] shrink-0"><svg className="absolute inset-[23.48%_33.8%_23.48%_33.79%]" viewBox="0 0 5.18533 8.48533" fill="none"><path d={svgProgress.p13a1fe00} fill="black" fillOpacity="0.38"/></svg></span>;
 }
 
 function ExecutionProcess({ running }: { running: boolean }) {
@@ -797,19 +801,23 @@ function ExecutionProcess({ running }: { running: boolean }) {
   useEffect(() => {
     if (!running) {
       setExpanded(false);
-      setVisibleActions(3);
+      setVisibleActions(7);
       return;
     }
     setExpanded(false);
     setVisibleActions(0);
     const expandTimer = window.setTimeout(() => setExpanded(true), 260);
-    const actionTimers = [520, 760, 1000].map((delay, index) => window.setTimeout(() => setVisibleActions(index + 1), delay));
+    const actionTimers = actions.map((_, index) => window.setTimeout(() => setVisibleActions(index + 1), 480 + index * 280));
     return () => { window.clearTimeout(expandTimer); actionTimers.forEach(window.clearTimeout); };
   }, [running]);
-  const actions = [
-    { label: "搜索；找到与演示主题相关的内容", icon: "search" as const },
-    { label: "读取；加载目标网页中的关键信息", icon: "read" as const },
-    { label: running ? "正在整理演示需求" : "提取；归纳出初步制作方案", icon: "read" as const },
+  const actions: { label: string; icon: ToolKind }[] = [
+    { label: "搜索；检索演示主题相关资料", icon: "search" },
+    { label: "读取；加载关键信息", icon: "read" },
+    { label: "提取；归纳关键内容", icon: "extract" },
+    { label: "分析；提炼内容结构", icon: "analyze" },
+    { label: "生成；创建 PPT 制作方案", icon: "generate" },
+    { label: "校验；检查内容一致性", icon: "check" },
+    { label: "汇总；输出需求确认结果", icon: "summarize" },
   ];
   if (!running) return (
     <div className="w-full max-w-[768px] overflow-hidden rounded-[8px] border border-[#f2f2f2] bg-white">
@@ -910,7 +918,7 @@ export default function App() {
           return next;
         });
       }
-    }, 1200);
+    }, 2600);
   };
 
   const handleRequirementConfirm = () => {
