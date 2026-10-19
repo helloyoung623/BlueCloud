@@ -819,7 +819,7 @@ function ExecutionProcess({ running }: { running: boolean }) {
     setExpanded(false);
     setVisibleActions(0);
     const expandTimer = window.setTimeout(() => setExpanded(true), 260);
-    const actionTimers = actions.map((_, index) => window.setTimeout(() => setVisibleActions(index + 1), 480 + index * 280));
+    const actionTimers = actions.map((_, index) => window.setTimeout(() => setVisibleActions(index + 1), 520 + index * 2000));
     return () => { window.clearTimeout(expandTimer); actionTimers.forEach(window.clearTimeout); };
   }, [running]);
   const actions: { label: string; icon: ToolKind }[] = [
@@ -930,7 +930,7 @@ export default function App() {
           return next;
         });
       }
-    }, 2600);
+    }, 15000);
   };
 
   const handleRequirementConfirm = () => {
