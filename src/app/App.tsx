@@ -628,7 +628,7 @@ function MemoryModal({ onClose }: { onClose: () => void }) {
         <header className="relative h-[76px] shrink-0">
           <h2
             id="memory-title"
-            className="absolute left-[24px] top-[17px] font-['PingFang_SC:Medium'] text-[20px] font-semibold leading-[28px] tracking-[0.02px] text-[rgba(0,0,0,0.88)]"
+            className="absolute left-[24px] top-[26px] font-['PingFang_SC:Medium'] text-[20px] font-semibold leading-[28px] tracking-[0.02px] text-[rgba(0,0,0,0.88)]"
           >
             记忆
           </h2>
