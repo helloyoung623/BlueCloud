@@ -993,6 +993,13 @@ function ChatView({ conversationId, messages, input, onInputChange, onSend, show
   // switching conversations shows history in full without replaying typewriters
   const msgCount = messages.length;
   useEffect(() => { setRevealed(msgCount); }, [conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // once the whole task finishes, the three stage blocks merge into one collapsed
+  // "任务已完成" rendered at the position of the first process message
+  const processIndices = messages.map((m, i) => (m.role === "process" ? i : -1)).filter(i => i >= 0);
+  const firstProcessIndex = processIndices[0];
+  const processVariants = processIndices.map(i => messages[i].variant ?? "requirement");
+  const taskComplete = messages.some(m => m.role === "result") && !messages.some(m => m.role === "process" && m.thinking);
   return (
     <div className="flex-1 min-h-0 bg-white flex flex-col">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
@@ -1000,9 +1007,13 @@ function ChatView({ conversationId, messages, input, onInputChange, onSend, show
         <div className="min-h-full px-[24px] pt-[16px] max-[560px]:px-0">
           <div className="mx-auto w-full max-w-[800px]">
             <div className="flex flex-col gap-[32px] p-[16px]">
-              {messages.map((msg, i) => i <= revealed ? (
-                <ChatMessageRow key={i} msg={msg} index={i} advance={advance} onOpenPpt={onOpenPpt} onRegeneratePpt={onRegeneratePpt} />
-              ) : null)}
+              {messages.map((msg, i) => {
+                if (i > revealed) return null;
+                if (msg.role === "process" && taskComplete) {
+                  return i === firstProcessIndex ? <MergedProcess key={i} variants={processVariants} /> : null;
+                }
+                return <ChatMessageRow key={i} msg={msg} index={i} advance={advance} onOpenPpt={onOpenPpt} onRegeneratePpt={onRegeneratePpt} />;
+              })}
             </div>
           </div>
         </div>
@@ -1177,7 +1188,7 @@ function ExecutionProcess({ running, variant = "requirement", onGoalDone }: { ru
   if (!running) return (
     <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
       <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-[8px] text-left">
-        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap font-normal">任务已完成</span>
+        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap font-normal">{preset.running}</span>
         <TaskIcon type="chevron" expanded={expanded} />
       </button>
       {expanded && <div className="flex flex-col gap-[12px]">
@@ -1202,6 +1213,31 @@ function ExecutionProcess({ running, variant = "requirement", onGoalDone }: { ru
           <div ref={stepEndRef} aria-hidden className="h-px w-full shrink-0" />
         </motion.div>}
       </>)}
+    </div>
+  );
+}
+
+// once the whole task is done, all stages collapse into a single "任务已完成"
+function MergedProcess({ variants }: { variants: ProcessVariant[] }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
+      <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-[8px] text-left">
+        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap font-normal">任务已完成</span>
+        <TaskIcon type="chevron" expanded={expanded} />
+      </button>
+      {expanded && <div className="flex flex-col gap-[20px]">
+        {variants.map((variant, vi) => {
+          const preset = PROCESS_PRESETS[variant];
+          return (
+            <div key={vi} className="flex flex-col gap-[12px]">
+              <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] font-normal">{preset.running}</p>
+              <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]">{preset.goal}</p>
+              {preset.actions.map(({ label, icon }) => <div key={label} className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]"><TaskIcon type={icon} /><span>{label}</span></div>)}
+            </div>
+          );
+        })}
+      </div>}
     </div>
   );
 }
