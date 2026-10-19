@@ -2,9 +2,11 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import svgPaths from "@/imports/默认首页-1/svg-4ly00k0kqz";
 import svgPanel from "@/imports/需求确认-1/svg-1yxmq1shfb";
 import svgOutline from "@/imports/大纲/svg-fzbroqn38q";
+import svgSidebar from "@/imports/历史对话操作项/svg-1dh84d0t2n";
 import imgStyle1 from "@/imports/需求确认-1/29d4a489057188d7298a9a9f8b923d2d9c630925.png";
 import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c6709a8e1bdf.png";
 import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
+import imgEmpty from "@/imports/Frame427318236/9e55d93ab34e49b9baf8a7d585a49321a5312a43.png";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -446,6 +448,158 @@ function PptPreview({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ── sidebar ───────────────────────────────────────────────────────────────────
+
+type HistoryItem = { id: number; title: string; pinned?: boolean };
+
+const MOCK_HISTORY: HistoryItem[] = [
+  { id: 1, title: "标题标题标题标题", pinned: true },
+  { id: 2, title: "标题标题标题标题标题" },
+  { id: 3, title: "历史对话标题" },
+  { id: 4, title: "历史对话标题" },
+  { id: 5, title: "标题标题标题标题" },
+  { id: 6, title: "历史对话标题" },
+  { id: 7, title: "标题标题标题标题标题" },
+  { id: 8, title: "标题标题标题标题" },
+];
+
+function Sidebar({ onClose, onNewChat, activeId, onSelect }: {
+  onClose: () => void;
+  onNewChat: () => void;
+  activeId: number | null;
+  onSelect: (id: number) => void;
+}) {
+  const [hoverId, setHoverId] = useState<number | null>(null);
+  const [menuId, setMenuId] = useState<number | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuId(null);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="shrink-0 w-[240px] h-full bg-white flex flex-col relative border-r border-[#f2f2f2]">
+      {/* head */}
+      <div className="shrink-0 h-[120px] relative bg-white">
+        <p className="absolute left-[24px] top-[12px] text-[16px] font-medium leading-[24px] text-[rgba(0,0,0,0.88)] tracking-[0.016px] whitespace-nowrap">任务</p>
+        {/* sidebar toggle (close) */}
+        <button onClick={onClose} className="absolute left-[196px] top-[8px] rounded-[4px] w-[32px] h-[32px] flex items-center justify-center hover:bg-[#f7f7f7] cursor-pointer">
+          <svg width="20" height="20" viewBox="0 0 17.5 17.5" fill="none"><path d={svgSidebar.p2861a580} fill="black" fillOpacity="0.6" /></svg>
+        </button>
+        {/* 新任务 button */}
+        <button onClick={onNewChat} className="absolute left-1/2 top-[48px] -translate-x-1/2 w-[216px] rounded-[4px] flex items-center justify-center gap-[8px] px-[16px] py-[5px] cursor-pointer hover:bg-[#f7f7f7] transition-colors">
+          <div aria-hidden className="absolute inset-0 rounded-[4px] border border-[#e6e6e6] pointer-events-none" />
+          <svg width="16" height="15" viewBox="0 0 14.6667 15" fill="none" className="shrink-0">
+            <path d={svgSidebar.p2e5a6e00} fill="black" fillOpacity="0.88" />
+          </svg>
+          <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap">新任务</span>
+        </button>
+        {/* 历史记录 label + search */}
+        <p className="absolute left-[24px] top-[89px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap">历史记录</p>
+        <button className="absolute left-[200px] top-[88px] w-[24px] h-[24px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer">
+          <svg width="14" height="14" viewBox="0 0 13.5427 13.5427" fill="none">
+            <path d={svgSidebar.p21ae8c80} fill="black" fillOpacity="0.38" />
+          </svg>
+        </button>
+      </div>
+
+      {/* history list */}
+      <div className="flex-1 overflow-y-auto min-h-0 px-[12px] py-[4px] flex flex-col gap-[2px]">
+        {MOCK_HISTORY.length === 0 ? (
+          <div className="flex flex-col items-center pt-[12px]">
+            <img src={imgEmpty} alt="" className="w-[120px] h-[120px] object-cover" />
+            <p className="text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.38)] mt-[12px]">暂无历史对话</p>
+            <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">快去输入问题发起新的咨询</p>
+          </div>
+        ) : (
+          MOCK_HISTORY.map(item => {
+            const isActive = activeId === item.id;
+            const isHover = hoverId === item.id;
+            const hasMenu = menuId === item.id;
+            return (
+              <div key={item.id} className="relative">
+                <button
+                  onMouseEnter={() => setHoverId(item.id)}
+                  onMouseLeave={() => { if (menuId !== item.id) setHoverId(null); }}
+                  onClick={() => { onSelect(item.id); setMenuId(null); }}
+                  className={`w-full h-[40px] rounded-[4px] flex items-center pl-[12px] pr-[4px] py-[8px] text-left transition-colors cursor-pointer
+                    ${isActive ? "bg-[#f7f7f7]" : isHover ? "bg-[#f2f2f2]" : ""}`}
+                >
+                  <p className={`flex-1 min-w-0 text-[14px] leading-[22px] tracking-[0.014px] truncate ${isActive ? "font-medium" : ""} text-[rgba(0,0,0,0.88)]`}>{item.title}</p>
+                  {item.pinned && !isHover && !hasMenu && (
+                    <div className="shrink-0 w-[24px] h-[24px] flex items-center justify-center">
+                      <svg width="12" height="13" viewBox="0 0 12 12.6667" fill="none">
+                        <path d={svgSidebar.p3170f400} fill="black" fillOpacity="0.26" />
+                        <path d="M0 0H12V1.33333H0V0Z" fill="black" fillOpacity="0.26" />
+                      </svg>
+                    </div>
+                  )}
+                  {(isHover || hasMenu) && (
+                    <button
+                      onClick={e => { e.stopPropagation(); setMenuId(hasMenu ? null : item.id); setHoverId(item.id); }}
+                      className="shrink-0 w-[24px] h-[24px] flex items-center justify-center rounded-[4px] hover:bg-[rgba(0,0,0,0.06)] cursor-pointer"
+                    >
+                      <svg width="3" height="12" viewBox="0 0 2.66667 12" fill="none">
+                        <path d={svgSidebar.p19c91c80} fill="black" fillOpacity="0.38" />
+                      </svg>
+                    </button>
+                  )}
+                </button>
+                {/* context menu */}
+                {hasMenu && (
+                  <div ref={menuRef} className="absolute left-[200px] top-0 z-50 bg-white rounded-[12px] w-[192px]" style={{ boxShadow: "0 0 12px rgba(0,0,0,0.08)", border: "1px solid #f2f2f2" }}>
+                    <div className="px-[8px] py-[4px] flex flex-col">
+                      {[
+                        { label: "置顶此对话", icon: svgSidebar.p3170f400, isPin: true },
+                        { label: "编辑名称",   icon: svgSidebar.p20221d00, isPin: false },
+                        { label: "删除",       icon: svgSidebar.p2ffde100, isPin: false },
+                      ].map(({ label, icon, isPin }) => (
+                        <button key={label} onClick={() => setMenuId(null)}
+                          className="flex items-center gap-[8px] px-[8px] py-[11px] rounded-[8px] hover:bg-[#f7f7f7] cursor-pointer w-full text-left">
+                          {isPin ? (
+                            <svg width="16" height="13" viewBox="0 0 12 12.6667" fill="none" className="shrink-0">
+                              <path d={icon} fill="black" fillOpacity="0.26" />
+                              <path d="M0 0H12V1.33333H0V0Z" fill="black" fillOpacity="0.26" />
+                            </svg>
+                          ) : (
+                            <svg width="16" height="16" viewBox="0 0 13.3333 13.3333" fill="none" className="shrink-0">
+                              <path d={icon} fill="black" fillOpacity="0.26" />
+                            </svg>
+                          )}
+                          <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap">{label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* bottom — user info */}
+      <div className="shrink-0 flex items-center px-[12px] py-[8px] bg-white">
+        <div className="flex-1 min-w-0 flex items-center gap-[8px] px-[12px] py-[4px] rounded-[8px]">
+          <div className="relative shrink-0 w-[24px] h-[24px] rounded-full bg-[#dcdcdc] border border-white overflow-hidden">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <svg width="12" height="11" viewBox="0 0 9.5 10.5" fill="none">
+                <path clipRule="evenodd" d={svgSidebar.p44b8000} fill="#5E5E5E" fillRule="evenodd" />
+                <path d={svgSidebar.p16884000} fill="#5E5E5E" />
+              </svg>
+            </div>
+          </div>
+          <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap truncate">张三李四王麻子</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── chat input ────────────────────────────────────────────────────────────────
 
 function ChatInput({ value, onChange, onSend }: { value: string; onChange: (v: string) => void; onSend: () => void }) {
@@ -502,13 +656,13 @@ function ChatInput({ value, onChange, onSend }: { value: string; onChange: (v: s
 
 // ── header ────────────────────────────────────────────────────────────────────
 
-function ChatHeader({ title, onNewChat }: { title?: string; onNewChat?: () => void }) {
+function ChatHeader({ title, onSidebarToggle, onNewChat }: { title?: string; onSidebarToggle?: () => void; onNewChat?: () => void }) {
   return (
     <div className="absolute top-0 left-0 right-0 h-[48px] bg-white flex items-center gap-[8px] px-[16px] z-10">
-      <button className="shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
+      <button className="shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer" onClick={onSidebarToggle}>
         <svg width="20" height="20" viewBox="0 0 17.5 17.5" fill="none"><path d={svgPaths.p2861a580} fill="black" fillOpacity="0.6" /></svg>
       </button>
-      <button className="shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]" onClick={onNewChat}>
+      <button className="shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer" onClick={onNewChat}>
         <svg width="20" height="20" viewBox="0 0 18.3333 18.75" fill="none"><path d={svgPaths.pad1cb00} fill="black" fillOpacity="0.6" /></svg>
       </button>
       {title && <p className="absolute left-0 right-0 text-center text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.88)] truncate px-[80px] pointer-events-none">{title}</p>}
@@ -521,14 +675,14 @@ function ChatHeader({ title, onNewChat }: { title?: string; onNewChat?: () => vo
 
 const SUGGESTIONS = ["找出近一周的邮件", "请帮我起草一封给团队的邮件", "总结下智能助手项目邮件"];
 
-function HomeView({ input, onInputChange, onSend }: { input: string; onInputChange: (v: string) => void; onSend: () => void }) {
+function HomeView({ input, onInputChange, onSend, onSidebarToggle }: { input: string; onInputChange: (v: string) => void; onSend: () => void; onSidebarToggle?: () => void }) {
   return (
-    <div className="relative w-full h-screen bg-white overflow-hidden flex flex-col">
+    <div className="relative w-full h-full bg-white overflow-hidden flex flex-col">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
       <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
         <div className="w-[756px] h-[400px] rounded bg-gradient-to-r from-[#a3ffff] to-[#1e63f5] opacity-10 blur-[100px]" />
       </div>
-      <ChatHeader />
+      <ChatHeader onSidebarToggle={onSidebarToggle} />
       <div className="flex-1 flex flex-col items-center px-[24px] pt-[48px] pb-0 min-h-0">
         <div className="w-full max-w-[800px] flex flex-col items-center flex-1 pt-[200px] min-h-0">
           <div className="shrink-0 flex items-baseline gap-[8px] py-[32px]">
@@ -560,16 +714,16 @@ function HomeView({ input, onInputChange, onSend }: { input: string; onInputChan
   );
 }
 
-function ChatView({ messages, input, onInputChange, onSend, onNewChat }: {
-  messages: Message[]; input: string; onInputChange: (v: string) => void; onSend: () => void; onNewChat: () => void;
+function ChatView({ messages, input, onInputChange, onSend, onNewChat, onSidebarToggle }: {
+  messages: Message[]; input: string; onInputChange: (v: string) => void; onSend: () => void; onNewChat: () => void; onSidebarToggle?: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
   const title = messages[0]?.text.slice(0, 20) + (messages[0]?.text.length > 20 ? "…" : "");
   return (
-    <div className="relative w-full h-screen bg-white overflow-hidden flex flex-col">
+    <div className="relative w-full h-full bg-white overflow-hidden flex flex-col">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-      <ChatHeader title={title} onNewChat={onNewChat} />
+      <ChatHeader title={title} onSidebarToggle={onSidebarToggle} onNewChat={onNewChat} />
       <div className="flex-1 flex flex-col items-center pt-[48px] px-[24px] pb-0 min-h-0">
         <div className="w-full max-w-[800px] flex flex-col flex-1 min-h-0">
           <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0 pt-[16px]">
@@ -609,6 +763,8 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [stage, setStage] = useState<PptStage>("idle");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeHistoryId, setActiveHistoryId] = useState<number | null>(null);
 
   const resetPptFlow = useCallback(() => setStage("idle"), []);
 
@@ -671,11 +827,25 @@ export default function App() {
   const handleNewChat = () => { setMessages([]); setInput(""); setStage("idle"); };
 
   return (
-    <>
-      {messages.length > 0
-        ? <ChatView messages={messages} input={input} onInputChange={setInput} onSend={handleSend} onNewChat={handleNewChat} />
-        : <HomeView input={input} onInputChange={setInput} onSend={handleSend} />
-      }
+    <div className="w-screen h-screen flex flex-row overflow-hidden">
+      {/* sidebar */}
+      {sidebarOpen && (
+        <Sidebar
+          onClose={() => setSidebarOpen(false)}
+          onNewChat={() => { handleNewChat(); setSidebarOpen(false); }}
+          activeId={activeHistoryId}
+          onSelect={setActiveHistoryId}
+        />
+      )}
+      {/* main content */}
+      <div className="flex-1 min-w-0 h-full flex flex-col">
+        {messages.length > 0
+          ? <ChatView messages={messages} input={input} onInputChange={setInput} onSend={handleSend} onNewChat={handleNewChat} onSidebarToggle={() => setSidebarOpen(o => !o)} />
+          : <HomeView input={input} onInputChange={setInput} onSend={handleSend} onSidebarToggle={() => setSidebarOpen(o => !o)} />
+        }
+      </div>
+      {/* panels / preview (z-50, fixed) */}
+      {/*  these stay here so they overlay regardless of sidebar */}
 
       <RequirementPanel
         visible={stage === "requirement"}
@@ -688,6 +858,6 @@ export default function App() {
         onConfirm={handleOutlineConfirm}
       />
       {stage === "preview" && <PptPreview onClose={() => setStage("idle")} />}
-    </>
+    </div>
   );
 }
