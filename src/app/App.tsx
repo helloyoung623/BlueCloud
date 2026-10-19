@@ -13,6 +13,7 @@ import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c670
 import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
 import imgEmpty from "@/imports/Frame427318236/9e55d93ab34e49b9baf8a7d585a49321a5312a43.png";
 import { PptPanel, PptResultMessage } from "./components/ppt-result";
+import SendButtonFigma from "@/imports/发送按钮";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -616,12 +617,73 @@ function PptGenerationToggle({ selected, onChange }: { selected: boolean; onChan
   );
 }
 
-function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChange }: {
+type SendButtonState = "Default" | "激活" | "暂停" | "激活_hover" | "激活_pressed" | "暂停_Hover" | "暂停_pressed" | "loading";
+
+function SendButton({ hasText, agentRunning = false, onSend, onStop }: {
+  hasText: boolean;
+  agentRunning?: boolean;
+  onSend: () => void;
+  onStop?: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (agentRunning) setLoading(false);
+  }, [agentRunning]);
+
+  const state: SendButtonState = loading
+    ? "loading"
+    : agentRunning
+      ? (pressed ? "暂停_pressed" : hovered ? "暂停_Hover" : "暂停")
+      : hasText
+        ? (pressed ? "激活_pressed" : hovered ? "激活_hover" : "激活")
+        : "Default";
+
+  const handleClick = () => {
+    if (agentRunning) {
+      onStop?.();
+      return;
+    }
+    if (!hasText || loading) return;
+    setLoading(true);
+    onSend();
+    window.setTimeout(() => setLoading(false), 560);
+  };
+
+  return (
+    <div
+      role="button"
+      tabIndex={agentRunning || hasText ? 0 : -1}
+      aria-label={agentRunning ? "暂停生成" : "发送消息"}
+      aria-disabled={!agentRunning && !hasText}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setPressed(false); }}
+      onPointerDown={() => { if (agentRunning || hasText) setPressed(true); }}
+      onPointerUp={() => setPressed(false)}
+      onClick={handleClick}
+      onKeyDown={event => {
+        if ((event.key === "Enter" || event.key === " ") && (agentRunning || hasText)) {
+          event.preventDefault();
+          handleClick();
+        }
+      }}
+      className={`ml-auto shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#1e63f5] focus-visible:ring-offset-2 ${agentRunning || hasText ? "cursor-pointer" : "cursor-default"}`}
+    >
+      <SendButtonFigma propValue={state} />
+    </div>
+  );
+}
+
+function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChange, agentRunning = false, onStop }: {
   value: string;
   onChange: (v: string) => void;
   onSend: () => void;
   pptGeneration: boolean;
   onPptGenerationChange: (selected: boolean) => void;
+  agentRunning?: boolean;
+  onStop?: () => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasText = value.trim().length > 0;
@@ -659,13 +721,7 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
           <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] whitespace-nowrap">来源</span>
         </div>
         <PptGenerationToggle selected={pptGeneration} onChange={onPptGenerationChange} />
-        <button onClick={() => hasText && onSend()}
-          className={`ml-auto shrink-0 w-[30px] h-[30px] rounded-full flex items-center justify-center transition-colors ${hasText ? "bg-[#1e63f5] cursor-pointer" : "bg-[#f2f2f2] cursor-default"}`}
-        >
-          <svg width="14" height="14" viewBox="0 0 13.4784 13.4602" fill="none">
-            <path d={svgPaths.p18714f00} fill={hasText ? "white" : "black"} fillOpacity={hasText ? "0.98" : "0.26"} />
-          </svg>
-        </button>
+        <SendButton hasText={hasText} agentRunning={agentRunning} onSend={onSend} onStop={onStop} />
       </div>
     </div>
   );
@@ -745,10 +801,11 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
   );
 }
 
-function ChatView({ messages, input, onInputChange, onSend, showInput = true, onOpenPpt, onRegeneratePpt, pptGeneration, onPptGenerationChange }: {
+function ChatView({ messages, input, onInputChange, onSend, showInput = true, onOpenPpt, onRegeneratePpt, pptGeneration, onPptGenerationChange, agentRunning, onStop }: {
   messages: Message[]; input: string; onInputChange: (v: string) => void; onSend: () => void; showInput?: boolean;
   onOpenPpt?: () => void; onRegeneratePpt?: () => void;
   pptGeneration: boolean; onPptGenerationChange: (selected: boolean) => void;
+  agentRunning: boolean; onStop: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
@@ -786,7 +843,7 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true, on
       </div>
       <div aria-hidden={!showInput} className={`shrink-0 px-[24px] transition-opacity duration-200 ${showInput ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
         <div className="mx-auto w-full max-w-[800px]">
-          <ChatInput value={input} onChange={onInputChange} onSend={onSend} pptGeneration={pptGeneration} onPptGenerationChange={onPptGenerationChange} />
+          <ChatInput value={input} onChange={onInputChange} onSend={onSend} pptGeneration={pptGeneration} onPptGenerationChange={onPptGenerationChange} agentRunning={agentRunning} onStop={onStop} />
         </div>
       </div>
       <div className="shrink-0 flex items-center justify-center p-[4px]">
@@ -953,6 +1010,7 @@ export default function App() {
   const [activeHistoryId, setActiveHistoryId] = useState<number | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const nextHistoryId = useRef(1);
+  const activeRunId = useRef(0);
 
   const resetPptFlow = useCallback(() => setStage("idle"), []);
 
@@ -984,6 +1042,7 @@ export default function App() {
     const text = input.trim();
     if (!text) return;
     const shouldGeneratePpt = pptGeneration || isPPTIntent(text);
+    const runId = ++activeRunId.current;
     setInput("");
     setPptGeneration(false);
     // create a history entry when starting a brand-new conversation
@@ -996,6 +1055,7 @@ export default function App() {
 
     // AI returns summary first
     setTimeout(() => {
+      if (activeRunId.current !== runId) return;
       if (shouldGeneratePpt) {
         setMessages(prev => {
           const next = [...prev];
@@ -1005,7 +1065,7 @@ export default function App() {
           return next;
         });
         // panel appears after AI summary is shown
-        setTimeout(() => setStage("requirement"), 400);
+        setTimeout(() => { if (activeRunId.current === runId) setStage("requirement"); }, 400);
       } else {
         setMessages(prev => {
           const next = [...prev];
@@ -1019,9 +1079,11 @@ export default function App() {
   };
 
   const handleRequirementConfirm = () => {
+    const runId = ++activeRunId.current;
     setStage("outline_generating");
     setMessages(prev => [...prev, { role: "process", text: "", thinking: true, variant: "outline" }]);
     setTimeout(() => {
+      if (activeRunId.current !== runId) return;
       setMessages(prev => {
         const next = [...prev];
         const idx = next.findLastIndex(m => m.role === "process" && m.thinking);
@@ -1029,14 +1091,16 @@ export default function App() {
         next.push({ role: "ai", text: "需求已确认，大纲生成完成，请确认以下结构。" });
         return next;
       });
-      setTimeout(() => setStage("outline"), 400);
+      setTimeout(() => { if (activeRunId.current === runId) setStage("outline"); }, 400);
     }, 24000);
   };
 
   const handleOutlineConfirm = () => {
+    const runId = ++activeRunId.current;
     setStage("ppt_generating");
     setMessages(prev => [...prev, { role: "process", text: "", thinking: true, variant: "ppt" }]);
     setTimeout(() => {
+      if (activeRunId.current !== runId) return;
       setMessages(prev => {
         const next = [...prev];
         const idx = next.findLastIndex(m => m.role === "process" && m.thinking);
@@ -1044,11 +1108,17 @@ export default function App() {
         next.push({ role: "result", text: "" });
         return next;
       });
-      setTimeout(() => setStage("preview"), 400);
+      setTimeout(() => { if (activeRunId.current === runId) setStage("preview"); }, 400);
     }, 20000);
   };
 
-  const handleNewChat = () => { setMessages([]); setInput(""); setPptGeneration(false); setStage("idle"); setActiveHistoryId(null); };
+  const handleStop = () => {
+    activeRunId.current += 1;
+    setStage("idle");
+    setMessages(prev => prev.map(message => message.role === "process" && message.thinking ? { ...message, thinking: false } : message));
+  };
+
+  const handleNewChat = () => { activeRunId.current += 1; setMessages([]); setInput(""); setPptGeneration(false); setStage("idle"); setActiveHistoryId(null); };
   const chatTitle = messages.length > 0
     ? messages[0].text.slice(0, 20) + (messages[0].text.length > 20 ? "…" : "")
     : undefined;
@@ -1085,6 +1155,8 @@ export default function App() {
               onRegeneratePpt={handleOutlineConfirm}
               pptGeneration={pptGeneration}
               onPptGenerationChange={setPptGeneration}
+              agentRunning={messages.some(message => message.role === "process" && Boolean(message.thinking))}
+              onStop={handleStop}
             />
           : <HomeView
               input={input}
