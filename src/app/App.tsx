@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { Check, ChevronDown, ChevronRight, FileSearch, Search, Sparkles } from "lucide-react";
+import { motion } from "motion/react";
 import svgPaths from "@/imports/默认首页-1/svg-4ly00k0kqz";
 import svgPanel from "@/imports/需求确认-1/svg-1yxmq1shfb";
 import svgOutline from "@/imports/大纲/svg-fzbroqn38q";
@@ -10,7 +12,7 @@ import imgEmpty from "@/imports/Frame427318236/9e55d93ab34e49b9baf8a7d585a49321a
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
-type Message = { role: "user" | "ai"; text: string; thinking?: boolean };
+type Message = { role: "user" | "ai" | "process"; text: string; thinking?: boolean };
 type PptStage = "idle" | "requirement" | "outline_generating" | "outline" | "ppt_generating" | "preview";
 
 type OutlinePageContent =
@@ -752,6 +754,8 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true }: 
                     <p className="text-[16px] leading-[26px] text-[rgba(0,0,0,0.88)] whitespace-pre-wrap break-words">{msg.text}</p>
                   </div>
                 </div>
+              ) : msg.role === "process" ? (
+                <div key={i}><ExecutionProcess running={Boolean(msg.thinking)} /></div>
               ) : (
                 <div key={i}>
                   {msg.thinking ? (
@@ -778,6 +782,13 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true }: 
 }
 
 // ── root ──────────────────────────────────────────────────────────────────────
+
+function ExecutionProcess({ running }: { running: boolean }) {
+  const [expanded, setExpanded] = useState(running);
+  useEffect(() => { setExpanded(running); }, [running]);
+  const steps = ["理解演示目标与受众", "检索可用的内容结构", running ? "正在整理演示需求" : "已整理出初步制作方案"];
+  return <div className="w-full max-w-[768px]"><button onClick={() => setExpanded(v => !v)} className="w-full flex items-center justify-between rounded-[8px] border border-[#e6e6e6] px-[12px] py-[8px] text-left hover:bg-[#fafafa]"><span className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">{running ? <motion.span className="flex size-[14px] rounded-full border-2 border-[#1e63f5] border-t-transparent" animate={{ rotate: 360 }} transition={{ duration: 1.1, ease: "linear", repeat: Infinity }} /> : <Check size={14} className="text-[#1e63f5]" />}{running ? "正在理解并规划 PPT 制作" : "执行过程"}</span>{expanded ? <ChevronDown size={16} className="text-[rgba(0,0,0,0.38)]" /> : <ChevronRight size={16} className="text-[rgba(0,0,0,0.38)]" />}</button>{expanded && <div className="mt-[8px] rounded-[8px] border border-[#e6e6e6] px-[12px] py-[10px]"><p className="mb-[8px] text-[12px] leading-[20px] text-[rgba(0,0,0,0.38)]">任务目标：生成符合演示场景、受众与风格要求的 PPT</p><div className="flex flex-col gap-[8px]">{steps.map((label, index) => <div key={label} className="flex items-center gap-[8px] text-[14px] leading-[22px]"><>{running && index === 2 ? <motion.span className="size-[14px] shrink-0 rounded-full border-2 border-[#1e63f5] border-t-transparent" animate={{ rotate: 360 }} transition={{ duration: 1.1, ease: "linear", repeat: Infinity }} /> : index === 1 ? <Search size={14} className="text-[rgba(0,0,0,0.38)]" /> : index === 2 ? <FileSearch size={14} className="text-[rgba(0,0,0,0.38)]" /> : <Sparkles size={14} className="text-[rgba(0,0,0,0.38)]" />}</><span className={running && index === 2 ? "text-[rgba(0,0,0,0.6)]" : "text-[rgba(0,0,0,0.88)]"}>{label}</span></div>)}</div></div>}</div>;
+}
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -824,15 +835,16 @@ export default function App() {
       setHistory(h => [{ id, title: text.slice(0, 20), messages: [] }, ...h]);
       setActiveHistoryId(id);
     }
-    setMessages(prev => [...prev, { role: "user", text }, { role: "ai", text: "", thinking: true }]);
+    setMessages(prev => [...prev, { role: "user", text }, { role: "process", text: "", thinking: true }]);
 
     // AI returns summary first
     setTimeout(() => {
       if (isPPTIntent(text)) {
         setMessages(prev => {
           const next = [...prev];
-          const idx = next.findLastIndex(m => m.thinking);
-          if (idx !== -1) next[idx] = { role: "ai", text: "好的，我来帮您生成PPT。需要先确认演示场景、受众、页数和风格，以便提供针对性的内容结构。" };
+          const idx = next.findLastIndex(m => m.role === "process" && m.thinking);
+          if (idx !== -1) next[idx] = { ...next[idx], thinking: false };
+          next.push({ role: "ai", text: "好的，我来帮您生成PPT。需要先确认演示场景、受众、页数和风格，以便提供针对性的内容结构。" });
           return next;
         });
         // panel appears after AI summary is shown
@@ -840,8 +852,9 @@ export default function App() {
       } else {
         setMessages(prev => {
           const next = [...prev];
-          const idx = next.findLastIndex(m => m.thinking);
-          if (idx !== -1) next[idx] = { role: "ai", text: "好的，我来帮您处理这个请求。" };
+          const idx = next.findLastIndex(m => m.role === "process" && m.thinking);
+          if (idx !== -1) next[idx] = { ...next[idx], thinking: false };
+          next.push({ role: "ai", text: "好的，我来帮您处理这个请求。" });
           return next;
         });
       }
