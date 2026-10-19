@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
-import { CircleCheck } from "lucide-react";
 import svgPaths from "@/imports/默认首页-1/svg-4ly00k0kqz";
 import svgPanel from "@/imports/需求确认-1/svg-1yxmq1shfb";
 import svgOutline from "@/imports/大纲/svg-fzbroqn38q";
@@ -752,10 +751,10 @@ function MemoryModal({ onClose }: { onClose: () => void }) {
       {updateStatus === "success" && (
         <div
           role="status"
-          className="fixed top-[24px] z-[310] flex min-h-[44px] -translate-x-1/2 items-center gap-[8px] rounded-full bg-white py-[8px] pl-[8px] pr-[16px] shadow-[0_0_6px_rgba(0,0,0,0.08)]"
+          className="fixed top-[24px] z-[310] flex min-h-[44px] -translate-x-1/2 items-center gap-[8px] rounded-full border border-[#38e38a] bg-white py-[8px] pl-[8px] pr-[16px] shadow-[0_0_6px_rgba(0,0,0,0.08)]"
           style={{ left: "calc(50% + min(40px, 3vw))" }}
         >
-          <CircleCheck aria-hidden size={24} strokeWidth={1.8} className="shrink-0 text-[#2ba471]" />
+          <img src="/assets/00c34.svg" alt="" className="shrink-0" />
           <span className="whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
             记忆更新成功
           </span>
