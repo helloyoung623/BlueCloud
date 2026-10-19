@@ -607,7 +607,7 @@ function ChatView({ messages, input, onInputChange, onSend, onNewChat }: {
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("生成PPT");
+  const [input, setInput] = useState("");
   const [stage, setStage] = useState<PptStage>("idle");
 
   const resetPptFlow = useCallback(() => setStage("idle"), []);
