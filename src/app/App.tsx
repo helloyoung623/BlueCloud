@@ -72,8 +72,8 @@ function AIIcon({ uid }: { uid: string }) {
 
 // ── slide-up panel shell ──────────────────────────────────────────────────────
 
-function SlidePanel({ visible, onClose, children }: {
-  visible: boolean; onClose: () => void; children: React.ReactNode;
+function SlidePanel({ visible, onClose, children, mainOffset = 0 }: {
+  visible: boolean; onClose: () => void; children: React.ReactNode; mainOffset?: number;
 }) {
   const [mounted, setMounted] = useState(false);
   const [animIn, setAnimIn] = useState(false);
@@ -95,6 +95,7 @@ function SlidePanel({ visible, onClose, children }: {
       className="fixed left-1/2 z-50 flex flex-col bg-white rounded-[16px]"
       style={{
         width: 800, maxHeight: 560, bottom: 22,
+        left: `calc(50% + ${mainOffset}px)`,
         transform: `translateX(-50%) translateY(${animIn ? "0%" : "120%"})`,
         transition: "transform 0.35s cubic-bezier(0.32,0.72,0,1)",
         boxShadow: "0 0 12px rgba(0,0,0,0.08)", border: "1px solid #e6e6e6",
@@ -185,8 +186,8 @@ function GridItem({ label, selected, onClick }: { label: string; selected: boole
   );
 }
 
-function RequirementPanel({ visible, onClose, onConfirm }: {
-  visible: boolean; onClose: () => void; onConfirm: () => void;
+function RequirementPanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
+  visible: boolean; onClose: () => void; onConfirm: () => void; mainOffset?: number;
 }) {
   const [style, setStyle] = useState("科技现代");
   const [scenes, setScenes] = useState<string[]>(["商业路演"]);
@@ -203,7 +204,7 @@ function RequirementPanel({ visible, onClose, onConfirm }: {
   const handleInteract = () => cancel();
 
   return (
-    <SlidePanel visible={visible} onClose={onClose}>
+    <SlidePanel visible={visible} onClose={onClose} mainOffset={mainOffset}>
       {/* header */}
       <div className="shrink-0 px-[16px] pt-[16px] pb-[8px]">
         <div className="flex items-center justify-between">
@@ -299,8 +300,8 @@ function OutlinePageCard({ page }: { page: OutlinePage }) {
   );
 }
 
-function OutlinePanel({ visible, onClose, onConfirm }: {
-  visible: boolean; onClose: () => void; onConfirm: () => void;
+function OutlinePanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
+  visible: boolean; onClose: () => void; onConfirm: () => void; mainOffset?: number;
 }) {
   const [pages, setPages] = useState<OutlinePage[]>([]);
   const [showAiEdit, setShowAiEdit] = useState(false);
@@ -340,7 +341,7 @@ function OutlinePanel({ visible, onClose, onConfirm }: {
   };
 
   return (
-    <SlidePanel visible={visible} onClose={onClose}>
+    <SlidePanel visible={visible} onClose={onClose} mainOffset={mainOffset}>
       {/* header — matches Frame4 from design */}
       <div className="shrink-0 bg-[rgba(255,255,255,0.5)] px-[16px] pt-[16px] pb-[12px]">
         <div className="flex items-center justify-between w-full">
@@ -733,8 +734,8 @@ function HomeView({ input, onInputChange, onSend }: { input: string; onInputChan
   );
 }
 
-function ChatView({ messages, input, onInputChange, onSend }: {
-  messages: Message[]; input: string; onInputChange: (v: string) => void; onSend: () => void;
+function ChatView({ messages, input, onInputChange, onSend, showInput = true }: {
+  messages: Message[]; input: string; onInputChange: (v: string) => void; onSend: () => void; showInput?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
@@ -764,7 +765,9 @@ function ChatView({ messages, input, onInputChange, onSend }: {
               ))}
             </div>
           </div>
-          <div className="shrink-0 w-full"><ChatInput value={input} onChange={onInputChange} onSend={onSend} /></div>
+          <div aria-hidden={!showInput} className={`shrink-0 w-full transition-opacity duration-200 ${showInput ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+            <ChatInput value={input} onChange={onInputChange} onSend={onSend} />
+          </div>
         </div>
       </div>
       <div className="shrink-0 flex items-center justify-center p-[4px]">
@@ -900,7 +903,7 @@ export default function App() {
           onNewChat={messages.length > 0 ? handleNewChat : undefined}
         />
         {messages.length > 0
-          ? <ChatView messages={messages} input={input} onInputChange={setInput} onSend={handleSend} />
+          ? <ChatView messages={messages} input={input} onInputChange={setInput} onSend={handleSend} showInput={stage === "idle"} />
           : <HomeView input={input} onInputChange={setInput} onSend={handleSend} />
         }
       </div>
@@ -911,11 +914,13 @@ export default function App() {
         visible={stage === "requirement"}
         onClose={resetPptFlow}
         onConfirm={handleRequirementConfirm}
+        mainOffset={sidebarOpen ? 120 : 0}
       />
       <OutlinePanel
         visible={stage === "outline"}
         onClose={resetPptFlow}
         onConfirm={handleOutlineConfirm}
+        mainOffset={sidebarOpen ? 120 : 0}
       />
       {stage === "preview" && <PptPreview onClose={() => setStage("idle")} />}
     </div>
