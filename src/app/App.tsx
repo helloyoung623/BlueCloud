@@ -165,6 +165,19 @@ function OptionTag({
 }
 
 function RequirementPanel({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const [mounted, setMounted] = useState(false);
+  const [animIn, setAnimIn] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setMounted(true);
+      requestAnimationFrame(() => requestAnimationFrame(() => setAnimIn(true)));
+    } else {
+      setAnimIn(false);
+      const t = setTimeout(() => setMounted(false), 380);
+      return () => clearTimeout(t);
+    }
+  }, [visible]);
   const [style, setStyle] = useState("科技现代");
   const [scenes, setScenes] = useState<string[]>(["商业路演"]);
   const [audience, setAudience] = useState<string[]>(["投资人"]);
@@ -188,12 +201,14 @@ function RequirementPanel({ visible, onClose }: { visible: boolean; onClose: () 
   const toggleMulti = (set: string[], val: string, setter: (v: string[]) => void) =>
     setter(set.includes(val) ? set.filter(x => x !== val) : [...set, val]);
 
+  if (!mounted) return null;
+
   return (
     <>
       {/* backdrop */}
       <div
         className="fixed inset-0 z-40 transition-opacity duration-300"
-        style={{ opacity: visible ? 1 : 0, pointerEvents: visible ? "auto" : "none" }}
+        style={{ opacity: animIn ? 1 : 0 }}
         onClick={onClose}
       />
       {/* panel */}
@@ -203,7 +218,7 @@ function RequirementPanel({ visible, onClose }: { visible: boolean; onClose: () 
           width: 800,
           height: 560,
           bottom: 22,
-          transform: `translateX(-50%) translateY(${visible ? "0%" : "120%"})`,
+          transform: `translateX(-50%) translateY(${animIn ? "0%" : "120%"})`,
           transition: "transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)",
           boxShadow: "0 0 12px rgba(0,0,0,0.08)",
           border: "1px solid #e6e6e6",
