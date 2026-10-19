@@ -639,7 +639,7 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
 
   return (
     <div className="relative w-full rounded-[20px] bg-white" style={{ boxShadow: "0 0 12px rgba(0,0,0,0.08)", border: "1px solid #e6e6e6" }}>
-      <div className="px-[12px] pt-[12px] pb-[12px]">
+      <div className="px-[12px] pt-[12px] pb-[12px]" onPointerDown={() => textareaRef.current?.focus()}>
         <textarea ref={textareaRef} value={value} onChange={e => onChange(e.target.value)} onKeyDown={handleKeyDown}
           placeholder="有问题，尽管问；/调用技能" rows={1} style={{ minHeight: 22, maxHeight: 160 }}
           className="relative z-10 block w-full resize-none bg-transparent text-[14px] font-normal leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] placeholder:text-[rgba(0,0,0,0.26)] outline-none overflow-y-auto"
