@@ -1,0 +1,41 @@
+@font-face {
+  font-family: "Noto Sans JP:Regular";
+  src: url("https://static.figma.com/font/NotoSansJP-VF_2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Noto Sans SC:Regular";
+  src: url("https://static.figma.com/font/NotoSansSC-VF_2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Noto Sans:Regular";
+  src: url("https://static.figma.com/font/NotoSans-VF_3") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "TCloudNumber:Regular";
+  src: url("/fonts/TCloudNumber-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "PingFang SC:Regular";
+  src: url("/fonts/PingFang_SC-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "PingFang SC:Medium";
+  src: url("/fonts/PingFang_SC-Medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+}

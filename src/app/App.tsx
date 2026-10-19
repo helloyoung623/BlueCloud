@@ -593,15 +593,26 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
   const [hoverId, setHoverId] = useState<number | null>(null);
   const [menuId, setMenuId] = useState<number | null>(null);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
+  const [profileHovered, setProfileHovered] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const profileTriggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuId(null);
+      if (
+        profileMenuOpen &&
+        !profileMenuRef.current?.contains(e.target as Node) &&
+        !profileTriggerRef.current?.contains(e.target as Node)
+      ) {
+        setProfileMenuOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [profileMenuOpen]);
 
   return (
     <div className="shrink-0 w-[240px] self-stretch bg-white flex flex-col relative border-r border-[#f2f2f2]">
@@ -720,19 +731,86 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
         </div>
       )}
 
+      {profileMenuOpen && (
+        <div
+          ref={profileMenuRef}
+          role="menu"
+          aria-label="用户菜单"
+          className="absolute bottom-[48px] left-[24px] z-[200] w-[192px] overflow-hidden rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+        >
+          <div className="flex w-full flex-col py-[4px]">
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => setProfileMenuOpen(false)}
+              className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+            >
+              <img src="/assets/d0cd0.svg" alt="" className="shrink-0" />
+              <span className="flex-1 whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+                剩余用量
+              </span>
+              <span className="font-['TCloudNumber:Regular'] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">90%</span>
+              <img src="/assets/c29c9.svg" alt="" className="shrink-0" />
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => setProfileMenuOpen(false)}
+              className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+            >
+              <img src="/assets/7ba18.svg" alt="" className="shrink-0" />
+              <span className="whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">记忆</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => setProfileMenuOpen(false)}
+              className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+            >
+              <img src="/assets/89936.svg" alt="" className="shrink-0" />
+              <span className="whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">问题反馈</span>
+            </button>
+            <div className="relative h-px w-full">
+              <img src="/assets/11020.svg" alt="" className="absolute left-[-1px] top-0" />
+            </div>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => setProfileMenuOpen(false)}
+              className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+            >
+              <img src="/assets/9a53a.svg" alt="" className="shrink-0" />
+              <span className="whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">退出登录</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* bottom — user info */}
       <div className="shrink-0 flex items-center px-[12px] py-[8px] bg-white">
-        <div className="flex-1 min-w-0 flex items-center gap-[8px] px-[12px] py-[4px] rounded-[8px]">
+        <button
+          ref={profileTriggerRef}
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={profileMenuOpen}
+          onMouseEnter={() => setProfileHovered(true)}
+          onMouseLeave={() => setProfileHovered(false)}
+          onClick={() => {
+            setMenuId(null);
+            setProfileMenuOpen(open => !open);
+          }}
+          className="flex h-[32px] flex-1 min-w-0 cursor-pointer items-center gap-[8px] rounded-[8px] px-[12px] py-[4px] text-left"
+        >
           <div className="relative shrink-0 w-[24px] h-[24px] rounded-full bg-[#dcdcdc] border border-white overflow-hidden">
             <div className="absolute inset-0 flex items-center justify-center">
-              <svg width="12" height="11" viewBox="0 0 9.5 10.5" fill="none">
-                <path clipRule="evenodd" d={svgSidebar.p44b8000} fill="#5E5E5E" fillRule="evenodd" />
-                <path d={svgSidebar.p16884000} fill="#5E5E5E" />
-              </svg>
+              <img src="/assets/a2c1b.svg" alt="" />
             </div>
           </div>
-          <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap truncate">张三李四王麻子</p>
-        </div>
+          <span className="min-w-0 flex-1 truncate whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">张三李四王麻子</span>
+          {(profileHovered || profileMenuOpen) && (
+            <img src="/assets/05ead.svg" alt="" className="shrink-0" />
+          )}
+        </button>
       </div>
     </div>
   );
