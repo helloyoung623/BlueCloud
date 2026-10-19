@@ -139,10 +139,10 @@ function ChatInput({
       <div className="content-stretch flex flex-col items-start overflow-clip relative rounded-[inherit] size-full">
         <div className="bg-white relative shrink-0 w-full">
           <div className="overflow-clip rounded-[inherit] size-full">
-            <div className="content-stretch flex flex-col gap-[8px] items-start pb-[4px] pt-[12px] px-[12px] relative size-full">
+            <div className="content-stretch flex flex-col gap-[8px] items-start pb-[48px] pt-[12px] px-[12px] relative size-full">
               <textarea
                 ref={textareaRef}
-                className="w-full resize-none outline-none bg-transparent font-['PingFang_SC:Regular',sans-serif] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] placeholder:text-[rgba(0,0,0,0.26)] min-h-[22px] max-h-[240px] overflow-y-auto"
+                className="w-full resize-none outline-none bg-transparent font-['PingFang_SC:Regular',sans-serif] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] placeholder:text-[rgba(0,0,0,0.26)] min-h-[22px] max-h-[160px] overflow-y-auto"
                 placeholder={placeholder}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
