@@ -783,9 +783,10 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true }: 
 
 // ── root ──────────────────────────────────────────────────────────────────────
 
-function TaskIcon({ type }: { type: "search" | "read" | "spark" | "chevron" }) {
-  const paths = type === "search" ? [svgTask.p3b5d3c00, svgTask.p313b1700] : type === "read" ? [svgTask.p27585af0, svgTask.p10b3d540, svgTask.p376ce200] : type === "spark" ? [svgTask.p313b1700] : [svgTask.p33898580];
-  return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">{paths.map((d, i) => <path key={i} d={d} fill="black" fillOpacity="0.38" />)}</svg>;
+function TaskIcon({ type }: { type: "search" | "read" | "chevron" }) {
+  if (type === "search") return <span className="relative size-[16px] shrink-0 overflow-hidden"><svg className="absolute inset-[4.16%_7.02%_7.02%_8.33%] size-full" viewBox="0 0 13.543 14.2102" fill="none" preserveAspectRatio="none"><path d={svgTask.p3b5d3c00} fill="black" fillOpacity="0.38" /><path d={svgTask.p313b1700} fill="black" fillOpacity="0.38" /></svg></span>;
+  if (type === "read") return <span className="relative size-[16px] shrink-0 overflow-hidden"><svg className="absolute left-[8.31%] top-[8.31%] size-[83.33%]" viewBox="0 0 13.3333 13.3333" fill="none" preserveAspectRatio="none"><path d={svgTask.p27585af0} fill="black" fillOpacity="0.38" /><path d={svgTask.p10b3d540} fill="black" fillOpacity="0.38" /><path d={svgTask.p376ce200} fill="black" fillOpacity="0.38" /></svg></span>;
+  return <span className="relative block h-[22px] w-[16px] shrink-0"><svg className="absolute inset-[33.8%_23.48%_33.79%_23.48%] size-full" viewBox="0 0 8.48533 5.18533" fill="none" preserveAspectRatio="none"><path d={svgTask.p33898580} fill="black" fillOpacity="0.38" /></svg></span>;
 }
 
 function ExecutionProcess({ running }: { running: boolean }) {
@@ -797,10 +798,16 @@ function ExecutionProcess({ running }: { running: boolean }) {
     { label: running ? "正在整理演示需求" : "提取；归纳出初步制作方案", icon: "read" as const },
   ];
   if (!running) return (
-    <button onClick={() => setExpanded(v => !v)} className="w-full max-w-[768px] flex items-center justify-between rounded-[8px] border border-[#f2f2f2] px-[16px] py-[12px] text-left">
-      <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">执行过程</span>
-      <span className={expanded ? "rotate-180 transition-transform" : "transition-transform"}><TaskIcon type="chevron" /></span>
-    </button>
+    <div className="w-full max-w-[768px] overflow-hidden rounded-[8px] border border-[#f2f2f2] bg-white">
+      <button onClick={() => setExpanded(v => !v)} className="w-full flex items-center justify-between px-[16px] py-[12px] text-left">
+        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">执行过程</span>
+        <span className={expanded ? "rotate-180 transition-transform" : "transition-transform"}><TaskIcon type="chevron" /></span>
+      </button>
+      {expanded && <div className="flex flex-col gap-[12px] px-[16px] pb-[12px]">
+        <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">任务目标：生成符合演示场景、受众与风格要求的 PPT</p>
+        {actions.map(({ label, icon }) => <div key={label} className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]"><TaskIcon type={icon} /><span>{label}</span></div>)}
+      </div>}
+    </div>
   );
   return (
     <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
