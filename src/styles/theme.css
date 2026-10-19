@@ -122,6 +122,21 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-color: #e6e6e6 transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: #e6e6e6;
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background-color: transparent;
   }
 
   body {
