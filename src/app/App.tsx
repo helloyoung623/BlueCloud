@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useId } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
 import svgPaths from "@/imports/默认首页-1/svg-4ly00k0kqz";
 import svgPanel from "@/imports/需求确认-1/svg-1yxmq1shfb";
@@ -801,13 +801,26 @@ function TaskIcon({ type, expanded = false }: { type: ToolKind; expanded?: boole
 }
 
 function ToolLoading({ text }: { text: string }) {
-  const maskId = useId().replace(/:/g, "");
-  return <span className="relative inline-block overflow-hidden text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">
+  return <span className="tool-loading inline-block text-[14px] leading-[22px]">
+    <style>{`
+      .tool-loading{
+        color: transparent;
+        background-image:
+          radial-gradient(closest-side circle at 50% 50%, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.88) 45%, rgba(0,0,0,0.28) 100%),
+          linear-gradient(rgba(0,0,0,0.28), rgba(0,0,0,0.28));
+        background-size: 64px 100%, 100% 100%;
+        background-repeat: no-repeat, no-repeat;
+        background-position: -64px 0, 0 0;
+        -webkit-background-clip: text;
+        background-clip: text;
+        animation: toolScan 1.8s linear infinite;
+      }
+      @keyframes toolScan{
+        from{ background-position: -64px 0, 0 0; }
+        to{ background-position: calc(100% + 64px) 0, 0 0; }
+      }
+    `}</style>
     {text}
-    <svg aria-hidden className="absolute left-0 top-0 h-[22px] w-[57px]" viewBox="0 0 57 22" fill="none" preserveAspectRatio="none">
-      <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="57" height="22"><text x="0" y="16" fontSize="14" fontFamily="PingFang SC, sans-serif">{text}</text></mask>
-      <g mask={`url(#${maskId})`}><motion.circle cy="11" r="16" fill="black" initial={{ cx: -16 }} animate={{ cx: [-16, 74] }} transition={{ duration: 1.6, ease: "linear", repeat: Infinity }} /></g>
-    </svg>
   </span>;
 }
 
