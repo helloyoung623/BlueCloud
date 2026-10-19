@@ -783,10 +783,11 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true }: 
 
 // ── root ──────────────────────────────────────────────────────────────────────
 
-function TaskIcon({ type }: { type: "search" | "read" | "chevron" }) {
-  if (type === "search") return <span className="relative size-[16px] shrink-0 overflow-hidden"><svg className="absolute inset-[4.16%_7.02%_7.02%_8.33%] size-full" viewBox="0 0 13.543 14.2102" fill="none" preserveAspectRatio="none"><path d={svgTask.p3b5d3c00} fill="black" fillOpacity="0.38" /><path d={svgTask.p313b1700} fill="black" fillOpacity="0.38" /></svg></span>;
-  if (type === "read") return <span className="relative size-[16px] shrink-0 overflow-hidden"><svg className="absolute left-[8.31%] top-[8.31%] size-[83.33%]" viewBox="0 0 13.3333 13.3333" fill="none" preserveAspectRatio="none"><path d={svgTask.p27585af0} fill="black" fillOpacity="0.38" /><path d={svgTask.p10b3d540} fill="black" fillOpacity="0.38" /><path d={svgTask.p376ce200} fill="black" fillOpacity="0.38" /></svg></span>;
-  return <span className="relative block h-[22px] w-[16px] shrink-0"><svg className="absolute inset-[33.8%_23.48%_33.79%_23.48%] size-full" viewBox="0 0 8.48533 5.18533" fill="none" preserveAspectRatio="none"><path d={svgTask.p33898580} fill="black" fillOpacity="0.38" /></svg></span>;
+function TaskIcon({ type, expanded = false }: { type: "search" | "read" | "chevron"; expanded?: boolean }) {
+  if (type === "search") return <span className="relative size-[16px] shrink-0 overflow-hidden"><svg className="absolute inset-[4.16%_7.02%_7.02%_8.33%]" viewBox="0 0 13.543 14.2102" fill="none" preserveAspectRatio="none"><path d={svgTask.p3b5d3c00} fill="black" fillOpacity="0.38" /><path d={svgTask.p313b1700} fill="black" fillOpacity="0.38" /></svg></span>;
+  if (type === "read") return <span className="relative size-[16px] shrink-0 overflow-hidden"><svg className="absolute left-[1.33px] top-[1.33px] size-[13.333px]" viewBox="0 0 13.3333 13.3333" fill="none" preserveAspectRatio="none"><path d={svgTask.p27585af0} fill="black" fillOpacity="0.38" /><path d={svgTask.p10b3d540} fill="black" fillOpacity="0.38" /><path d={svgTask.p376ce200} fill="black" fillOpacity="0.38" /></svg></span>;
+  if (expanded) return <span className="relative block h-[22px] w-[16px] shrink-0"><svg className="absolute inset-[33.8%_23.48%_33.79%_23.48%]" viewBox="0 0 8.48533 5.18533" fill="none" preserveAspectRatio="none"><path d={svgTask.p33898580} fill="black" fillOpacity="0.38" /></svg></span>;
+  return <span className="relative block h-[22px] w-[16px] shrink-0"><svg className="absolute inset-[23.48%_33.8%_23.48%_33.79%]" viewBox="0 0 5.18533 8.48533" fill="none" preserveAspectRatio="none"><path d={svgTask.p13a1fe00} fill="black" fillOpacity="0.38" /></svg></span>;
 }
 
 function ExecutionProcess({ running }: { running: boolean }) {
@@ -801,7 +802,7 @@ function ExecutionProcess({ running }: { running: boolean }) {
     <div className="w-full max-w-[768px] overflow-hidden rounded-[8px] border border-[#f2f2f2] bg-white">
       <button onClick={() => setExpanded(v => !v)} className="w-full flex items-center justify-between px-[16px] py-[12px] text-left">
         <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">执行过程</span>
-        <span className={expanded ? "rotate-180 transition-transform" : "transition-transform"}><TaskIcon type="chevron" /></span>
+        <TaskIcon type="chevron" expanded={expanded} />
       </button>
       {expanded && <div className="flex flex-col gap-[12px] px-[16px] pb-[12px]">
         <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">任务目标：生成符合演示场景、受众与风格要求的 PPT</p>
@@ -815,7 +816,7 @@ function ExecutionProcess({ running }: { running: boolean }) {
       <div className="rounded-[8px] border border-[#f2f2f2]">
         <button onClick={() => setExpanded(v => !v)} className="w-full flex items-center justify-between px-[16px] py-[12px] text-left">
           <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">正在规划演示内容</span>
-          <span className={expanded ? "rotate-180 transition-transform" : "transition-transform"}><TaskIcon type="chevron" /></span>
+          <TaskIcon type="chevron" expanded={expanded} />
         </button>
         {expanded && <div className="flex flex-col gap-[12px] px-[16px] pb-[12px]">
           {actions.map(({ label, icon }, index) => <div key={label} className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">
