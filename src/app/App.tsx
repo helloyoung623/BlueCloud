@@ -642,7 +642,7 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
       <div className="px-[12px] pt-[12px] pb-[12px]">
         <textarea ref={textareaRef} value={value} onChange={e => onChange(e.target.value)} onKeyDown={handleKeyDown}
           placeholder="有问题，尽管问；/调用技能" rows={1} style={{ minHeight: 22, maxHeight: 160 }}
-          className="block w-full resize-none bg-transparent text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] placeholder:tex font-normalt-[rgba(0,0,0,0.26)] outline-none overflow-y-auto"
+          className="relative z-10 block w-full resize-none bg-transparent text-[14px] font-normal leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] placeholder:text-[rgba(0,0,0,0.26)] outline-none overflow-y-auto"
         />
         <div className="h-[36px]" />
       </div>
