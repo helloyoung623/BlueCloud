@@ -89,21 +89,18 @@ function SlidePanel({ visible, onClose, children }: {
 
   if (!mounted) return null;
   return (
-    <>
-      <div className="fixed inset-0 z-40" style={{ opacity: animIn ? 0.15 : 0, background: "#000", transition: "opacity .35s" }} onClick={onClose} />
-      <div
-        className="fixed left-1/2 z-50 flex flex-col bg-white rounded-[16px]"
-        style={{
-          width: 800, maxHeight: 560, bottom: 22,
-          transform: `translateX(-50%) translateY(${animIn ? "0%" : "120%"})`,
-          transition: "transform 0.35s cubic-bezier(0.32,0.72,0,1)",
-          boxShadow: "0 0 12px rgba(0,0,0,0.08)", border: "1px solid #e6e6e6",
-          overflow: "hidden",
-        }}
-      >
-        {children}
-      </div>
-    </>
+    <div
+      className="fixed left-1/2 z-50 flex flex-col bg-white rounded-[16px]"
+      style={{
+        width: 800, maxHeight: 560, bottom: 22,
+        transform: `translateX(-50%) translateY(${animIn ? "0%" : "120%"})`,
+        transition: "transform 0.35s cubic-bezier(0.32,0.72,0,1)",
+        boxShadow: "0 0 12px rgba(0,0,0,0.08)", border: "1px solid #e6e6e6",
+        overflow: "hidden",
+      }}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -575,8 +572,8 @@ function ChatView({ messages, input, onInputChange, onSend, onNewChat }: {
       <ChatHeader title={title} onNewChat={onNewChat} />
       <div className="flex-1 flex flex-col items-center pt-[48px] px-[24px] pb-0 min-h-0">
         <div className="w-full max-w-[800px] flex flex-col flex-1 min-h-0">
-          <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0 py-[16px]">
-            <div className="flex flex-col gap-[32px]">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0 pt-[16px]">
+            <div className="flex flex-col gap-[32px] pb-[16px]">
               {messages.map((msg, i) => msg.role === "user" ? (
                 <div key={i} className="flex justify-end">
                   <div className="max-w-[680px] bg-[#f7f7f7] px-[12px] py-[8px] rounded-tl-[8px] rounded-br-[8px] rounded-bl-[8px]">
@@ -596,7 +593,7 @@ function ChatView({ messages, input, onInputChange, onSend, onNewChat }: {
               ))}
             </div>
           </div>
-          <div className="shrink-0 pb-[8px]"><ChatInput value={input} onChange={onInputChange} onSend={onSend} /></div>
+          <div className="shrink-0 w-full"><ChatInput value={input} onChange={onInputChange} onSend={onSend} /></div>
         </div>
       </div>
       <div className="shrink-0 flex items-center justify-center p-[4px]">
