@@ -12,7 +12,6 @@ import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c670
 import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
 import imgEmpty from "@/imports/Frame427318236/9e55d93ab34e49b9baf8a7d585a49321a5312a43.png";
 import { PptPanel, PptResultMessage } from "./components/ppt-result";
-import PptGenerationChip from "@/imports/Container";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -583,30 +582,25 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
 // ── chat input ────────────────────────────────────────────────────────────────
 
 function PptGenerationToggle({ selected, onChange }: { selected: boolean; onChange: (selected: boolean) => void }) {
-  const [hovered, setHovered] = useState(false);
-  const propValue = selected
-    ? (hovered ? "选中_HOVER" : "选中_Default")
-    : (hovered ? "未选中_HOVER" : "未选中_Default");
-
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       aria-pressed={selected}
       aria-label={selected ? "取消 PPT 生成" : "启用 PPT 生成"}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       onClick={() => onChange(!selected)}
-      onKeyDown={event => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onChange(!selected);
-        }
-      }}
-      className="shrink-0 cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#1e63f5] focus-visible:ring-offset-2"
+      className={`shrink-0 flex items-center gap-[4px] rounded-full px-[8px] py-[4px] transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#1e63f5] focus-visible:ring-offset-2 ${
+        selected
+          ? "bg-[#ebf4ff] text-[#1e63f5] hover:bg-[#e0edff]"
+          : "border border-[#f2f2f2] text-[rgba(0,0,0,0.88)] hover:bg-[#f2f2f2]"
+      }`}
     >
-      <PptGenerationChip propValue={propValue} />
-    </div>
+      <span className="relative size-[16px] shrink-0 overflow-hidden" aria-hidden>
+        <svg className="absolute left-[2px] top-[1px] h-[13.333px] w-[12px]" fill="none" viewBox="0 0 12 13.3333" preserveAspectRatio="none">
+          <path d={svgPaths.p10161080} fill={selected ? "#1E63F5" : "black"} fillOpacity={selected ? "1" : "0.88"} />
+        </svg>
+      </span>
+      <span className="whitespace-nowrap text-[14px] leading-[22px] tracking-[0.014px]">PPT生成</span>
+    </button>
   );
 }
 
