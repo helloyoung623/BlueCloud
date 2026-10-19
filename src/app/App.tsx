@@ -679,16 +679,15 @@ function ChatHeader({ title, onSidebarToggle, onNewChat }: { title?: string; onS
 
 const SUGGESTIONS = ["找出近一周的邮件", "请帮我起草一封给团队的邮件", "总结下智能助手项目邮件"];
 
-function HomeView({ input, onInputChange, onSend, onSidebarToggle }: { input: string; onInputChange: (v: string) => void; onSend: () => void; onSidebarToggle?: () => void }) {
+function HomeView({ input, onInputChange, onSend }: { input: string; onInputChange: (v: string) => void; onSend: () => void }) {
   return (
-    <div className="flex-1 min-h-0 bg-white flex flex-col">
+    <div className="flex-1 min-h-0 bg-white flex flex-col overflow-hidden">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-      <ChatHeader onSidebarToggle={onSidebarToggle} />
-      <div className="relative flex-1 flex flex-col items-center px-[24px] pt-0 pb-0 min-h-0 overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+      <div className="relative flex-1 flex flex-col items-center px-[24px] min-h-0">
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
           <div className="w-[756px] h-[400px] rounded bg-gradient-to-r from-[#a3ffff] to-[#1e63f5] opacity-10 blur-[100px]" />
         </div>
-        <div className="w-full max-w-[800px] flex flex-col items-center flex-1 pt-[200px] min-h-0">
+        <div className="relative w-full max-w-[800px] flex flex-col items-center flex-1 pt-[160px] min-h-0">
           <div className="shrink-0 flex items-baseline gap-[8px] py-[32px]">
             <span className="text-[46px] font-medium leading-[56px] text-[rgba(0,0,0,0.88)] tracking-[0.046px]">Hi，xxxx</span>
             <span className="w-[16px] h-[4px] bg-[rgba(0,0,0,0.88)] self-end mb-[10px]" style={{ animation: "blink 1s step-end infinite" }} />
@@ -718,17 +717,15 @@ function HomeView({ input, onInputChange, onSend, onSidebarToggle }: { input: st
   );
 }
 
-function ChatView({ messages, input, onInputChange, onSend, onNewChat, onSidebarToggle }: {
-  messages: Message[]; input: string; onInputChange: (v: string) => void; onSend: () => void; onNewChat: () => void; onSidebarToggle?: () => void;
+function ChatView({ messages, input, onInputChange, onSend }: {
+  messages: Message[]; input: string; onInputChange: (v: string) => void; onSend: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
-  const title = messages[0]?.text.slice(0, 20) + (messages[0]?.text.length > 20 ? "…" : "");
   return (
     <div className="flex-1 min-h-0 bg-white flex flex-col">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-      <ChatHeader title={title} onSidebarToggle={onSidebarToggle} onNewChat={onNewChat} />
-      <div className="flex-1 flex flex-col items-center pt-0 px-[24px] pb-0 min-h-0">
+      <div className="flex-1 flex flex-col items-center px-[24px] pb-0 min-h-0">
         <div className="w-full max-w-[800px] flex flex-col flex-1 min-h-0">
           <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0 pt-[16px]">
             <div className="flex flex-col gap-[32px] pb-[16px]">
@@ -839,6 +836,9 @@ export default function App() {
   };
 
   const handleNewChat = () => { setMessages([]); setInput(""); setStage("idle"); };
+  const chatTitle = messages.length > 0
+    ? messages[0].text.slice(0, 20) + (messages[0].text.length > 20 ? "…" : "")
+    : undefined;
 
   return (
     <div className="w-screen h-screen flex flex-row overflow-hidden">
@@ -853,11 +853,16 @@ export default function App() {
           onSelect={setActiveHistoryId}
         />
       )}
-      {/* main content */}
+      {/* main content: header always at App level so sidebar can never affect it */}
       <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+        <ChatHeader
+          title={chatTitle}
+          onSidebarToggle={() => setSidebarOpen(o => !o)}
+          onNewChat={messages.length > 0 ? handleNewChat : undefined}
+        />
         {messages.length > 0
-          ? <ChatView messages={messages} input={input} onInputChange={setInput} onSend={handleSend} onNewChat={handleNewChat} onSidebarToggle={() => setSidebarOpen(o => !o)} />
-          : <HomeView input={input} onInputChange={setInput} onSend={handleSend} onSidebarToggle={() => setSidebarOpen(o => !o)} />
+          ? <ChatView messages={messages} input={input} onInputChange={setInput} onSend={handleSend} />
+          : <HomeView input={input} onInputChange={setInput} onSend={handleSend} />
         }
       </div>
       {/* panels / preview (z-50, fixed) */}
