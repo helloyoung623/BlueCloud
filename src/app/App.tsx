@@ -791,8 +791,21 @@ function TaskIcon({ type, expanded = false }: { type: "search" | "read" | "chevr
 }
 
 function ExecutionProcess({ running }: { running: boolean }) {
-  const [expanded, setExpanded] = useState(running);
-  useEffect(() => { setExpanded(running); }, [running]);
+  const [expanded, setExpanded] = useState(false);
+  const [visibleActions, setVisibleActions] = useState(0);
+
+  useEffect(() => {
+    if (!running) {
+      setExpanded(false);
+      setVisibleActions(3);
+      return;
+    }
+    setExpanded(false);
+    setVisibleActions(0);
+    const expandTimer = window.setTimeout(() => setExpanded(true), 260);
+    const actionTimers = [520, 760, 1000].map((delay, index) => window.setTimeout(() => setVisibleActions(index + 1), delay));
+    return () => { window.clearTimeout(expandTimer); actionTimers.forEach(window.clearTimeout); };
+  }, [running]);
   const actions = [
     { label: "搜索；找到与演示主题相关的内容", icon: "search" as const },
     { label: "读取；加载目标网页中的关键信息", icon: "read" as const },
@@ -818,12 +831,12 @@ function ExecutionProcess({ running }: { running: boolean }) {
           <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">正在规划演示内容</span>
           <TaskIcon type="chevron" expanded={expanded} />
         </button>
-        {expanded && <div className="flex flex-col gap-[12px] px-[16px] pb-[12px]">
-          {actions.map(({ label, icon }, index) => <div key={label} className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">
+        {expanded && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} transition={{ duration: 0.2, ease: "easeOut" }} className="flex flex-col gap-[12px] overflow-hidden px-[16px] pb-[12px]">
+          {actions.slice(0, visibleActions).map(({ label, icon }, index) => <motion.div key={label} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">
             {index === 2 ? <motion.span className="size-[16px] shrink-0 rounded-full border border-[#1e63f5] border-t-transparent" animate={{ rotate: 360 }} transition={{ duration: 2, ease: "linear", repeat: Infinity }} /> : <TaskIcon type={icon} />}
             <span className={index === 2 ? "text-[rgba(0,0,0,0.38)]" : ""}>{label}</span>
-          </div>)}
-        </div>}
+          </motion.div>)}
+        </motion.div>}
       </div>
     </div>
   );
