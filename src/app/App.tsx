@@ -662,11 +662,11 @@ function ChatInput({ value, onChange, onSend }: { value: string; onChange: (v: s
 
 function ChatHeader({ title, onSidebarToggle, onNewChat }: { title?: string; onSidebarToggle?: () => void; onNewChat?: () => void }) {
   return (
-    <div className="relative shrink-0 h-[48px] bg-white flex items-center gap-[8px] px-[16px] z-10">
-      <button className="shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer" onClick={onSidebarToggle}>
+    <div className="relative shrink-0 w-full h-[48px] min-h-[48px] bg-white flex items-center gap-[8px] px-[16px] z-30">
+      <button className="relative z-10 shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer" onClick={onSidebarToggle}>
         <svg width="20" height="20" viewBox="0 0 17.5 17.5" fill="none"><path d={svgPaths.p2861a580} fill="black" fillOpacity="0.6" /></svg>
       </button>
-      <button className="shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer" onClick={onNewChat}>
+      <button className="relative z-10 shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer" onClick={onNewChat}>
         <svg width="20" height="20" viewBox="0 0 18.3333 18.75" fill="none"><path d={svgPaths.pad1cb00} fill="black" fillOpacity="0.6" /></svg>
       </button>
       {title && <p className="absolute left-0 right-0 text-center text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.88)] truncate px-[80px] pointer-events-none">{title}</p>}
@@ -854,7 +854,7 @@ export default function App() {
         />
       )}
       {/* main content: header always at App level so sidebar can never affect it */}
-      <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+      <div className="relative z-20 flex-1 min-w-0 min-h-0 flex flex-col bg-white">
         <ChatHeader
           title={chatTitle}
           onSidebarToggle={() => setSidebarOpen(o => !o)}
