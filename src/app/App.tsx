@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useId } from "react";
 import { motion } from "motion/react";
 import svgPaths from "@/imports/默认首页-1/svg-4ly00k0kqz";
 import svgPanel from "@/imports/需求确认-1/svg-1yxmq1shfb";
@@ -6,6 +6,7 @@ import svgOutline from "@/imports/大纲/svg-fzbroqn38q";
 import svgSidebar from "@/imports/历史对话操作项/svg-1dh84d0t2n";
 import svgTask from "@/imports/任务执行过程/svg-tkwirjnqmk";
 import svgProgress from "@/imports/渐进式ReAct/svg-x4n03n8we0";
+import svgSearching from "@/imports/搜索中/svg-pcft5f0tqe";
 import imgStyle1 from "@/imports/需求确认-1/29d4a489057188d7298a9a9f8b923d2d9c630925.png";
 import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c6709a8e1bdf.png";
 import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
@@ -800,9 +801,13 @@ function TaskIcon({ type, expanded = false }: { type: ToolKind; expanded?: boole
 }
 
 function ToolLoading({ text }: { text: string }) {
-  return <span className="relative inline-block overflow-hidden text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">
+  const maskId = useId().replace(/:/g, "");
+  return <span className="relative inline-block text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">
     {text}
-    <motion.span aria-hidden className="absolute inset-y-0 left-0 whitespace-nowrap text-[rgba(0,0,0,0.88)]" initial={{ clipPath: "circle(16px at -16px 11px)" }} animate={{ clipPath: ["circle(16px at -16px 11px)", "circle(16px at calc(100% + 16px) 11px)"] }} transition={{ duration: 1.6, ease: "linear", repeat: Infinity }}>{text}</motion.span>
+    <svg aria-hidden className="absolute left-0 top-0 h-[22px] w-[57px]" viewBox="0 0 57 22" fill="none">
+      <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="57" height="22"><path d={svgSearching.p307de30} fill="white" /></mask>
+      <g mask={`url(#${maskId})`}><motion.circle cy="11" r="16" fill="black" initial={{ cx: -16 }} animate={{ cx: [-16, 74] }} transition={{ duration: 1.6, ease: "linear", repeat: Infinity }} /></g>
+    </svg>
   </span>;
 }
 
