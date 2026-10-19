@@ -874,7 +874,7 @@ export default function App() {
           history={history}
           setHistory={setHistory}
           onClose={() => setSidebarOpen(false)}
-          onNewChat={() => { handleNewChat(); setSidebarOpen(false); }}
+          onNewChat={handleNewChat}
           activeId={activeHistoryId}
           onSelect={handleSelectHistory}
         />
