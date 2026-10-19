@@ -342,7 +342,7 @@ function PresentationMenu({ mode, onChange, onClose }: {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">可视化呈现</span>
-            <span className="block text-[14px] leading-[22px] text-[rgba(0,0,0,0.6)]">把数据、流程和知识概念转成直观图表可视化</span>
+            <span className="block max-w-[220px] break-words pr-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.6)]">把数据、流程和知识概念转成直观图表可视化</span>
           </span>
           <span className="mt-[5px] text-[rgba(0,0,0,0.26)]">›</span>
         </button>
