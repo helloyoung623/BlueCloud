@@ -767,7 +767,8 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
   return (
     <div className="flex-1 min-h-0 bg-white flex flex-col overflow-hidden">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-      <div className="relative flex-1 flex flex-col items-center px-[40px] max-[560px]:px-[16px] min-h-0">
+      <div className="relative flex-1 flex flex-col items-center px-[16px] max-[560px]:px-0 min-h-0">
+        <div className="relative flex w-full flex-1 flex-col items-center px-[24px] max-[560px]:px-[16px]">
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
           <div className="w-[756px] h-[400px] rounded bg-gradient-to-r from-[#a3ffff] to-[#1e63f5] opacity-10 blur-[100px]" />
         </div>
@@ -793,6 +794,7 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
           </div>
           <div className="shrink-0 w-full"><ChatInput value={input} onChange={onInputChange} onSend={onSend} pptGeneration={pptGeneration} onPptGenerationChange={onPptGenerationChange} /></div>
         </div>
+        </div>
       </div>
       <div className="shrink-0 flex items-center justify-center p-[4px]">
         <span className="text-[10px] text-[rgba(0,0,0,0.26)]">内容由AI生成，仅供参考</span>
@@ -810,9 +812,9 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true, on
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
   return (
-    <div className="flex-1 min-h-0 bg-white flex flex-col">
+    <div className="flex-1 min-h-0 bg-white flex flex-col px-[16px] max-[560px]:px-0">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-[16px] max-[560px]:px-0">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
         <div className="min-h-full px-[24px] pt-[16px] max-[560px]:px-[16px]">
           <div className="mx-auto w-full max-w-[800px]">
             <div className="flex flex-col gap-[32px] pb-[16px]">
@@ -841,7 +843,7 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true, on
           </div>
         </div>
       </div>
-      <div aria-hidden={!showInput} className={`shrink-0 px-[40px] max-[560px]:px-[16px] transition-opacity duration-200 ${showInput ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+      <div aria-hidden={!showInput} className={`shrink-0 px-[24px] max-[560px]:px-[16px] transition-opacity duration-200 ${showInput ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
         <div className="mx-auto w-full max-w-[800px]">
           <ChatInput value={input} onChange={onInputChange} onSend={onSend} pptGeneration={pptGeneration} onPptGenerationChange={onPptGenerationChange} agentRunning={agentRunning} onStop={onStop} />
         </div>
