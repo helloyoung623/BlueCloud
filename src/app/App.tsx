@@ -1098,6 +1098,7 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
   const [visibleActions, setVisibleActions] = useState(0);
   // index of the first item in the batch that is currently executing
   const [batchStart, setBatchStart] = useState(0);
+  const stepEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!running) {
@@ -1111,6 +1112,8 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
     setBatchStart(0);
     let shown = 0;
     let revealTimer: number | undefined;
+    // wait for the goal typewriter to finish before revealing the tools
+    const typingDuration = preset.goal.length * 30 + 250;
     const expandTimer = window.setTimeout(() => {
       setExpanded(true);
       const revealBatch = () => {
@@ -1122,14 +1125,22 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
         if (shown < total) revealTimer = window.setTimeout(revealBatch, 2000 + Math.floor(Math.random() * 3001));
       };
       revealTimer = window.setTimeout(revealBatch, 320);
-    }, 260);
+    }, typingDuration);
     return () => { window.clearTimeout(expandTimer); if (revealTimer) window.clearTimeout(revealTimer); };
-  }, [running, total]);
+  }, [running, total, preset.goal]);
+
+  // keep the newest step in view while the agent is running
+  useEffect(() => {
+    if (running && visibleActions > 0) {
+      stepEndRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [visibleActions, running]);
+
   if (!running) return (
     <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
       <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]"><Typewriter text={preset.goal} /></p>
       <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-[8px] text-left">
-        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap font-normal">{preset.running}</span>
+        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap font-normal">任务已完成</span>
         <TaskIcon type="chevron" expanded={expanded} />
       </button>
       {expanded && <div className="flex flex-col gap-[12px]">
@@ -1149,6 +1160,7 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
           <TaskIcon type={icon} />
           {index >= batchStart ? <ToolLoading text={`正在${label.split("；")[0]}相关信息`} /> : <span>{label}</span>}
         </motion.div>)}
+        <div ref={stepEndRef} aria-hidden className="h-px w-full shrink-0" />
       </motion.div>}
     </div>
   );
