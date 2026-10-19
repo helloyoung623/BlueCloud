@@ -452,7 +452,7 @@ function PptPreview({ onClose }: { onClose: () => void }) {
 
 type HistoryItem = { id: number; title: string; pinned?: boolean };
 
-const MOCK_HISTORY: HistoryItem[] = [
+const INITIAL_HISTORY: HistoryItem[] = [
   { id: 1, title: "标题标题标题标题", pinned: true },
   { id: 2, title: "标题标题标题标题标题" },
   { id: 3, title: "历史对话标题" },
@@ -469,6 +469,7 @@ function Sidebar({ onClose, onNewChat, activeId, onSelect }: {
   activeId: number | null;
   onSelect: (id: number) => void;
 }) {
+  const [history, setHistory] = useState<HistoryItem[]>(INITIAL_HISTORY);
   const [hoverId, setHoverId] = useState<number | null>(null);
   const [menuId, setMenuId] = useState<number | null>(null);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
@@ -510,14 +511,14 @@ function Sidebar({ onClose, onNewChat, activeId, onSelect }: {
 
       {/* history list */}
       <div className="flex-1 overflow-y-auto min-h-0 px-[12px] py-[4px] flex flex-col gap-[2px]">
-        {MOCK_HISTORY.length === 0 ? (
+        {history.length === 0 ? (
           <div className="flex flex-col items-center pt-[12px]">
             <img src={imgEmpty} alt="" className="w-[120px] h-[120px] object-cover" />
             <p className="text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.38)] mt-[12px]">暂无历史对话</p>
             <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">快去输入问题发起新的咨询</p>
           </div>
         ) : (
-          MOCK_HISTORY.map(item => {
+          history.map(item => {
             const isActive = activeId === item.id;
             const isHover = hoverId === item.id;
             const hasMenu = menuId === item.id;
@@ -569,11 +570,11 @@ function Sidebar({ onClose, onNewChat, activeId, onSelect }: {
           style={{ left: menuPos.x, top: menuPos.y, boxShadow: "0 0 12px rgba(0,0,0,0.08)", border: "1px solid #f2f2f2" }}>
           <div className="px-[8px] py-[4px] flex flex-col">
             {[
-              { label: "置顶此对话", icon: svgSidebar.p3170f400, isPin: true },
-              { label: "编辑名称",   icon: svgSidebar.p20221d00, isPin: false },
-              { label: "删除",       icon: svgSidebar.p2ffde100, isPin: false },
-            ].map(({ label, icon, isPin }) => (
-              <button key={label} onClick={() => setMenuId(null)}
+              { label: "置顶此对话", icon: svgSidebar.p3170f400, isPin: true, action: () => { setHistory(h => h.map(i => i.id === menuId ? { ...i, pinned: !i.pinned } : i)); setMenuId(null); } },
+              { label: "编辑名称",   icon: svgSidebar.p20221d00, isPin: false, action: () => setMenuId(null) },
+              { label: "删除",       icon: svgSidebar.p2ffde100, isPin: false, action: () => { setHistory(h => h.filter(i => i.id !== menuId)); setMenuId(null); } },
+            ].map(({ label, icon, isPin, action }) => (
+              <button key={label} onClick={action}
                 className="flex items-center gap-[8px] px-[8px] py-[11px] rounded-[8px] hover:bg-[#f7f7f7] cursor-pointer w-full text-left">
                 {isPin ? (
                   <svg width="16" height="13" viewBox="0 0 12 12.6667" fill="none" className="shrink-0">
@@ -585,7 +586,7 @@ function Sidebar({ onClose, onNewChat, activeId, onSelect }: {
                     <path d={icon} fill="black" fillOpacity="0.26" />
                   </svg>
                 )}
-                <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap">{label}</span>
+                <span className="text-[14px] font-normal leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap">{label}</span>
               </button>
             ))}
           </div>
@@ -668,7 +669,7 @@ function ChatInput({ value, onChange, onSend }: { value: string; onChange: (v: s
 
 function ChatHeader({ title, onSidebarToggle, onNewChat }: { title?: string; onSidebarToggle?: () => void; onNewChat?: () => void }) {
   return (
-    <div className="absolute top-0 left-0 right-0 h-[48px] bg-white flex items-center gap-[8px] px-[16px] z-10">
+    <div className="relative shrink-0 h-[48px] bg-white flex items-center gap-[8px] px-[16px] z-10">
       <button className="shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer" onClick={onSidebarToggle}>
         <svg width="20" height="20" viewBox="0 0 17.5 17.5" fill="none"><path d={svgPaths.p2861a580} fill="black" fillOpacity="0.6" /></svg>
       </button>
@@ -687,13 +688,13 @@ const SUGGESTIONS = ["找出近一周的邮件", "请帮我起草一封给团队
 
 function HomeView({ input, onInputChange, onSend, onSidebarToggle }: { input: string; onInputChange: (v: string) => void; onSend: () => void; onSidebarToggle?: () => void }) {
   return (
-    <div className="relative w-full h-full bg-white overflow-hidden flex flex-col">
+    <div className="relative w-full h-full bg-white flex flex-col">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
       <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
         <div className="w-[756px] h-[400px] rounded bg-gradient-to-r from-[#a3ffff] to-[#1e63f5] opacity-10 blur-[100px]" />
       </div>
       <ChatHeader onSidebarToggle={onSidebarToggle} />
-      <div className="flex-1 flex flex-col items-center px-[24px] pt-[48px] pb-0 min-h-0">
+      <div className="flex-1 flex flex-col items-center px-[24px] pt-0 pb-0 min-h-0">
         <div className="w-full max-w-[800px] flex flex-col items-center flex-1 pt-[200px] min-h-0">
           <div className="shrink-0 flex items-baseline gap-[8px] py-[32px]">
             <span className="text-[46px] font-medium leading-[56px] text-[rgba(0,0,0,0.88)] tracking-[0.046px]">Hi，xxxx</span>
@@ -731,10 +732,10 @@ function ChatView({ messages, input, onInputChange, onSend, onNewChat, onSidebar
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
   const title = messages[0]?.text.slice(0, 20) + (messages[0]?.text.length > 20 ? "…" : "");
   return (
-    <div className="relative w-full h-full bg-white overflow-hidden flex flex-col">
+    <div className="w-full h-full bg-white flex flex-col">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
       <ChatHeader title={title} onSidebarToggle={onSidebarToggle} onNewChat={onNewChat} />
-      <div className="flex-1 flex flex-col items-center pt-[48px] px-[24px] pb-0 min-h-0">
+      <div className="flex-1 flex flex-col items-center pt-0 px-[24px] pb-0 min-h-0">
         <div className="w-full max-w-[800px] flex flex-col flex-1 min-h-0">
           <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0 pt-[16px]">
             <div className="flex flex-col gap-[32px] pb-[16px]">
