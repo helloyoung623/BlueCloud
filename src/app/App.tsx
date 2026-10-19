@@ -12,6 +12,7 @@ import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c670
 import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
 import imgEmpty from "@/imports/Frame427318236/9e55d93ab34e49b9baf8a7d585a49321a5312a43.png";
 import { PptPanel, PptResultMessage } from "./components/ppt-result";
+import PptGenerationChip from "@/imports/Container";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -581,7 +582,41 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
 
 // ── chat input ────────────────────────────────────────────────────────────────
 
-function ChatInput({ value, onChange, onSend }: { value: string; onChange: (v: string) => void; onSend: () => void }) {
+function PptGenerationToggle({ selected, onChange }: { selected: boolean; onChange: (selected: boolean) => void }) {
+  const [hovered, setHovered] = useState(false);
+  const propValue = selected
+    ? (hovered ? "选中_HOVER" : "选中_Default")
+    : (hovered ? "未选中_HOVER" : "未选中_Default");
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
+      aria-label={selected ? "取消 PPT 生成" : "启用 PPT 生成"}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={() => onChange(!selected)}
+      onKeyDown={event => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onChange(!selected);
+        }
+      }}
+      className="shrink-0 cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#1e63f5] focus-visible:ring-offset-2"
+    >
+      <PptGenerationChip propValue={propValue} />
+    </div>
+  );
+}
+
+function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChange }: {
+  value: string;
+  onChange: (v: string) => void;
+  onSend: () => void;
+  pptGeneration: boolean;
+  onPptGenerationChange: (selected: boolean) => void;
+}) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasText = value.trim().length > 0;
 
@@ -617,10 +652,7 @@ function ChatInput({ value, onChange, onSend }: { value: string; onChange: (v: s
           </svg>
           <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] whitespace-nowrap">来源</span>
         </div>
-        <div className="shrink-0 flex items-center gap-[4px] px-[8px] py-[4px] rounded-full border border-[#f2f2f2]">
-          <svg width="12" height="14" viewBox="0 0 12 13.3333" fill="none" className="shrink-0"><path d={svgPaths.p10161080} fill="black" fillOpacity="0.88" /></svg>
-          <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] whitespace-nowrap">PPT生成</span>
-        </div>
+        <PptGenerationToggle selected={pptGeneration} onChange={onPptGenerationChange} />
         <button onClick={() => hasText && onSend()}
           className={`ml-auto shrink-0 w-[30px] h-[30px] rounded-full flex items-center justify-center transition-colors ${hasText ? "bg-[#1e63f5] cursor-pointer" : "bg-[#f2f2f2] cursor-default"}`}
         >
@@ -666,7 +698,10 @@ function ChatHeader({ title, sidebarOpen, onSidebarToggle, onNewChat }: { title?
 
 const SUGGESTIONS = ["找出近一周的邮件", "请帮我起草一封给团队的邮件", "总结下智能助手项目邮件"];
 
-function HomeView({ input, onInputChange, onSend }: { input: string; onInputChange: (v: string) => void; onSend: () => void }) {
+function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGenerationChange }: {
+  input: string; onInputChange: (v: string) => void; onSend: () => void;
+  pptGeneration: boolean; onPptGenerationChange: (selected: boolean) => void;
+}) {
   return (
     <div className="flex-1 min-h-0 bg-white flex flex-col overflow-hidden">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
@@ -694,7 +729,7 @@ function HomeView({ input, onInputChange, onSend }: { input: string; onInputChan
               ))}
             </div>
           </div>
-          <div className="shrink-0 w-full"><ChatInput value={input} onChange={onInputChange} onSend={onSend} /></div>
+          <div className="shrink-0 w-full"><ChatInput value={input} onChange={onInputChange} onSend={onSend} pptGeneration={pptGeneration} onPptGenerationChange={onPptGenerationChange} /></div>
         </div>
       </div>
       <div className="shrink-0 flex items-center justify-center p-[4px]">
@@ -704,9 +739,10 @@ function HomeView({ input, onInputChange, onSend }: { input: string; onInputChan
   );
 }
 
-function ChatView({ messages, input, onInputChange, onSend, showInput = true, onOpenPpt, onRegeneratePpt }: {
+function ChatView({ messages, input, onInputChange, onSend, showInput = true, onOpenPpt, onRegeneratePpt, pptGeneration, onPptGenerationChange }: {
   messages: Message[]; input: string; onInputChange: (v: string) => void; onSend: () => void; showInput?: boolean;
   onOpenPpt?: () => void; onRegeneratePpt?: () => void;
+  pptGeneration: boolean; onPptGenerationChange: (selected: boolean) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
@@ -741,7 +777,7 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true, on
             </div>
           </div>
           <div aria-hidden={!showInput} className={`shrink-0 w-full transition-opacity duration-200 ${showInput ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-            <ChatInput value={input} onChange={onInputChange} onSend={onSend} />
+            <ChatInput value={input} onChange={onInputChange} onSend={onSend} pptGeneration={pptGeneration} onPptGenerationChange={onPptGenerationChange} />
           </div>
         </div>
       </div>
@@ -903,6 +939,7 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [pptGeneration, setPptGeneration] = useState(false);
   const [stage, setStage] = useState<PptStage>("idle");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState<number | null>(null);
@@ -938,7 +975,9 @@ export default function App() {
   const handleSend = () => {
     const text = input.trim();
     if (!text) return;
+    const shouldGeneratePpt = pptGeneration || isPPTIntent(text);
     setInput("");
+    setPptGeneration(false);
     // create a history entry when starting a brand-new conversation
     if (activeHistoryId === null) {
       const id = nextHistoryId.current++;
@@ -949,7 +988,7 @@ export default function App() {
 
     // AI returns summary first
     setTimeout(() => {
-      if (isPPTIntent(text)) {
+      if (shouldGeneratePpt) {
         setMessages(prev => {
           const next = [...prev];
           const idx = next.findLastIndex(m => m.role === "process" && m.thinking);
@@ -1001,7 +1040,7 @@ export default function App() {
     }, 20000);
   };
 
-  const handleNewChat = () => { setMessages([]); setInput(""); setStage("idle"); setActiveHistoryId(null); };
+  const handleNewChat = () => { setMessages([]); setInput(""); setPptGeneration(false); setStage("idle"); setActiveHistoryId(null); };
   const chatTitle = messages.length > 0
     ? messages[0].text.slice(0, 20) + (messages[0].text.length > 20 ? "…" : "")
     : undefined;
@@ -1036,8 +1075,16 @@ export default function App() {
               showInput={stage !== "requirement" && stage !== "outline"}
               onOpenPpt={() => setStage("preview")}
               onRegeneratePpt={handleOutlineConfirm}
+              pptGeneration={pptGeneration}
+              onPptGenerationChange={setPptGeneration}
             />
-          : <HomeView input={input} onInputChange={setInput} onSend={handleSend} />
+          : <HomeView
+              input={input}
+              onInputChange={setInput}
+              onSend={handleSend}
+              pptGeneration={pptGeneration}
+              onPptGenerationChange={setPptGeneration}
+            />
         }
       </div>
       {/* right-hand PPT viewer, shares the row with the chat column */}
