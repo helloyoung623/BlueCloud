@@ -7,6 +7,7 @@ import svgSidebar from "@/imports/历史对话操作项/svg-1dh84d0t2n";
 import svgTask from "@/imports/任务执行过程/svg-tkwirjnqmk";
 import svgProgress from "@/imports/渐进式ReAct/svg-x4n03n8we0";
 import svgSearching from "@/imports/搜索中/svg-pcft5f0tqe";
+import svgPptToggle from "@/imports/Container/svg-ky29gei8j7";
 import imgStyle1 from "@/imports/需求确认-1/29d4a489057188d7298a9a9f8b923d2d9c630925.png";
 import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c6709a8e1bdf.png";
 import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
@@ -582,24 +583,35 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
 // ── chat input ────────────────────────────────────────────────────────────────
 
 function PptGenerationToggle({ selected, onChange }: { selected: boolean; onChange: (selected: boolean) => void }) {
+  const [hovered, setHovered] = useState(false);
+  const showClose = selected && hovered;
+
   return (
     <button
       type="button"
       aria-pressed={selected}
       aria-label={selected ? "取消 PPT 生成" : "启用 PPT 生成"}
       onClick={() => onChange(!selected)}
-      className={`shrink-0 flex items-center gap-[4px] rounded-full px-[8px] py-[4px] transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#1e63f5] focus-visible:ring-offset-2 ${
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`shrink-0 box-border flex items-center gap-[4px] rounded-full border px-[8px] py-[4px] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#1e63f5] focus-visible:ring-offset-2 ${
         selected
-          ? "bg-[#ebf4ff] text-[#1e63f5] hover:bg-[#e0edff]"
-          : "border border-[#f2f2f2] text-[rgba(0,0,0,0.88)] hover:bg-[#f2f2f2]"
+          ? "border-transparent bg-[#ebf4ff] text-[#1e63f5]"
+          : "border-[#f2f2f2] text-[rgba(0,0,0,0.88)] hover:bg-[#f2f2f2]"
       }`}
     >
       <span className="relative size-[16px] shrink-0 overflow-hidden" aria-hidden>
-        <svg className="absolute left-[2px] top-[1px] h-[13.333px] w-[12px]" fill="none" viewBox="0 0 12 13.3333" preserveAspectRatio="none">
-          <path d={svgPaths.p10161080} fill={selected ? "#1E63F5" : "black"} fillOpacity={selected ? "1" : "0.88"} />
-        </svg>
+        {showClose ? (
+          <svg className="absolute inset-[8.33%]" fill="none" viewBox="0 0 13.3333 13.3333" preserveAspectRatio="none">
+            <path d={svgPptToggle.p2186600} fill="#1E63F5" />
+          </svg>
+        ) : (
+          <svg className="absolute left-[2px] top-[1px] h-[13.333px] w-[12px]" fill="none" viewBox="0 0 12 13.3333" preserveAspectRatio="none">
+            <path d={svgPaths.p10161080} fill={selected ? "#1E63F5" : "black"} fillOpacity={selected ? "1" : "0.88"} />
+          </svg>
+        )}
       </span>
-      <span className="whitespace-nowrap text-[14px] leading-[22px] tracking-[0.014px]">PPT生成</span>
+      <span className="whitespace-nowrap text-[14px] leading-[22px] tracking-[0.014px] font-normal">PPT生成</span>
     </button>
   );
 }
@@ -630,7 +642,7 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
       <div className="px-[12px] pt-[12px] pb-[12px]">
         <textarea ref={textareaRef} value={value} onChange={e => onChange(e.target.value)} onKeyDown={handleKeyDown}
           placeholder="有问题，尽管问；/调用技能" rows={1} style={{ minHeight: 22, maxHeight: 160 }}
-          className="block w-full resize-none bg-transparent text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] placeholder:text-[rgba(0,0,0,0.26)] outline-none overflow-y-auto"
+          className="block w-full resize-none bg-transparent text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] placeholder:tex font-normalt-[rgba(0,0,0,0.26)] outline-none overflow-y-auto"
         />
         <div className="h-[36px]" />
       </div>
