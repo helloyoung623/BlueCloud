@@ -492,18 +492,25 @@ export default function App() {
     if (!text) return;
     setInput("");
     setMessages((prev) => [...prev, { role: "user", text }, { role: "ai", text: "", thinking: true }]);
-    if (isPPTIntent(text)) {
-      setTimeout(() => setShowPanel(true), 200);
-    } else {
-      setTimeout(() => {
+    // AI "thinks" first, then either shows panel or replies normally
+    setTimeout(() => {
+      if (isPPTIntent(text)) {
+        setMessages((prev) => {
+          const next = [...prev];
+          const idx = next.findLastIndex((m) => m.thinking);
+          if (idx !== -1) next[idx] = { role: "ai", text: "需要澄清演示场景、受众、页数和风格，或者其他说明；以便提供针对性的结构化描述" };
+          return next;
+        });
+        setTimeout(() => setShowPanel(true), 300);
+      } else {
         setMessages((prev) => {
           const next = [...prev];
           const idx = next.findLastIndex((m) => m.thinking);
           if (idx !== -1) next[idx] = { role: "ai", text: "好的，我来帮您处理这个请求。" };
           return next;
         });
-      }, 1200);
-    }
+      }
+    }, 1200);
   };
 
   const handleNewChat = () => {
