@@ -479,8 +479,12 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
       <div className="shrink-0 h-[120px] relative bg-white">
         <p className="absolute left-[24px] top-[12px] text-[16px] font-medium leading-[24px] text-[rgba(0,0,0,0.88)] tracking-[0.016px] whitespace-nowrap">任务</p>
         {/* sidebar toggle (close) */}
-        <button onClick={onClose} className="absolute left-[196px] top-[8px] rounded-[4px] w-[32px] h-[32px] flex items-center justify-center hover:bg-[#f7f7f7] cursor-pointer">
-          <svg width="20" height="20" viewBox="0 0 17.5 17.5" fill="none"><path d={svgSidebar.p2861a580} fill="black" fillOpacity="0.6" /></svg>
+        <button onClick={onClose} aria-label="收起侧边栏" className="absolute left-[196px] top-[8px] rounded-[4px] w-[32px] h-[32px] flex items-center justify-center hover:bg-[#f7f7f7] cursor-pointer">
+          <span aria-hidden className="relative size-[20px] overflow-hidden">
+            <svg className="absolute inset-[6.25%] size-[87.5%]" viewBox="0 0 17.5 17.5" fill="none" preserveAspectRatio="none">
+              <path d={svgSidebar.p2861a580} fill="black" fillOpacity="0.6" />
+            </svg>
+          </span>
         </button>
         {/* 新任务 button */}
         <button onClick={onNewChat} className="absolute left-1/2 top-[48px] -translate-x-1/2 w-[216px] rounded-[4px] flex items-center justify-center gap-[8px] px-[16px] py-[5px] cursor-pointer hover:bg-[#f7f7f7] transition-colors">
