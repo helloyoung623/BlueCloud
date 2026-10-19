@@ -610,7 +610,7 @@ function ChatInput({ value, onChange, onSend }: { value: string; onChange: (v: s
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d={svgPaths.p4063380} fill="black" fillOpacity="0.88" /></svg>
         </button>
         <div className="shrink-0 flex items-center gap-[4px] px-[8px] py-[4px] rounded-full border border-[#f2f2f2]">
-          <svg width="16" height="16" viewBox="0 0 13.3333 13.3334" fill="none" className="shrink-0">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 translate-y-[1px]">
             <path d={svgPaths.p3302ed00} fill="black" fillOpacity="0.88" />
             <path d={svgPaths.p1868fc80} fill="black" fillOpacity="0.88" />
             <path d={svgPaths.p3aa3c200} fill="black" fillOpacity="0.88" />
