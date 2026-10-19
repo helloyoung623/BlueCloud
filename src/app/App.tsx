@@ -1052,7 +1052,7 @@ function Typewriter({ text, speed = 30, className }: { text: string; speed?: num
 const PROCESS_PRESETS: Record<ProcessVariant, { goal: string; running: string; actions: { label: string; icon: ToolKind }[] }> = {
   requirement: {
     goal: "任务目标：生成符合演示场景、受众与风格要求的 PPT",
-    running: "正在规划演示内容",
+    running: "检索资料并梳理制作需求",
     actions: [
       { label: "搜索；检索演示主题相关资料", icon: "search" },
       { label: "读取；加载关键信息", icon: "read" },
@@ -1065,7 +1065,7 @@ const PROCESS_PRESETS: Record<ProcessVariant, { goal: string; running: string; a
   },
   outline: {
     goal: "任务目标：依据已确认的需求，生成完整的 PPT 大纲",
-    running: "正在生成演示大纲",
+    running: "拆解需求并编排大纲结构",
     actions: [
       { label: "读取；载入已确认的需求", icon: "read" },
       { label: "搜索；补充章节所需素材", icon: "search" },
@@ -1078,7 +1078,7 @@ const PROCESS_PRESETS: Record<ProcessVariant, { goal: string; running: string; a
   },
   ppt: {
     goal: "任务目标：依据已确认的大纲，生成可预览的 PPT",
-    running: "正在生成 PPT",
+    running: "撰写内容并渲染 PPT 页面",
     actions: [
       { label: "读取；载入已确认的大纲", icon: "read" },
       { label: "生成；撰写每页正文内容", icon: "generate" },
@@ -1129,7 +1129,7 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
     <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
       <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]"><Typewriter text={preset.goal} /></p>
       <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-[8px] text-left">
-        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap font-normal">显示执行意图</span>
+        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap font-normal">{preset.running}</span>
         <TaskIcon type="chevron" expanded={expanded} />
       </button>
       {expanded && <div className="flex flex-col gap-[12px]">
@@ -1139,7 +1139,7 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
   );
   return (
     <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
-      <p className="text-[14px] leading-[22px]  font-normaltext-[rgba(0,0,0,0.88)] tracking-[0.014px]"><Typewriter text={preset.goal} /></p>
+      <p className="text-[14px] leading-[22px] font-normal text-[rgba(0,0,0,0.88)] tracking-[0.014px]"><Typewriter text={preset.goal} /></p>
       <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-[8px] text-left">
         <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap font-normal">{preset.running}</span>
         <TaskIcon type="chevron" expanded={expanded} />
