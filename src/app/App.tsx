@@ -160,7 +160,7 @@ function PanelFooter({ count, cancelled, onConfirm }: { count: number; cancelled
           <><span className="text-[#1e63f5] font-medium">{count}S</span><span className="text-[rgba(0,0,0,0.38)]"> 后自动确认</span></>
         )}
       </p>
-      <button onClick={onConfirm} className="bg-[#1e63f5] text-white text-[14px] leading-[22px] px-[16px] py-[5px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity">
+      <button onClick={onConfirm} className="bg-[#1e63f5] text-white text-[14px] leading-[22px] font-normal px-[16px] py-[5px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity">
         确认
       </button>
     </div>
@@ -395,7 +395,7 @@ function OutlinePanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
       <div className="shrink-0 bg-[rgba(255,255,255,0.5)] border-t border-[#f2f2f2]">
         <div className="flex items-center gap-[12px] px-[16px] py-[16px]">
           <p className="flex-1 text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]">
-            {!cancelled && <><span className="text-[#1e63f5] font-medium">{count}S</span><span className="text-[rgba(0,0,0,0.88)]"> 后自动确认</span></>}
+            {!cancelled && <><span className="text-[#1e63f5] font-normal">{count}S</span><span className="text-[rgba(0,0,0,0.88)]"> 后自动确认</span></>}
           </p>
           {/* AI编辑 button */}
           <button onClick={handleAiEditClick}
@@ -404,11 +404,11 @@ function OutlinePanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
             <svg width="16" height="16" viewBox="0 0 14 14.6644" fill="none" className="shrink-0">
               <path d={svgOutline.p3fbfc4c0} fill="black" fillOpacity="0.88" />
             </svg>
-            <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap">AI编辑</span>
+            <span className="text-[14px] leading-[22px] font-normal text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap">AI编辑</span>
           </button>
           {/* 确认 button */}
           <button onClick={handleConfirm}
-            className="bg-[#1e63f5] text-[rgba(255,255,255,0.98)] text-[14px] leading-[22px] tracking-[0.014px] px-[16px] py-[5px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity">
+            className="bg-[#1e63f5] text-[rgba(255,255,255,0.98)] text-[14px] font-normal leading-[22px]  tracking-[0.014px] px-[16px] py-[5px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity">
             确认
           </button>
         </div>
@@ -463,7 +463,7 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
           <svg width="16" height="15" viewBox="0 0 14.6667 15" fill="none" className="shrink-0">
             <path d={svgSidebar.p2e5a6e00} fill="black" fillOpacity="0.88" />
           </svg>
-          <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap">新任务</span>
+          <span className="text-[14px] font-normal leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap">新任务</span>
         </button>
         {/* 历史记录 label + search */}
         <p className="absolute left-[24px] top-[89px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap">历史记录</p>

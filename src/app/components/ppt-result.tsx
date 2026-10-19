@@ -44,7 +44,7 @@ function PptFileCard({ onOpen }: { onOpen: () => void }) {
       <button onClick={onOpen} className="col-start-1 h-[50px] bg-[#f7f7f7] hover:bg-[#f2f2f2] transition-colors rounded-[8px] flex items-center gap-[8px] px-[8px] text-left cursor-pointer">
         <FileIcon />
         <div className="flex-1 min-w-0 flex flex-col">
-          <p className="text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] truncate">{PPT_FILE_NAME}</p>
+          <p className="text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] truncate font-normal">{PPT_FILE_NAME}</p>
           <p className="text-[12px] leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)] truncate">PPT · 36M</p>
         </div>
       </button>
