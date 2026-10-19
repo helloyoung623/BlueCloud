@@ -459,7 +459,7 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
         </button>
         {/* 新任务 button */}
         <button onClick={onNewChat} className="absolute left-1/2 top-[48px] -translate-x-1/2 w-[216px] rounded-[4px] flex items-center justify-center gap-[8px] px-[16px] py-[5px] cursor-pointer hover:bg-[#f7f7f7] transition-colors">
-          <div aria-hidden className="absolute inset-0 rounded-[4px] border border-[#e6e6e6] pointer-events-none" />
+          <div aria-hidden className="absolute inset-0 rounded-[4px] border border-[#e6e6e6] pointer-events-none bg-[#00000000]" />
           <svg width="16" height="15" viewBox="0 0 14.6667 15" fill="none" className="shrink-0">
             <path d={svgSidebar.p2e5a6e00} fill="black" fillOpacity="0.88" />
           </svg>
@@ -682,14 +682,14 @@ function HomeView({ input, onInputChange, onSend }: { input: string; onInputChan
           <div className="flex-1 flex flex-col items-center w-full">
             <div className="shrink-0 flex items-center gap-[8px] pt-[32px] pb-[20px]">
               <svg width="80" height="1" viewBox="0 0 80 1" fill="none"><path d="M0 0.5H80" stroke="url(#gl)" /><defs><linearGradient id="gl" x1="0" y1="1" x2="80" y2="1" gradientUnits="userSpaceOnUse"><stop stopOpacity="0" /><stop offset="1" stopOpacity="0.3" /></linearGradient></defs></svg>
-              <span className="text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.38)] whitespace-nowrap">试试这些</span>
+              <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] whitespace-nowrap">试试这些</span>
               <svg width="80" height="1" viewBox="0 0 80 1" fill="none"><path d="M0 0.5H80" stroke="url(#gr)" /><defs><linearGradient id="gr" x1="0" y1="1" x2="80" y2="1" gradientUnits="userSpaceOnUse"><stop stopOpacity="0.3" /><stop offset="1" stopOpacity="0" /></linearGradient></defs></svg>
             </div>
             <div className="shrink-0 flex flex-wrap items-center justify-center gap-[12px]">
               {SUGGESTIONS.map((s, i) => (
                 <button key={s} onClick={() => onInputChange(s)} className="flex items-center gap-[10px] px-[8px] py-[8px] bg-[#f7f7f7] hover:bg-[#f2f2f2] rounded-[8px] transition-colors cursor-pointer">
                   <AIIcon uid={`s${i}`} />
-                  <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] whitespace-nowrap font-bold">{s}</span>
+                  <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] whitespace-nowrap font-normal">{s}</span>
                 </button>
               ))}
             </div>
