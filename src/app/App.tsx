@@ -1,5 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import svgPaths from "@/imports/默认首页-1/svg-4ly00k0kqz";
+import svgPanel from "@/imports/需求确认-1/svg-1yxmq1shfb";
+import imgStyle1 from "@/imports/需求确认-1/29d4a489057188d7298a9a9f8b923d2d9c630925.png";
+import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c6709a8e1bdf.png";
+import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
 
 // ── gradient AI spark icon ────────────────────────────────────────────────────
 
@@ -134,6 +138,169 @@ function ChatHeader({ title, onNewChat }: { title?: string; onNewChat?: () => vo
 
       <div className="flex-1" />
     </div>
+  );
+}
+
+// ── requirement panel ─────────────────────────────────────────────────────────
+
+function OptionTag({
+  label, selected, onClick, image,
+}: { label: string; selected: boolean; onClick: () => void; image?: string }) {
+  return (
+    <div
+      onClick={onClick}
+      className={`relative rounded-[8px] cursor-pointer flex-1 min-w-0`}
+    >
+      <div aria-hidden className={`absolute inset-0 rounded-[8px] border border-solid pointer-events-none ${selected ? "border-[#1e63f5]" : "border-[#e6e6e6]"}`} />
+      <div className="flex items-center px-[12px] py-[8px] gap-[10px]">
+        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap">{label}</span>
+        {image && (
+          <div className="absolute h-[22px] right-[8px] top-[8px] w-[39px] rounded-[4px] overflow-hidden">
+            <img src={image} alt="" className="w-full h-full object-cover" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RequirementPanel({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const [style, setStyle] = useState("科技现代");
+  const [scenes, setScenes] = useState<string[]>(["商业路演"]);
+  const [audience, setAudience] = useState<string[]>(["投资人"]);
+  const [pages, setPages] = useState("8～12页");
+  const [countdown, setCountdown] = useState(30);
+
+  useEffect(() => {
+    if (!visible) return;
+    setCountdown(30);
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible || countdown <= 0) {
+      if (countdown <= 0) onClose();
+      return;
+    }
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [visible, countdown, onClose]);
+
+  const toggleMulti = (set: string[], val: string, setter: (v: string[]) => void) =>
+    setter(set.includes(val) ? set.filter(x => x !== val) : [...set, val]);
+
+  return (
+    <>
+      {/* backdrop */}
+      <div
+        className="fixed inset-0 z-40 transition-opacity duration-300"
+        style={{ opacity: visible ? 1 : 0, pointerEvents: visible ? "auto" : "none" }}
+        onClick={onClose}
+      />
+      {/* panel */}
+      <div
+        className="fixed left-1/2 z-50 flex flex-col bg-white rounded-[16px] overflow-hidden"
+        style={{
+          width: 800,
+          height: 560,
+          bottom: 22,
+          transform: `translateX(-50%) translateY(${visible ? "0%" : "120%"})`,
+          transition: "transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)",
+          boxShadow: "0 0 12px rgba(0,0,0,0.08)",
+          border: "1px solid #e6e6e6",
+        }}
+      >
+        {/* header */}
+        <div className="shrink-0 px-[16px] pt-[16px] pb-[8px]">
+          <div className="flex items-center justify-between">
+            <span className="text-[16px] font-medium leading-[24px] text-[rgba(0,0,0,0.88)] tracking-[0.016px]">确认制作需求</span>
+            <button onClick={onClose} className="w-[24px] h-[24px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer">
+              <svg width="11" height="11" viewBox="0 0 10.371 10.371" fill="none">
+                <path d={svgPanel.p28244cc0} fill="black" fillOpacity="0.88" />
+              </svg>
+            </button>
+          </div>
+          <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.6)] tracking-[0.014px] mt-[2px]">确保 AI 生成的方向符合您的预期</p>
+        </div>
+
+        {/* scrollable body */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-[16px] pb-[16px] flex flex-col gap-[16px]">
+          {/* 视觉风格 */}
+          <div className="flex flex-col gap-[12px]">
+            <span className="text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.88)]">视觉风格</span>
+            <div className="grid grid-cols-3 gap-[12px]">
+              <OptionTag label="科技现代" image={imgStyle1} selected={style === "科技现代"} onClick={() => setStyle("科技现代")} />
+              <OptionTag label="商务风"   image={imgStyle2} selected={style === "商务风"}   onClick={() => setStyle("商务风")} />
+              <OptionTag label="XXX"      image={imgStyle3} selected={style === "XXX"}      onClick={() => setStyle("XXX")} />
+              <div className="relative rounded-[8px] cursor-pointer col-span-1">
+                <div aria-hidden className="absolute inset-0 rounded-[8px] border border-[#e6e6e6] pointer-events-none" />
+                <div className="flex items-center px-[12px] py-[8px] gap-[10px] justify-between">
+                  <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">更多</span>
+                  <svg width="12" height="10" viewBox="0 0 5.30321 9.19243" fill="none">
+                    <path d={svgPanel.p5e65780} fill="black" fillOpacity="0.38" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 演示场景 */}
+          <div className="flex flex-col gap-[12px]">
+            <span className="text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.88)]">演示场景（可多选）</span>
+            <div className="flex gap-[12px]">
+              {["商业路演", "XXX", "XXX"].map((s, i) => (
+                <OptionTag key={i} label={s} selected={scenes.includes(s + i)} onClick={() => toggleMulti(scenes, s + i, setScenes)} />
+              ))}
+            </div>
+          </div>
+
+          {/* 受众对象 */}
+          <div className="flex flex-col gap-[12px]">
+            <span className="text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.88)]">受众对象（可多选）</span>
+            <div className="grid grid-cols-3 gap-[12px]">
+              {["投资人", "XXX", "XXX", "XXX", "其他"].map((s, i) => (
+                <OptionTag key={i} label={s} selected={audience.includes(s + i)} onClick={() => toggleMulti(audience, s + i, setAudience)} />
+              ))}
+            </div>
+          </div>
+
+          {/* 页数 */}
+          <div className="flex flex-col gap-[12px]">
+            <span className="text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.88)]">页数</span>
+            <div className="flex gap-[12px]">
+              {["8～12页", "XXX", "XXX"].map((s, i) => (
+                <OptionTag key={i} label={s} selected={pages === s} onClick={() => setPages(s)} />
+              ))}
+            </div>
+          </div>
+
+          {/* 补充说明 */}
+          <div className="flex flex-col gap-[12px]">
+            <span className="text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.88)]">补充说明</span>
+            <div className="relative rounded-[8px] h-[40px]">
+              <div aria-hidden className="absolute inset-0 rounded-[8px] border border-[#e6e6e6] pointer-events-none" />
+              <input
+                className="w-full h-full px-[12px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] placeholder:text-[rgba(0,0,0,0.26)] bg-transparent outline-none"
+                placeholder="请输入您想强调的关键数据、特定观点或特殊要求…"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* footer */}
+        <div className="shrink-0 px-[16px] py-[16px] flex items-center gap-[16px] bg-[rgba(255,255,255,0.5)]">
+          <p className="flex-1 text-[14px] leading-[22px]">
+            <span className="text-[#1e63f5]">{countdown}S</span>
+            <span className="text-[rgba(0,0,0,0.38)]"> 后自动确认</span>
+          </p>
+          <button
+            onClick={onClose}
+            className="bg-[#1e63f5] text-white text-[14px] leading-[22px] px-[16px] py-[5px] rounded-[8px] cursor-pointer hover:opacity-90"
+          >
+            确认
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -297,33 +464,47 @@ function ChatView({ messages, input, onInputChange, onSend, onNewChat }: {
 
 // ── root ──────────────────────────────────────────────────────────────────────
 
+const isPPTIntent = (text: string) =>
+  /ppt|演示|幻灯|slide/i.test(text) || text.includes("生成PPT") || text.includes("PPT");
+
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("生成PPT");
+  const [showPanel, setShowPanel] = useState(false);
 
   const handleSend = () => {
     const text = input.trim();
     if (!text) return;
     setInput("");
     setMessages((prev) => [...prev, { role: "user", text }, { role: "ai", text: "", thinking: true }]);
-    setTimeout(() => {
-      setMessages((prev) => {
-        const next = [...prev];
-        const idx = next.findLastIndex((m) => m.thinking);
-        if (idx !== -1) next[idx] = { role: "ai", text: "好的，我来帮您处理这个请求。" };
-        return next;
-      });
-    }, 1200);
+    if (isPPTIntent(text)) {
+      setTimeout(() => setShowPanel(true), 200);
+    } else {
+      setTimeout(() => {
+        setMessages((prev) => {
+          const next = [...prev];
+          const idx = next.findLastIndex((m) => m.thinking);
+          if (idx !== -1) next[idx] = { role: "ai", text: "好的，我来帮您处理这个请求。" };
+          return next;
+        });
+      }, 1200);
+    }
   };
 
   const handleNewChat = () => {
     setMessages([]);
     setInput("");
+    setShowPanel(false);
   };
 
-  if (messages.length > 0) {
-    return <ChatView messages={messages} input={input} onInputChange={setInput} onSend={handleSend} onNewChat={handleNewChat} />;
-  }
-
-  return <HomeView input={input} onInputChange={setInput} onSend={handleSend} />;
+  return (
+    <>
+      {messages.length > 0 ? (
+        <ChatView messages={messages} input={input} onInputChange={setInput} onSend={handleSend} onNewChat={handleNewChat} />
+      ) : (
+        <HomeView input={input} onInputChange={setInput} onSend={handleSend} />
+      )}
+      <RequirementPanel visible={showPanel} onClose={() => setShowPanel(false)} />
+    </>
+  );
 }
