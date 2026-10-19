@@ -19,7 +19,8 @@ import SendButtonFigma from "@/imports/发送按钮";
 // ── types ─────────────────────────────────────────────────────────────────────
 
 type ProcessVariant = "requirement" | "outline" | "ppt";
-type Message = { role: "user" | "ai" | "process" | "result"; text: string; thinking?: boolean; variant?: ProcessVariant };
+type ProcessPreset = { goal: string; running: string; actions: { label: string; icon: ToolKind }[] };
+type Message = { role: "user" | "ai" | "process" | "result"; text: string; thinking?: boolean; variant?: ProcessVariant; preset?: ProcessPreset };
 type PptStage = "idle" | "requirement" | "outline_generating" | "outline" | "ppt_generating" | "preview";
 
 type OutlinePageContent =
@@ -31,6 +32,22 @@ type OutlinePage = { id: number; pageLabel: string; title: string; content: Outl
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 const isPPTIntent = (t: string) => /ppt|演示|幻灯|slide/i.test(t) || t.includes("PPT");
+
+// build an execution process whose copy reflects the user's actual request
+const buildQueryProcess = (query: string): ProcessPreset => {
+  const topic = query.length > 24 ? `${query.slice(0, 24)}…` : query;
+  return {
+    goal: `任务目标：${query}`,
+    running: `围绕「${topic}」检索并整理信息`,
+    actions: [
+      { label: `搜索；检索「${topic}」相关信息`, icon: "search" },
+      { label: "读取；加载匹配到的内容", icon: "read" },
+      { label: "提取；归纳关键信息", icon: "extract" },
+      { label: "分析；梳理结果结构", icon: "analyze" },
+      { label: "汇总；整理输出结果", icon: "summarize" },
+    ],
+  };
+};
 
 function mockOutlinePages(): OutlinePage[] {
   return [
@@ -958,7 +975,7 @@ function ChatMessageRow({ msg, index, advance, onOpenPpt, onRegeneratePpt }: {
     </div>
   );
   if (msg.role === "process") return (
-    <div className="w-full max-w-[768px]"><ExecutionProcess running={Boolean(msg.thinking)} variant={msg.variant ?? "requirement"} onGoalDone={() => advance(index)} /></div>
+    <div className="w-full max-w-[768px]"><ExecutionProcess running={Boolean(msg.thinking)} variant={msg.variant ?? "requirement"} preset={msg.preset} onGoalDone={() => advance(index)} /></div>
   );
   if (msg.role === "result") return (
     <div className="w-full max-w-[768px]"><PptResultMessage onOpen={() => onOpenPpt?.()} onRegenerate={onRegeneratePpt} /></div>
@@ -998,7 +1015,7 @@ function ChatView({ conversationId, messages, input, onInputChange, onSend, show
   // "任务已完成" rendered at the position of the first process message
   const processIndices = messages.map((m, i) => (m.role === "process" ? i : -1)).filter(i => i >= 0);
   const firstProcessIndex = processIndices[0];
-  const processVariants = processIndices.map(i => messages[i].variant ?? "requirement");
+  const processPresets = processIndices.map(i => messages[i].preset ?? PROCESS_PRESETS[messages[i].variant ?? "requirement"]);
   const taskComplete = messages.some(m => m.role === "result") && !messages.some(m => m.role === "process" && m.thinking);
   return (
     <div className="flex-1 min-h-0 bg-white flex flex-col">
@@ -1010,7 +1027,7 @@ function ChatView({ conversationId, messages, input, onInputChange, onSend, show
               {messages.map((msg, i) => {
                 if (i > revealed) return null;
                 if (msg.role === "process" && taskComplete) {
-                  return i === firstProcessIndex ? <MergedProcess key={i} variants={processVariants} /> : null;
+                  return i === firstProcessIndex ? <MergedProcess key={i} presets={processPresets} /> : null;
                 }
                 return <ChatMessageRow key={i} msg={msg} index={i} advance={advance} onOpenPpt={onOpenPpt} onRegeneratePpt={onRegeneratePpt} />;
               })}
@@ -1132,8 +1149,8 @@ const PROCESS_PRESETS: Record<ProcessVariant, { goal: string; running: string; a
   },
 };
 
-function ExecutionProcess({ running, variant = "requirement", onGoalDone }: { running: boolean; variant?: ProcessVariant; onGoalDone?: () => void }) {
-  const preset = PROCESS_PRESETS[variant];
+function ExecutionProcess({ running, variant = "requirement", preset: customPreset, onGoalDone }: { running: boolean; variant?: ProcessVariant; preset?: ProcessPreset; onGoalDone?: () => void }) {
+  const preset = customPreset ?? PROCESS_PRESETS[variant];
   const actions = preset.actions;
   const total = actions.length;
   const [expanded, setExpanded] = useState(false);
@@ -1218,7 +1235,7 @@ function ExecutionProcess({ running, variant = "requirement", onGoalDone }: { ru
 }
 
 // once the whole task is done, all stages collapse into a single "任务已完成"
-function MergedProcess({ variants }: { variants: ProcessVariant[] }) {
+function MergedProcess({ presets }: { presets: ProcessPreset[] }) {
   const [expanded, setExpanded] = useState(false);
   return (
     <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
@@ -1227,8 +1244,7 @@ function MergedProcess({ variants }: { variants: ProcessVariant[] }) {
         <TaskIcon type="chevron" expanded={expanded} />
       </button>
       {expanded && <div className="flex flex-col gap-[20px]">
-        {variants.map((variant, vi) => {
-          const preset = PROCESS_PRESETS[variant];
+        {presets.map((preset, vi) => {
           return (
             <div key={vi} className="flex flex-col gap-[12px]">
               <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] font-normal">{preset.running}</p>
@@ -1292,7 +1308,10 @@ export default function App() {
       setHistory(h => [{ id, title: text.slice(0, 20), messages: [] }, ...h]);
       setActiveHistoryId(id);
     }
-    setMessages(prev => [...prev, { role: "user", text }, { role: "process", text: "", thinking: true, variant: "requirement" }]);
+    const initialProcess: Message = shouldGeneratePpt
+      ? { role: "process", text: "", thinking: true, variant: "requirement" }
+      : { role: "process", text: "", thinking: true, variant: "requirement", preset: buildQueryProcess(text) };
+    setMessages(prev => [...prev, { role: "user", text }, initialProcess]);
 
     // AI returns summary first
     setTimeout(() => {
