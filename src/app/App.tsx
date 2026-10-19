@@ -475,7 +475,7 @@ function Sidebar({ onClose, onNewChat, activeId, onSelect }: {
   }, []);
 
   return (
-    <div className="shrink-0 w-[240px] h-full bg-white flex flex-col relative border-r border-[#f2f2f2]">
+    <div className="shrink-0 w-[240px] self-stretch bg-white flex flex-col relative border-r border-[#f2f2f2]">
       {/* head */}
       <div className="shrink-0 h-[120px] relative bg-white">
         <p className="absolute left-[24px] top-[12px] text-[16px] font-medium leading-[24px] text-[rgba(0,0,0,0.88)] tracking-[0.016px] whitespace-nowrap">任务</p>
@@ -679,7 +679,7 @@ const SUGGESTIONS = ["找出近一周的邮件", "请帮我起草一封给团队
 
 function HomeView({ input, onInputChange, onSend, onSidebarToggle }: { input: string; onInputChange: (v: string) => void; onSend: () => void; onSidebarToggle?: () => void }) {
   return (
-    <div className="w-full h-full bg-white flex flex-col">
+    <div className="flex-1 min-h-0 bg-white flex flex-col">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
       <ChatHeader onSidebarToggle={onSidebarToggle} />
       <div className="relative flex-1 flex flex-col items-center px-[24px] pt-0 pb-0 min-h-0 overflow-hidden">
@@ -723,7 +723,7 @@ function ChatView({ messages, input, onInputChange, onSend, onNewChat, onSidebar
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
   const title = messages[0]?.text.slice(0, 20) + (messages[0]?.text.length > 20 ? "…" : "");
   return (
-    <div className="w-full h-full bg-white flex flex-col">
+    <div className="flex-1 min-h-0 bg-white flex flex-col">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
       <ChatHeader title={title} onSidebarToggle={onSidebarToggle} onNewChat={onNewChat} />
       <div className="flex-1 flex flex-col items-center pt-0 px-[24px] pb-0 min-h-0">
@@ -840,7 +840,7 @@ export default function App() {
         />
       )}
       {/* main content */}
-      <div className="flex-1 min-w-0 h-full flex flex-col">
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col">
         {messages.length > 0
           ? <ChatView messages={messages} input={input} onInputChange={setInput} onSend={handleSend} onNewChat={handleNewChat} onSidebarToggle={() => setSidebarOpen(o => !o)} />
           : <HomeView input={input} onInputChange={setInput} onSend={handleSend} onSidebarToggle={() => setSidebarOpen(o => !o)} />
