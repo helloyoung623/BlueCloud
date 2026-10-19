@@ -806,7 +806,7 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
               <img src="/assets/a2c1b.svg" alt="" />
             </div>
           </div>
-          <span className="min-w-0 flex-1 truncate whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">张三李四王麻子</span>
+          <span className="min-w-0 w-fit grow-0 basis-auto truncate whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">张三李四王麻子</span>
           {(profileHovered || profileMenuOpen) && (
             <img src="/assets/05ead.svg" alt="" className="shrink-0" />
           )}
