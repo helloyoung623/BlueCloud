@@ -583,12 +583,12 @@ function OutlinePanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
 const initialMemories = [
   {
     title: "关于你",
-    editorInlineBold: true,
+    editorInlineBoldId: "fge-143",
     content: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
   },
   {
     title: "XXXX",
-    boldTitle: true,
+    editorInlineBoldId: "fge-153",
     content: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
   },
   {
@@ -705,10 +705,8 @@ function MemoryModal({ onClose }: { onClose: () => void }) {
               {memories.map((memory, index) => (
                 <div key={`${memory.title}-${index}`} className="mb-[24px]">
                   <p className="font-['PingFang_SC:Medium'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
-                    {memory.editorInlineBold ? (
-                      <span className="fg-inline-bold font-bold" data-fge-id="fge-143">{memory.title}</span>
-                    ) : memory.boldTitle ? (
-                      <span className="font-bold">{memory.title}</span>
+                    {memory.editorInlineBoldId ? (
+                      <span className="fg-inline-bold font-bold" data-fge-id={memory.editorInlineBoldId}>{memory.title}</span>
                     ) : memory.title}
                   </p>
                   <p className="mt-[12px] break-words font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
