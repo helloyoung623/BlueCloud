@@ -941,7 +941,43 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
   );
 }
 
-function ChatView({ messages, input, onInputChange, onSend, showInput = true, onOpenPpt, onRegeneratePpt, pptGeneration, onPptGenerationChange, agentRunning, onStop }: {
+function ChatMessageRow({ msg, index, advance, onOpenPpt, onRegeneratePpt }: {
+  msg: Message; index: number; advance: (i: number) => void;
+  onOpenPpt?: () => void; onRegeneratePpt?: () => void;
+}) {
+  // messages without a running typewriter advance the reveal pointer on mount;
+  // process messages advance via onGoalDone once their goal finishes typing
+  const autoAdvance = msg.role === "user" || msg.role === "result" || (msg.role === "ai" && Boolean(msg.thinking));
+  useEffect(() => { if (autoAdvance) advance(index); }, [autoAdvance, advance, index]);
+
+  if (msg.role === "user") return (
+    <div className="flex justify-end">
+      <div className="max-w-[85%] bg-[#f7f7f7] px-[12px] py-[8px] rounded-tl-[8px] rounded-br-[8px] rounded-bl-[8px]">
+        <p className="text-[16px] leading-[26px] text-[rgba(0,0,0,0.88)] whitespace-pre-wrap break-words">{msg.text}</p>
+      </div>
+    </div>
+  );
+  if (msg.role === "process") return (
+    <div className="w-full max-w-[768px]"><ExecutionProcess running={Boolean(msg.thinking)} variant={msg.variant ?? "requirement"} onGoalDone={() => advance(index)} /></div>
+  );
+  if (msg.role === "result") return (
+    <div className="w-full max-w-[768px]"><PptResultMessage onOpen={() => onOpenPpt?.()} onRegenerate={onRegeneratePpt} /></div>
+  );
+  return (
+    <div className="w-full max-w-[768px]">
+      {msg.thinking ? (
+        <div className="flex items-center gap-[6px] py-[4px]">
+          {[0, 200, 400].map(d => <span key={d} className="w-[6px] h-[6px] rounded-full bg-[rgba(0,0,0,0.26)] inline-block" style={{ animation: `blink 1s ${d}ms step-end infinite` }} />)}
+        </div>
+      ) : (
+        <p className="text-[16px] leading-[26px] text-[rgba(0,0,0,0.88)] whitespace-pre-wrap"><Typewriter text={msg.text ?? ""} onDone={() => advance(index)} /></p>
+      )}
+    </div>
+  );
+}
+
+function ChatView({ conversationId, messages, input, onInputChange, onSend, showInput = true, onOpenPpt, onRegeneratePpt, pptGeneration, onPptGenerationChange, agentRunning, onStop }: {
+  conversationId: number | null;
   messages: Message[]; input: string; onInputChange: (v: string) => void; onSend: () => void; showInput?: boolean;
   onOpenPpt?: () => void; onRegeneratePpt?: () => void;
   pptGeneration: boolean; onPptGenerationChange: (selected: boolean) => void;
@@ -949,6 +985,14 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true, on
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
+
+  // reveal messages one at a time: the next message renders only after the
+  // current one has finished its typewriter / entrance
+  const [revealed, setRevealed] = useState(0);
+  const advance = useCallback((i: number) => setRevealed(r => Math.max(r, i + 1)), []);
+  // switching conversations shows history in full without replaying typewriters
+  const msgCount = messages.length;
+  useEffect(() => { setRevealed(msgCount); }, [conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="flex-1 min-h-0 bg-white flex flex-col">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
@@ -956,27 +1000,9 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true, on
         <div className="min-h-full px-[24px] pt-[16px] max-[560px]:px-0">
           <div className="mx-auto w-full max-w-[800px]">
             <div className="flex flex-col gap-[32px] p-[16px]">
-              {messages.map((msg, i) => msg.role === "user" ? (
-                <div key={i} className="flex justify-end">
-                  <div className="max-w-[85%] bg-[#f7f7f7] px-[12px] py-[8px] rounded-tl-[8px] rounded-br-[8px] rounded-bl-[8px]">
-                    <p className="text-[16px] leading-[26px] text-[rgba(0,0,0,0.88)] whitespace-pre-wrap break-words">{msg.text}</p>
-                  </div>
-                </div>
-              ) : msg.role === "process" ? (
-                <div key={i} className="w-full max-w-[768px]"><ExecutionProcess running={Boolean(msg.thinking)} variant={msg.variant ?? "requirement"} /></div>
-              ) : msg.role === "result" ? (
-                <div key={i} className="w-full max-w-[768px]"><PptResultMessage onOpen={() => onOpenPpt?.()} onRegenerate={onRegeneratePpt} /></div>
-              ) : (
-                <div key={i} className="w-full max-w-[768px]">
-                  {msg.thinking ? (
-                    <div className="flex items-center gap-[6px] py-[4px]">
-                      {[0, 200, 400].map(d => <span key={d} className="w-[6px] h-[6px] rounded-full bg-[rgba(0,0,0,0.26)] inline-block" style={{ animation: `blink 1s ${d}ms step-end infinite` }} />)}
-                    </div>
-                  ) : (
-                    <p className="text-[16px] leading-[26px] text-[rgba(0,0,0,0.88)] whitespace-pre-wrap"><Typewriter text={msg.text ?? ""} /></p>
-                  )}
-                </div>
-              ))}
+              {messages.map((msg, i) => i <= revealed ? (
+                <ChatMessageRow key={i} msg={msg} index={i} advance={advance} onOpenPpt={onOpenPpt} onRegeneratePpt={onRegeneratePpt} />
+              ) : null)}
             </div>
           </div>
         </div>
@@ -1095,7 +1121,7 @@ const PROCESS_PRESETS: Record<ProcessVariant, { goal: string; running: string; a
   },
 };
 
-function ExecutionProcess({ running, variant = "requirement" }: { running: boolean; variant?: ProcessVariant }) {
+function ExecutionProcess({ running, variant = "requirement", onGoalDone }: { running: boolean; variant?: ProcessVariant; onGoalDone?: () => void }) {
   const preset = PROCESS_PRESETS[variant];
   const actions = preset.actions;
   const total = actions.length;
@@ -1150,19 +1176,19 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
 
   if (!running) return (
     <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
-      <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]"><Typewriter text={preset.goal} /></p>
       <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-[8px] text-left">
         <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap font-normal">任务已完成</span>
         <TaskIcon type="chevron" expanded={expanded} />
       </button>
       {expanded && <div className="flex flex-col gap-[12px]">
+        <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]">{preset.goal}</p>
         {actions.map(({ label, icon }) => <div key={label} className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]"><TaskIcon type={icon} /><span>{label}</span></div>)}
       </div>}
     </div>
   );
   return (
     <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
-      <p className="text-[14px] leading-[22px] font-normal text-[rgba(0,0,0,0.88)] tracking-[0.014px]"><Typewriter text={preset.goal} onDone={() => setGoalTyped(true)} /></p>
+      <p className="text-[14px] leading-[22px] font-normal text-[rgba(0,0,0,0.88)] tracking-[0.014px]"><Typewriter text={preset.goal} onDone={() => { setGoalTyped(true); onGoalDone?.(); }} /></p>
       {goalTyped && (<>
         <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-[8px] text-left">
           <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap font-normal">{preset.running}</span>
@@ -1325,6 +1351,7 @@ export default function App() {
         />
         {messages.length > 0
           ? <ChatView
+              conversationId={activeHistoryId}
               messages={messages}
               input={input}
               onInputChange={setInput}
