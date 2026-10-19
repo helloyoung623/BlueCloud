@@ -333,7 +333,7 @@ type PresentationMode = "smart" | "visual";
 function VisualizationSubmenu({ onSelect }: { onSelect: (style: string) => void }) {
   const styles = ["智能匹配", "折线图", "柱状图", "饼图"];
   return (
-    <div className="absolute left-[calc(100%+8px)] top-0 z-30 w-[168px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
+    <div className="absolute right-[calc(100%+8px)] top-0 z-30 w-[168px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
       {styles.map((style, index) => (
         <button
           key={style}
@@ -367,7 +367,7 @@ function PresentationMenu({ mode, onChange, onClose }: {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">智能呈现</span>
-          <span className="block text-[14px] leading-[22px] text-[rgba(0,0,0,0.6)]">AI 综合内容，自动匹配最佳呈现方式</span>
+          <span className="block text-[14px] leading-[22px] text-[rgba(0,0,0,0.6)] font-normal">AI 综合内容，自动匹配最佳呈现方式</span>
         </span>
       </button>
       <div className="relative" onMouseEnter={() => setVisualHovered(true)} onMouseLeave={() => setVisualHovered(false)}>
@@ -381,7 +381,7 @@ function PresentationMenu({ mode, onChange, onClose }: {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">可视化呈现</span>
-            <span className="block max-w-[220px] break-words pr-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.6)]">把数据、流程和知识概念转成直观图表可视化</span>
+            <span className="block max-w-[220px] break-words pr-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.6)] font-normal">把数据、流程和知识概念转成直观图表可视化</span>
           </span>
           <span className="mt-[5px] text-[rgba(0,0,0,0.26)]">›</span>
         </button>
@@ -409,7 +409,7 @@ function OutlinePageCard({ page, presentation, onPresentationChange }: {
     >
       <div className="flex flex-col gap-[8px] items-start p-[8px]">
         <div className="relative w-full min-h-[20px]">
-          <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[12px] text-[rgba(0,0,0,0.38)] tracking-[0.012px] whitespace-nowrap">{page.pageLabel}</p>
+          <p className="font-['PingFang_SC:Regular' font-normal,sans-serif] leading-[20px] text-[12px] text-[rgba(0,0,0,0.38)] tracking-[0.012px] whitespace-nowrap">{page.pageLabel}</p>
           {showControl && (
             <div className="absolute right-0 top-0 z-10">
               <button
@@ -418,7 +418,7 @@ function OutlinePageCard({ page, presentation, onPresentationChange }: {
                 className={`flex items-center gap-[8px] rounded-[4px] bg-white px-[8px] py-px text-[14px] leading-[22px] tracking-[0.014px] transition-colors ${presentation === "visual" ? "text-[#1e63f5]" : "text-[rgba(0,0,0,0.88)]"}`}
               >
                 {presentation === "visual" && <span className="text-[#1e63f5]">▣</span>}
-                <span>{label}</span>
+                <span className="font-normal">{label}</span>
                 <svg className="size-[8px]" fill="none" viewBox="0 0 5.82064 4.69468" preserveAspectRatio="none">
                   <path d={svgPresentation.p35e26b00} fill={presentation === "visual" ? "#1E63F5" : "black"} fillOpacity={presentation === "visual" ? "1" : "0.88"} />
                 </svg>
