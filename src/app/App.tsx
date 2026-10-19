@@ -11,11 +11,12 @@ import imgStyle1 from "@/imports/需求确认-1/29d4a489057188d7298a9a9f8b923d2d
 import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c6709a8e1bdf.png";
 import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
 import imgEmpty from "@/imports/Frame427318236/9e55d93ab34e49b9baf8a7d585a49321a5312a43.png";
+import { PptPanel, PptResultMessage } from "./components/ppt-result";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
 type ProcessVariant = "requirement" | "outline" | "ppt";
-type Message = { role: "user" | "ai" | "process"; text: string; thinking?: boolean; variant?: ProcessVariant };
+type Message = { role: "user" | "ai" | "process" | "result"; text: string; thinking?: boolean; variant?: ProcessVariant };
 type PptStage = "idle" | "requirement" | "outline_generating" | "outline" | "ppt_generating" | "preview";
 
 type OutlinePageContent =
@@ -418,42 +419,6 @@ function OutlinePanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
 
 // ── PPT preview ───────────────────────────────────────────────────────────────
 
-function PptPreview({ onClose }: { onClose: () => void }) {
-  const slides = ["封面", "目录", "背景分析", "解决方案", "数据支撑", "实施路径", "团队介绍", "总结"];
-  const [active, setActive] = useState(0);
-  return (
-    <div className="fixed inset-0 z-50 bg-[#1a1a1a] flex flex-col">
-      <div className="shrink-0 h-[48px] flex items-center justify-between px-[20px] border-b border-[rgba(255,255,255,0.1)]">
-        <span className="text-white text-[14px] font-medium">PPT 预览</span>
-        <button onClick={onClose} className="text-[rgba(255,255,255,0.6)] hover:text-white text-[13px] px-[12px] py-[4px] rounded-[6px] border border-[rgba(255,255,255,0.2)] cursor-pointer">关闭预览</button>
-      </div>
-      <div className="flex-1 flex min-h-0">
-        {/* thumbnail list */}
-        <div className="w-[160px] shrink-0 border-r border-[rgba(255,255,255,0.1)] overflow-y-auto py-[12px] flex flex-col gap-[8px] px-[8px]">
-          {slides.map((s, i) => (
-            <button key={i} onClick={() => setActive(i)}
-              className={`w-full rounded-[6px] border text-left px-[10px] py-[8px] text-[12px] cursor-pointer transition-colors ${i === active ? "border-[#1e63f5] bg-[rgba(30,99,245,0.15)] text-white" : "border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.3)]"}`}
-            >
-              <div className="text-[10px] mb-[2px] opacity-50">第 {i + 1} 页</div>
-              {s}
-            </button>
-          ))}
-        </div>
-        {/* main canvas */}
-        <div className="flex-1 flex items-center justify-center p-[32px]">
-          <div className="bg-white rounded-[8px] shadow-2xl flex items-center justify-center" style={{ width: "100%", maxWidth: 720, aspectRatio: "16/9" }}>
-            <div className="text-center">
-              <div className="text-[rgba(0,0,0,0.26)] text-[12px] mb-[8px]">第 {active + 1} 页</div>
-              <div className="text-[28px] font-medium text-[rgba(0,0,0,0.88)]">{slides[active]}</div>
-              <div className="text-[14px] text-[rgba(0,0,0,0.38)] mt-[8px]">PPT 内容区域</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── sidebar ───────────────────────────────────────────────────────────────────
 
 type HistoryItem = { id: number; title: string; pinned?: boolean; messages: Message[] };
@@ -739,8 +704,9 @@ function HomeView({ input, onInputChange, onSend }: { input: string; onInputChan
   );
 }
 
-function ChatView({ messages, input, onInputChange, onSend, showInput = true }: {
+function ChatView({ messages, input, onInputChange, onSend, showInput = true, onOpenPpt, onRegeneratePpt }: {
   messages: Message[]; input: string; onInputChange: (v: string) => void; onSend: () => void; showInput?: boolean;
+  onOpenPpt?: () => void; onRegeneratePpt?: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
@@ -759,6 +725,8 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true }: 
                 </div>
               ) : msg.role === "process" ? (
                 <div key={i}><ExecutionProcess running={Boolean(msg.thinking)} variant={msg.variant ?? "requirement"} /></div>
+              ) : msg.role === "result" ? (
+                <div key={i}><PptResultMessage onOpen={() => onOpenPpt?.()} onRegenerate={onRegeneratePpt} /></div>
               ) : (
                 <div key={i}>
                   {msg.thinking ? (
@@ -904,7 +872,7 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
   if (!running) return (
     <div className="w-full max-w-[768px] overflow-hidden rounded-[8px] border border-[#f2f2f2] bg-white">
       <button onClick={() => setExpanded(v => !v)} className="w-full flex items-center justify-between px-[16px] py-[12px] text-left">
-        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">执行过程</span>
+        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px]">任务已完成</span>
         <TaskIcon type="chevron" expanded={expanded} />
       </button>
       {expanded && <div className="flex flex-col gap-[12px] px-[16px] pb-[12px]">
@@ -1026,7 +994,7 @@ export default function App() {
         const next = [...prev];
         const idx = next.findLastIndex(m => m.role === "process" && m.thinking);
         if (idx !== -1) next[idx] = { ...next[idx], thinking: false };
-        next.push({ role: "ai", text: "PPT 已生成完成，正在为您打开预览…" });
+        next.push({ role: "result", text: "" });
         return next;
       });
       setTimeout(() => setStage("preview"), 400);
@@ -1060,10 +1028,20 @@ export default function App() {
           onNewChat={messages.length > 0 ? handleNewChat : undefined}
         />
         {messages.length > 0
-          ? <ChatView messages={messages} input={input} onInputChange={setInput} onSend={handleSend} showInput={stage !== "requirement" && stage !== "outline"} />
+          ? <ChatView
+              messages={messages}
+              input={input}
+              onInputChange={setInput}
+              onSend={handleSend}
+              showInput={stage !== "requirement" && stage !== "outline"}
+              onOpenPpt={() => setStage("preview")}
+              onRegeneratePpt={handleOutlineConfirm}
+            />
           : <HomeView input={input} onInputChange={setInput} onSend={handleSend} />
         }
       </div>
+      {/* right-hand PPT viewer, shares the row with the chat column */}
+      {stage === "preview" && <PptPanel onClose={() => setStage("idle")} />}
       {/* panels / preview (z-50, fixed) */}
       {/*  these stay here so they overlay regardless of sidebar */}
 
@@ -1079,7 +1057,6 @@ export default function App() {
         onConfirm={handleOutlineConfirm}
         mainOffset={sidebarOpen ? 120 : 0}
       />
-      {stage === "preview" && <PptPreview onClose={() => setStage("idle")} />}
     </div>
   );
 }
