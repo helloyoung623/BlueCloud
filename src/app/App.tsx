@@ -804,9 +804,9 @@ function ToolLoading({ text }: { text: string }) {
   const maskId = useId().replace(/:/g, "");
   return <span className="relative inline-block overflow-hidden text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">
     {text}
-    <svg aria-hidden className="absolute inset-0 h-[22px] w-full" preserveAspectRatio="none">
-      <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="22"><text x="0" y="16" fontSize="14" fontFamily="PingFang SC, sans-serif">{text}</text></mask>
-      <g mask={`url(#${maskId})`}><motion.circle cy="11" r="16" fill="black" initial={{ cx: -16 }} animate={{ cx: ["-16", "calc(100% + 16px)"] }} transition={{ duration: 1.6, ease: "linear", repeat: Infinity }} /></g>
+    <svg aria-hidden className="absolute left-0 top-0 h-[22px] w-[57px]" viewBox="0 0 57 22" fill="none" preserveAspectRatio="none">
+      <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="57" height="22"><text x="0" y="16" fontSize="14" fontFamily="PingFang SC, sans-serif">{text}</text></mask>
+      <g mask={`url(#${maskId})`}><motion.circle cy="11" r="16" fill="black" initial={{ cx: -16 }} animate={{ cx: [-16, 74] }} transition={{ duration: 1.6, ease: "linear", repeat: Infinity }} /></g>
     </svg>
   </span>;
 }
