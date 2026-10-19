@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
+import { CircleCheck } from "lucide-react";
 import svgPaths from "@/imports/默认首页-1/svg-4ly00k0kqz";
 import svgPanel from "@/imports/需求确认-1/svg-1yxmq1shfb";
 import svgOutline from "@/imports/大纲/svg-fzbroqn38q";
@@ -599,6 +600,8 @@ function MemoryModal({ onClose }: { onClose: () => void }) {
   const [enabled, setEnabled] = useState(true);
   const [memories, setMemories] = useState(initialMemories);
   const [memoryInput, setMemoryInput] = useState("");
+  const [pendingMemory, setPendingMemory] = useState("");
+  const [updateStatus, setUpdateStatus] = useState<"idle" | "updating" | "success">("idle");
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -608,12 +611,29 @@ function MemoryModal({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
+  useEffect(() => {
+    if (updateStatus === "updating") {
+      const timer = window.setTimeout(() => {
+        setMemories(current => [...current, { title: "XXXX", content: pendingMemory }]);
+        setPendingMemory("");
+        setUpdateStatus("success");
+      }, 3000);
+      return () => window.clearTimeout(timer);
+    }
+
+    if (updateStatus === "success") {
+      const timer = window.setTimeout(() => setUpdateStatus("idle"), 3000);
+      return () => window.clearTimeout(timer);
+    }
+  }, [pendingMemory, updateStatus]);
+
   const addMemory = (event: React.FormEvent) => {
     event.preventDefault();
     const value = memoryInput.trim();
-    if (!value) return;
-    setMemories(current => [...current, { title: "XXXX", content: value }]);
+    if (!value || updateStatus !== "idle") return;
+    setPendingMemory(value);
     setMemoryInput("");
+    setUpdateStatus("updating");
   };
 
   return (
@@ -692,27 +712,55 @@ function MemoryModal({ onClose }: { onClose: () => void }) {
                 </div>
               ))}
             </div>
-            <form onSubmit={addMemory} className="absolute bottom-0 left-0 flex w-full items-center bg-[rgba(255,255,255,0.01)] p-[16px]">
-              <div className="flex h-[40px] flex-1 items-center overflow-hidden rounded-full border border-[#e6e6e6] bg-white pl-[15px] pr-[7px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
-                <input
-                  value={memoryInput}
-                  onChange={event => setMemoryInput(event.target.value)}
-                  aria-label="添加或删除记忆"
-                  placeholder="告诉我记住什么？忘记什么？"
-                  className="min-w-0 flex-1 bg-transparent font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] outline-none placeholder:text-[rgba(0,0,0,0.26)]"
-                />
-                <button
-                  type="submit"
-                  aria-label="提交记忆"
-                  className="flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#f2f2f2]"
-                >
-                  <img src="/assets/23b2e.svg" alt="" />
-                </button>
+            {updateStatus === "idle" && (
+              <form onSubmit={addMemory} className="absolute bottom-0 left-0 flex w-full items-center bg-[rgba(255,255,255,0.01)] p-[16px]">
+                <div className="flex h-[40px] flex-1 items-center overflow-hidden rounded-full border border-[#e6e6e6] bg-white pl-[15px] pr-[7px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
+                  <input
+                    value={memoryInput}
+                    onChange={event => setMemoryInput(event.target.value)}
+                    aria-label="添加或删除记忆"
+                    placeholder="告诉我记住什么？忘记什么？"
+                    className="min-w-0 flex-1 bg-transparent font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] outline-none placeholder:text-[rgba(0,0,0,0.26)]"
+                  />
+                  <button
+                    type="submit"
+                    aria-label="提交记忆"
+                    disabled={!memoryInput.trim()}
+                    className={`flex size-[24px] shrink-0 items-center justify-center rounded-full ${
+                      memoryInput.trim() ? "cursor-pointer bg-[#1e63f5]" : "cursor-default bg-[#f2f2f2]"
+                    }`}
+                  >
+                    <img src={memoryInput.trim() ? "/assets/3b7df.svg" : "/assets/23b2e.svg"} alt="" />
+                  </button>
+                </div>
+              </form>
+            )}
+            {updateStatus === "updating" && (
+              <div
+                role="status"
+                className="absolute bottom-[32px] left-1/2 flex min-h-[44px] -translate-x-1/2 items-center gap-[8px] rounded-full bg-white py-[8px] pl-[8px] pr-[16px] shadow-[0_0_6px_rgba(0,0,0,0.08)]"
+              >
+                <img src="/assets/34657.svg" alt="" className="shrink-0 animate-spin" />
+                <span className="whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+                  正在更新记忆
+                </span>
               </div>
-            </form>
+            )}
           </>
         )}
       </section>
+      {updateStatus === "success" && (
+        <div
+          role="status"
+          className="fixed top-[24px] z-[310] flex min-h-[44px] -translate-x-1/2 items-center gap-[8px] rounded-full bg-white py-[8px] pl-[8px] pr-[16px] shadow-[0_0_6px_rgba(0,0,0,0.08)]"
+          style={{ left: "calc(50% + min(40px, 3vw))" }}
+        >
+          <CircleCheck aria-hidden size={24} strokeWidth={1.8} className="shrink-0 text-[#2ba471]" />
+          <span className="whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+            记忆更新成功
+          </span>
+        </div>
+      )}
     </div>
   );
 }
