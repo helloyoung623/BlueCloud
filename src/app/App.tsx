@@ -797,15 +797,15 @@ function ExecutionProcess({ running }: { running: boolean }) {
     { label: running ? "正在整理演示需求" : "已整理出初步制作方案", icon: "read" as const },
   ];
   return (
-    <div className="w-full max-w-[768px]">
-      <button onClick={() => setExpanded(v => !v)} className="w-full flex items-center justify-between rounded-[8px] border border-[#f2f2f2] px-[16px] py-[12px] text-left hover:bg-[#fafafa]">
+    <div className="w-full max-w-[768px] overflow-hidden rounded-[8px] border border-[#f2f2f2] bg-white">
+      <button onClick={() => setExpanded(v => !v)} className="w-full flex items-center justify-between px-[16px] py-[12px] text-left hover:bg-[#fafafa]">
         <span className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">
           {running ? <motion.span className="size-[14px] rounded-full border border-[#1e63f5] border-t-transparent" animate={{ rotate: 360 }} transition={{ duration: 2, ease: "linear", repeat: Infinity }} /> : <span className="text-[#1e63f5] text-[16px] leading-none">✓</span>}
           {running ? "正在规划演示内容" : "执行过程"}
         </span>
         <span className={expanded ? "rotate-180 transition-transform" : "transition-transform"}><TaskIcon type="chevron" /></span>
       </button>
-      {expanded && <div className="mt-[12px] flex flex-col gap-[12px] rounded-[8px] border border-[#f2f2f2] px-[16px] py-[12px]">
+      {expanded && <div className="flex flex-col gap-[12px] px-[16px] pb-[12px]">
         <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">任务目标：生成符合演示场景、受众与风格要求的 PPT</p>
         {actions.map(({ label, icon }, index) => <div key={label} className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">
           {running && index === 2 ? <motion.span className="size-[14px] rounded-full border border-[#1e63f5] border-t-transparent" animate={{ rotate: 360 }} transition={{ duration: 2, ease: "linear", repeat: Infinity }} /> : <TaskIcon type={icon} />}
