@@ -157,21 +157,21 @@ function HomeView({ input, onInputChange, onSend }: {
 
       <ChatHeader />
 
-      {/* center content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-[24px] pt-[48px] pb-0">
-        <div className="w-full max-w-[800px] flex flex-col items-center gap-0">
+      {/* content area: pt-48 for header, pt-200 for design offset, flex-col so suggestions grow and input stays at bottom */}
+      <div className="flex-1 flex flex-col items-center px-[24px] pt-[48px] pb-0 min-h-0">
+        <div className="w-full max-w-[800px] flex flex-col items-center flex-1 pt-[200px] min-h-0">
 
-          {/* greeting */}
-          <div className="flex items-baseline gap-[8px] py-[32px]">
+          {/* greeting — shrink-0, sits at top */}
+          <div className="shrink-0 flex items-baseline gap-[8px] py-[32px]">
             <span className="text-[46px] font-medium leading-[56px] text-[rgba(0,0,0,0.88)] tracking-[0.046px]">
               Hi，xxxx
             </span>
-            <span className="w-[16px] h-[4px] bg-[rgba(0,0,0,0.88)] self-end mb-[10px] shrink-0" style={{ animation: "blink 1s step-end infinite" }} />
+            <span className="w-[16px] h-[4px] bg-[rgba(0,0,0,0.88)] self-end mb-[10px]" style={{ animation: "blink 1s step-end infinite" }} />
           </div>
 
-          {/* divider + chips */}
-          <div className="flex flex-col items-center w-full pb-[20px]">
-            <div className="flex items-center gap-[8px] pt-[32px] pb-[20px]">
+          {/* suggestions — flex-1, grows to push input to bottom */}
+          <div className="flex-1 flex flex-col items-center w-full">
+            <div className="shrink-0 flex items-center gap-[8px] pt-[32px] pb-[20px]">
               <svg width="80" height="1" viewBox="0 0 80 1" fill="none">
                 <path d="M0 0.5H80" stroke="url(#gl)" />
                 <defs>
@@ -190,7 +190,7 @@ function HomeView({ input, onInputChange, onSend }: {
                 </defs>
               </svg>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-[12px]">
+            <div className="shrink-0 flex flex-wrap items-center justify-center gap-[12px]">
               {SUGGESTIONS.map((s, i) => (
                 <button
                   key={s}
@@ -204,15 +204,16 @@ function HomeView({ input, onInputChange, onSend }: {
             </div>
           </div>
 
-          {/* input */}
-          <div className="w-full mt-[12px]">
+          {/* input — shrink-0, sits at bottom */}
+          <div className="shrink-0 w-full pb-[0px]">
             <ChatInput value={input} onChange={onInputChange} onSend={onSend} />
           </div>
+
         </div>
       </div>
 
       {/* disclaimer */}
-      <div className="flex items-center justify-center p-[4px] shrink-0">
+      <div className="shrink-0 flex items-center justify-center p-[4px]">
         <span className="text-[10px] leading-normal text-[rgba(0,0,0,0.26)] tracking-[0.01px]">内容由AI生成，仅供参考</span>
       </div>
     </div>
