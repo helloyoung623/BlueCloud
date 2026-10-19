@@ -471,6 +471,7 @@ function Sidebar({ onClose, onNewChat, activeId, onSelect }: {
 }) {
   const [hoverId, setHoverId] = useState<number | null>(null);
   const [menuId, setMenuId] = useState<number | null>(null);
+  const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -540,7 +541,14 @@ function Sidebar({ onClose, onNewChat, activeId, onSelect }: {
                   )}
                   {(isHover || hasMenu) && (
                     <button
-                      onClick={e => { e.stopPropagation(); setMenuId(hasMenu ? null : item.id); setHoverId(item.id); }}
+                      onClick={e => {
+                        e.stopPropagation();
+                        if (hasMenu) { setMenuId(null); return; }
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        setMenuPos({ x: rect.right + 4, y: rect.top });
+                        setMenuId(item.id);
+                        setHoverId(item.id);
+                      }}
                       className="shrink-0 w-[24px] h-[24px] flex items-center justify-center rounded-[4px] hover:bg-[rgba(0,0,0,0.06)] cursor-pointer"
                     >
                       <svg width="3" height="12" viewBox="0 0 2.66667 12" fill="none">
@@ -549,38 +557,40 @@ function Sidebar({ onClose, onNewChat, activeId, onSelect }: {
                     </button>
                   )}
                 </button>
-                {/* context menu */}
-                {hasMenu && (
-                  <div ref={menuRef} className="absolute left-[200px] top-0 z-50 bg-white rounded-[12px] w-[192px]" style={{ boxShadow: "0 0 12px rgba(0,0,0,0.08)", border: "1px solid #f2f2f2" }}>
-                    <div className="px-[8px] py-[4px] flex flex-col">
-                      {[
-                        { label: "置顶此对话", icon: svgSidebar.p3170f400, isPin: true },
-                        { label: "编辑名称",   icon: svgSidebar.p20221d00, isPin: false },
-                        { label: "删除",       icon: svgSidebar.p2ffde100, isPin: false },
-                      ].map(({ label, icon, isPin }) => (
-                        <button key={label} onClick={() => setMenuId(null)}
-                          className="flex items-center gap-[8px] px-[8px] py-[11px] rounded-[8px] hover:bg-[#f7f7f7] cursor-pointer w-full text-left">
-                          {isPin ? (
-                            <svg width="16" height="13" viewBox="0 0 12 12.6667" fill="none" className="shrink-0">
-                              <path d={icon} fill="black" fillOpacity="0.26" />
-                              <path d="M0 0H12V1.33333H0V0Z" fill="black" fillOpacity="0.26" />
-                            </svg>
-                          ) : (
-                            <svg width="16" height="16" viewBox="0 0 13.3333 13.3333" fill="none" className="shrink-0">
-                              <path d={icon} fill="black" fillOpacity="0.26" />
-                            </svg>
-                          )}
-                          <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap">{label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })
         )}
       </div>
+
+      {/* context menu — fixed to escape overflow clip */}
+      {menuId !== null && (
+        <div ref={menuRef} className="fixed z-[200] bg-white rounded-[12px] w-[192px]"
+          style={{ left: menuPos.x, top: menuPos.y, boxShadow: "0 0 12px rgba(0,0,0,0.08)", border: "1px solid #f2f2f2" }}>
+          <div className="px-[8px] py-[4px] flex flex-col">
+            {[
+              { label: "置顶此对话", icon: svgSidebar.p3170f400, isPin: true },
+              { label: "编辑名称",   icon: svgSidebar.p20221d00, isPin: false },
+              { label: "删除",       icon: svgSidebar.p2ffde100, isPin: false },
+            ].map(({ label, icon, isPin }) => (
+              <button key={label} onClick={() => setMenuId(null)}
+                className="flex items-center gap-[8px] px-[8px] py-[11px] rounded-[8px] hover:bg-[#f7f7f7] cursor-pointer w-full text-left">
+                {isPin ? (
+                  <svg width="16" height="13" viewBox="0 0 12 12.6667" fill="none" className="shrink-0">
+                    <path d={icon} fill="black" fillOpacity="0.26" />
+                    <path d="M0 0H12V1.33333H0V0Z" fill="black" fillOpacity="0.26" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 13.3333 13.3333" fill="none" className="shrink-0">
+                    <path d={icon} fill="black" fillOpacity="0.26" />
+                  </svg>
+                )}
+                <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* bottom — user info */}
       <div className="shrink-0 flex items-center px-[12px] py-[8px] bg-white">
