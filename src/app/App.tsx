@@ -450,7 +450,7 @@ function PptPreview({ onClose }: { onClose: () => void }) {
 
 // ── sidebar ───────────────────────────────────────────────────────────────────
 
-type HistoryItem = { id: number; title: string; pinned?: boolean };
+type HistoryItem = { id: number; title: string; pinned?: boolean; messages: Message[] };
 
 function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }: {
   history: HistoryItem[];
@@ -775,19 +775,41 @@ export default function App() {
 
   const resetPptFlow = useCallback(() => setStage("idle"), []);
 
+  // keep the active conversation's transcript in sync with the history list
+  useEffect(() => {
+    if (activeHistoryId === null) return;
+    setHistory(h => h.map(i => (i.id === activeHistoryId ? { ...i, messages } : i)));
+  }, [messages, activeHistoryId]);
+
+  // deleting the open conversation returns to the home view
+  useEffect(() => {
+    if (activeHistoryId !== null && !history.some(i => i.id === activeHistoryId)) {
+      setActiveHistoryId(null);
+      setMessages([]);
+      setStage("idle");
+    }
+  }, [history, activeHistoryId]);
+
+  const handleSelectHistory = (id: number) => {
+    const item = history.find(i => i.id === id);
+    if (!item) return;
+    setStage("idle");
+    setInput("");
+    setActiveHistoryId(id);
+    setMessages(item.messages);
+  };
+
   const handleSend = () => {
     const text = input.trim();
     if (!text) return;
     setInput("");
-    setMessages(prev => {
-      // create history entry only on first message of a new conversation
-      if (prev.length === 0) {
-        const id = nextHistoryId.current++;
-        setHistory(h => [{ id, title: text.slice(0, 20) }, ...h]);
-        setActiveHistoryId(id);
-      }
-      return [...prev, { role: "user", text }, { role: "ai", text: "", thinking: true }];
-    });
+    // create a history entry when starting a brand-new conversation
+    if (activeHistoryId === null) {
+      const id = nextHistoryId.current++;
+      setHistory(h => [{ id, title: text.slice(0, 20), messages: [] }, ...h]);
+      setActiveHistoryId(id);
+    }
+    setMessages(prev => [...prev, { role: "user", text }, { role: "ai", text: "", thinking: true }]);
 
     // AI returns summary first
     setTimeout(() => {
@@ -839,7 +861,7 @@ export default function App() {
     }, 2000);
   };
 
-  const handleNewChat = () => { setMessages([]); setInput(""); setStage("idle"); };
+  const handleNewChat = () => { setMessages([]); setInput(""); setStage("idle"); setActiveHistoryId(null); };
   const chatTitle = messages.length > 0
     ? messages[0].text.slice(0, 20) + (messages[0].text.length > 20 ? "…" : "")
     : undefined;
@@ -854,7 +876,7 @@ export default function App() {
           onClose={() => setSidebarOpen(false)}
           onNewChat={() => { handleNewChat(); setSidebarOpen(false); }}
           activeId={activeHistoryId}
-          onSelect={setActiveHistoryId}
+          onSelect={handleSelectHistory}
         />
       )}
       {/* main content: header always at App level so sidebar can never affect it */}
