@@ -12,19 +12,19 @@ Agent 执行过程模块（`ExecutionProcess`，`src/app/App.tsx`）的可折叠
 
 ## 改动
 
-### 1. 给每个 preset 增加描述性标题文案
-文件：`src/app/App.tsx`，`PROCESS_PRESETS`（约 1052–1091 行）。
-为每个 variant 增加一个字段（复用现有 `running`，或新增 `intent`）描述工具批次所做的事，例如：
-- `requirement`：检索并分析主题资料，梳理制作需求
-- `outline`：拆解需求逻辑，编排大纲结构
-- `ppt`：撰写各页内容并渲染 PPT 页面
+用户已确认：**执行中与完成态使用同一句描述**。
 
-（最终文案以用户确认为准，见下方问题。）
+### 1. 更新每个 preset 的标题文案
+文件：`src/app/App.tsx`，`PROCESS_PRESETS`（约 1052–1091 行）。
+复用现有 `running` 字段，改为一句描述该批工具所做之事（不再用「正在…」）：
+- `requirement`：检索资料并梳理制作需求
+- `outline`：拆解需求并编排大纲结构
+- `ppt`：撰写内容并渲染 PPT 页面
 
 ### 2. 折叠标题统一使用该文案
 文件：`src/app/App.tsx`，`ExecutionProcess`。
-- 完成态（约 1132 行）：把 `显示执行意图` 替换为 `preset.<该字段>`。
-- 执行中态（约 1144 行）：`preset.running` 替换为同一字段（若沿用 `running` 则无需改动）。
+- 完成态（约 1132 行）：把硬编码的 `显示执行意图` 替换为 `{preset.running}`。
+- 执行中态（约 1144 行）：已是 `{preset.running}`，无需改动。
 
 ### 3. 顺带修复相邻类名拼接错误
 第 1142 行 `font-normaltext-[rgba(0,0,0,0.88)]` 被错误拼接，应为 `font-normal text-[rgba(0,0,0,0.88)]`。
