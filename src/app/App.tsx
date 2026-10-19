@@ -136,9 +136,9 @@ function ChatInput({
 
   return (
     <div className="bg-white relative rounded-[20px] shrink-0 w-full">
-      <div className="content-stretch flex flex-col items-start overflow-clip relative rounded-[inherit] size-full">
+      <div className="content-stretch flex flex-col items-start relative rounded-[inherit] size-full">
         <div className="bg-white relative shrink-0 w-full">
-          <div className="overflow-clip rounded-[inherit] size-full">
+          <div className="rounded-[inherit] size-full">
             <div className="content-stretch flex flex-col gap-[8px] items-start pb-[48px] pt-[12px] px-[12px] relative size-full">
               <textarea
                 ref={textareaRef}
