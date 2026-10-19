@@ -1111,32 +1111,30 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
     return () => { window.clearTimeout(expandTimer); if (revealTimer) window.clearTimeout(revealTimer); };
   }, [running, total]);
   if (!running) return (
-    <div className="w-full max-w-[768px] overflow-hidden rounded-[8px] border border-[#f2f2f2] bg-white">
-      <button onClick={() => setExpanded(v => !v)} className="w-full flex items-center justify-between px-[16px] py-[12px] text-left">
-        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px]">任务已完成</span>
+    <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
+      <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]">{preset.goal}</p>
+      <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-[8px] text-left">
+        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap">任务已完成</span>
         <TaskIcon type="chevron" expanded={expanded} />
       </button>
-      {expanded && <div className="flex flex-col gap-[12px] px-[16px] pb-[12px]">
-        <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">{preset.goal}</p>
-        {actions.map(({ label, icon }) => <div key={label} className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]"><TaskIcon type={icon} /><span>{label}</span></div>)}
+      {expanded && <div className="flex flex-col gap-[12px]">
+        {actions.map(({ label, icon }) => <div key={label} className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]"><TaskIcon type={icon} /><span>{label}</span></div>)}
       </div>}
     </div>
   );
   return (
     <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
-      <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">{preset.goal}</p>
-      <div className="rounded-[8px] border border-[#f2f2f2]">
-        <button onClick={() => setExpanded(v => !v)} className="w-full flex items-center justify-between px-[16px] py-[12px] text-left">
-          <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">{preset.running}</span>
-          <TaskIcon type="chevron" expanded={expanded} />
-        </button>
-        {expanded && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} transition={{ duration: 0.2, ease: "easeOut" }} className="flex flex-col gap-[12px] overflow-hidden px-[16px] pb-[12px]">
-          {actions.slice(0, visibleActions).map(({ label, icon }, index) => <motion.div key={label} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">
-            <TaskIcon type={icon} />
-            {index >= batchStart ? <ToolLoading text={`正在${label.split("；")[0]}相关信息`} /> : <span>{label}</span>}
-          </motion.div>)}
-        </motion.div>}
-      </div>
+      <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]">{preset.goal}</p>
+      <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-[8px] text-left">
+        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap">{preset.running}</span>
+        <TaskIcon type="chevron" expanded={expanded} />
+      </button>
+      {expanded && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} transition={{ duration: 0.2, ease: "easeOut" }} className="flex flex-col gap-[12px] overflow-hidden">
+        {actions.slice(0, visibleActions).map(({ label, icon }, index) => <motion.div key={label} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]">
+          <TaskIcon type={icon} />
+          {index >= batchStart ? <ToolLoading text={`正在${label.split("；")[0]}相关信息`} /> : <span>{label}</span>}
+        </motion.div>)}
+      </motion.div>}
     </div>
   );
 }
