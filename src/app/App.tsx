@@ -203,7 +203,17 @@ function RequirementPanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
   const [audience, setAudience] = useState<string[]>(["投资人"]);
   const [pages, setPages] = useState("8～12页");
   const [moreStylesOpen, setMoreStylesOpen] = useState(false);
+  const closeMoreStylesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const openMoreStyles = () => {
+    if (closeMoreStylesTimer.current) clearTimeout(closeMoreStylesTimer.current);
+    setMoreStylesOpen(true);
+  };
+  const deferCloseMoreStyles = () => {
+    if (closeMoreStylesTimer.current) clearTimeout(closeMoreStylesTimer.current);
+    closeMoreStylesTimer.current = setTimeout(() => setMoreStylesOpen(false), 180);
+  };
 
   const handleConfirm = useCallback(() => { onConfirm(); }, [onConfirm]);
   const { count, cancelled, cancel } = useCountdown(visible, 30, handleConfirm);
@@ -235,29 +245,36 @@ function RequirementPanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
             <OptionItem label="XXX"      image={imgStyle3} selected={style === "XXX"}      onClick={() => setStyle("XXX")} />
             <div
               className="relative col-span-1"
-              onMouseEnter={() => setMoreStylesOpen(true)}
-              onMouseLeave={() => setMoreStylesOpen(false)}
+              onMouseEnter={openMoreStyles}
+              onMouseLeave={deferCloseMoreStyles}
             >
-              <button type="button" className={`relative flex w-full items-center justify-between rounded-[8px] px-[12px] py-[8px] text-left cursor-pointer ${moreStylesOpen ? "bg-[#f7f7f7]" : "bg-white"}`}>
+              <button
+                type="button"
+                onClick={openMoreStyles}
+                className={`relative flex w-full items-center justify-between rounded-[8px] px-[12px] py-[8px] text-left cursor-pointer ${moreStylesOpen ? "bg-[#f7f7f7]" : "bg-white"}`}
+              >
                 <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">更多</span>
-                <svg className="-scale-x-100" width="12" height="10" viewBox="0 0 5.30321 9.19243" fill="none"><path d={svgPanel.p5e65780} fill="black" fillOpacity="0.38" /></svg>
+                <svg width="10" height="12" viewBox="0 0 5.30321 9.19243" fill="none"><path d={svgPanel.p5e65780} fill="black" fillOpacity="0.38" /></svg>
                 <span aria-hidden className="absolute inset-0 rounded-[8px] border border-[#e6e6e6] pointer-events-none" />
               </button>
               {moreStylesOpen && (
-                <div className="absolute left-0 top-[calc(100%+8px)] z-30 w-[372px] rounded-[12px] border border-[#f2f2f2] bg-white p-[8px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
-                  <p className="px-[8px] py-[6px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">全部风格</p>
-                  <div className="grid grid-cols-2 gap-[4px]">
-                    {["简约清新", "创意插画", "深色未来", "复古艺术", "品牌活力", "专业报告"].map(option => (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => { setStyle(option); setMoreStylesOpen(false); }}
-                        className={`rounded-[8px] px-[8px] py-[8px] text-left text-[14px] leading-[22px] transition-colors ${style === option ? "bg-[#ebf4ff] text-[#1e63f5]" : "text-[rgba(0,0,0,0.88)] hover:bg-[#f7f7f7]"}`}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
+                <div
+                  className="absolute left-0 top-[calc(100%+8px)] z-40 w-[192px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+                  onMouseEnter={openMoreStyles}
+                  onMouseLeave={deferCloseMoreStyles}
+                >
+                  {["简约清新", "创意插画", "深色未来", "复古艺术", "品牌活力", "专业报告"].map(option => (
+                    <button
+                      key={option}
+                      type="button"
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={() => { setStyle(option); setMoreStylesOpen(false); }}
+                      className={`flex w-full items-center justify-between rounded-[8px] px-[8px] py-[11px] text-left text-[14px] leading-[22px] transition-colors ${style === option ? "font-medium text-[rgba(0,0,0,0.88)]" : "text-[rgba(0,0,0,0.88)] hover:bg-[#f7f7f7]"}`}
+                    >
+                      <span>{option}</span>
+                      {style === option && <span aria-hidden className="text-[16px] leading-[16px] text-[#1e63f5]">✓</span>}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
