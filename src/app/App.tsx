@@ -903,7 +903,7 @@ export default function App() {
           onNewChat={messages.length > 0 ? handleNewChat : undefined}
         />
         {messages.length > 0
-          ? <ChatView messages={messages} input={input} onInputChange={setInput} onSend={handleSend} showInput={stage === "idle"} />
+          ? <ChatView messages={messages} input={input} onInputChange={setInput} onSend={handleSend} showInput={stage !== "requirement" && stage !== "outline"} />
           : <HomeView input={input} onInputChange={setInput} onSend={handleSend} />
         }
       </div>
