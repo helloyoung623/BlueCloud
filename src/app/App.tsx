@@ -1034,15 +1034,20 @@ function ToolLoading({ text }: { text: string }) {
   </span>;
 }
 
-function Typewriter({ text, speed = 30, className }: { text: string; speed?: number; className?: string }) {
+function Typewriter({ text, speed = 30, className, onDone }: { text: string; speed?: number; className?: string; onDone?: () => void }) {
   const [count, setCount] = useState(0);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
   useEffect(() => {
     setCount(0);
     let i = 0;
     const id = window.setInterval(() => {
       i += 1;
       setCount(i);
-      if (i >= text.length) window.clearInterval(id);
+      if (i >= text.length) {
+        window.clearInterval(id);
+        onDoneRef.current?.();
+      }
     }, speed);
     return () => window.clearInterval(id);
   }, [text, speed]);
@@ -1098,36 +1103,43 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
   const [visibleActions, setVisibleActions] = useState(0);
   // index of the first item in the batch that is currently executing
   const [batchStart, setBatchStart] = useState(0);
+  // becomes true once the goal typewriter has finished for the active run
+  const [goalTyped, setGoalTyped] = useState(false);
   const stepEndRef = useRef<HTMLDivElement>(null);
 
+  // reset / finalize state whenever the running flag flips
   useEffect(() => {
     if (!running) {
+      // execution finished — collapse and show the full step list on demand
       setExpanded(false);
       setVisibleActions(total);
       setBatchStart(total);
+      setGoalTyped(false);
       return;
     }
     setExpanded(false);
     setVisibleActions(0);
     setBatchStart(0);
+    setGoalTyped(false);
+  }, [running, total]);
+
+  // reveal the tools only after the goal typewriter has actually finished
+  useEffect(() => {
+    if (!running || !goalTyped) return;
+    setExpanded(true);
     let shown = 0;
     let revealTimer: number | undefined;
-    // wait for the goal typewriter to finish before revealing the tools
-    const typingDuration = preset.goal.length * 30 + 250;
-    const expandTimer = window.setTimeout(() => {
-      setExpanded(true);
-      const revealBatch = () => {
-        const batchSize = Math.random() > 0.58 ? 2 : 1;
-        const start = shown;
-        shown = Math.min(total, shown + batchSize);
-        setBatchStart(start);
-        setVisibleActions(shown);
-        if (shown < total) revealTimer = window.setTimeout(revealBatch, 2000 + Math.floor(Math.random() * 3001));
-      };
-      revealTimer = window.setTimeout(revealBatch, 320);
-    }, typingDuration);
-    return () => { window.clearTimeout(expandTimer); if (revealTimer) window.clearTimeout(revealTimer); };
-  }, [running, total, preset.goal]);
+    const revealBatch = () => {
+      const batchSize = Math.random() > 0.58 ? 2 : 1;
+      const start = shown;
+      shown = Math.min(total, shown + batchSize);
+      setBatchStart(start);
+      setVisibleActions(shown);
+      if (shown < total) revealTimer = window.setTimeout(revealBatch, 2000 + Math.floor(Math.random() * 3001));
+    };
+    revealTimer = window.setTimeout(revealBatch, 320);
+    return () => { if (revealTimer) window.clearTimeout(revealTimer); };
+  }, [running, goalTyped, total]);
 
   // keep the newest step in view while the agent is running
   useEffect(() => {
@@ -1150,8 +1162,8 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
   );
   return (
     <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
-      <p className="text-[14px] leading-[22px] font-normal text-[rgba(0,0,0,0.88)] tracking-[0.014px]"><Typewriter text={preset.goal} /></p>
-      <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-[8px] text-left">
+      <p className="text-[14px] leading-[22px] font-normal text-[rgba(0,0,0,0.88)] tracking-[0.014px]"><Typewriter text={preset.goal} onDone={() => setGoalTyped(true)} /></p>
+      {goalTyped && <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-[8px] text-left">
         <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap font-normal">{preset.running}</span>
         <TaskIcon type="chevron" expanded={expanded} />
       </button>
