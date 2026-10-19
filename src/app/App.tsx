@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Check, ChevronDown, ChevronRight, FileSearch, Search, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import svgPaths from "@/imports/默认首页-1/svg-4ly00k0kqz";
 import svgPanel from "@/imports/需求确认-1/svg-1yxmq1shfb";
 import svgOutline from "@/imports/大纲/svg-fzbroqn38q";
 import svgSidebar from "@/imports/历史对话操作项/svg-1dh84d0t2n";
+import svgTask from "@/imports/任务执行过程/svg-tkwirjnqmk";
 import imgStyle1 from "@/imports/需求确认-1/29d4a489057188d7298a9a9f8b923d2d9c630925.png";
 import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c6709a8e1bdf.png";
 import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
@@ -783,11 +783,37 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true }: 
 
 // ── root ──────────────────────────────────────────────────────────────────────
 
+function TaskIcon({ type }: { type: "search" | "read" | "spark" | "chevron" }) {
+  const paths = type === "search" ? [svgTask.p3b5d3c00, svgTask.p313b1700] : type === "read" ? [svgTask.p27585af0, svgTask.p10b3d540, svgTask.p376ce200] : type === "spark" ? [svgTask.p313b1700] : [svgTask.p33898580];
+  return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">{paths.map((d, i) => <path key={i} d={d} fill="black" fillOpacity="0.38" />)}</svg>;
+}
+
 function ExecutionProcess({ running }: { running: boolean }) {
   const [expanded, setExpanded] = useState(running);
   useEffect(() => { setExpanded(running); }, [running]);
-  const steps = ["理解演示目标与受众", "检索可用的内容结构", running ? "正在整理演示需求" : "已整理出初步制作方案"];
-  return <div className="w-full max-w-[768px]"><button onClick={() => setExpanded(v => !v)} className="w-full flex items-center justify-between rounded-[8px] border border-[#e6e6e6] px-[12px] py-[8px] text-left hover:bg-[#fafafa]"><span className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">{running ? <motion.span className="flex size-[14px] rounded-full border-2 border-[#1e63f5] border-t-transparent" animate={{ rotate: 360 }} transition={{ duration: 1.1, ease: "linear", repeat: Infinity }} /> : <Check size={14} className="text-[#1e63f5]" />}{running ? "正在理解并规划 PPT 制作" : "执行过程"}</span>{expanded ? <ChevronDown size={16} className="text-[rgba(0,0,0,0.38)]" /> : <ChevronRight size={16} className="text-[rgba(0,0,0,0.38)]" />}</button>{expanded && <div className="mt-[8px] rounded-[8px] border border-[#e6e6e6] px-[12px] py-[10px]"><p className="mb-[8px] text-[12px] leading-[20px] text-[rgba(0,0,0,0.38)]">任务目标：生成符合演示场景、受众与风格要求的 PPT</p><div className="flex flex-col gap-[8px]">{steps.map((label, index) => <div key={label} className="flex items-center gap-[8px] text-[14px] leading-[22px]"><>{running && index === 2 ? <motion.span className="size-[14px] shrink-0 rounded-full border-2 border-[#1e63f5] border-t-transparent" animate={{ rotate: 360 }} transition={{ duration: 1.1, ease: "linear", repeat: Infinity }} /> : index === 1 ? <Search size={14} className="text-[rgba(0,0,0,0.38)]" /> : index === 2 ? <FileSearch size={14} className="text-[rgba(0,0,0,0.38)]" /> : <Sparkles size={14} className="text-[rgba(0,0,0,0.38)]" />}</><span className={running && index === 2 ? "text-[rgba(0,0,0,0.6)]" : "text-[rgba(0,0,0,0.88)]"}>{label}</span></div>)}</div></div>}</div>;
+  const actions = [
+    { label: "理解演示目标与受众", icon: "spark" as const },
+    { label: "检索可用的内容结构", icon: "search" as const },
+    { label: running ? "正在整理演示需求" : "已整理出初步制作方案", icon: "read" as const },
+  ];
+  return (
+    <div className="w-full max-w-[768px]">
+      <button onClick={() => setExpanded(v => !v)} className="w-full flex items-center justify-between rounded-[8px] border border-[#f2f2f2] px-[16px] py-[12px] text-left hover:bg-[#fafafa]">
+        <span className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">
+          {running ? <motion.span className="size-[14px] rounded-full border border-[#1e63f5] border-t-transparent" animate={{ rotate: 360 }} transition={{ duration: 2, ease: "linear", repeat: Infinity }} /> : <span className="text-[#1e63f5] text-[16px] leading-none">✓</span>}
+          {running ? "正在规划演示内容" : "执行过程"}
+        </span>
+        <span className={expanded ? "rotate-180 transition-transform" : "transition-transform"}><TaskIcon type="chevron" /></span>
+      </button>
+      {expanded && <div className="mt-[12px] flex flex-col gap-[12px] rounded-[8px] border border-[#f2f2f2] px-[16px] py-[12px]">
+        <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">任务目标：生成符合演示场景、受众与风格要求的 PPT</p>
+        {actions.map(({ label, icon }, index) => <div key={label} className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">
+          {running && index === 2 ? <motion.span className="size-[14px] rounded-full border border-[#1e63f5] border-t-transparent" animate={{ rotate: 360 }} transition={{ duration: 2, ease: "linear", repeat: Infinity }} /> : <TaskIcon type={icon} />}
+          <span className={running && index === 2 ? "text-[rgba(0,0,0,0.38)]" : ""}>{label}</span>
+        </div>)}
+      </div>}
+    </div>
+  );
 }
 
 export default function App() {
