@@ -578,6 +578,145 @@ function OutlinePanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
 
 // ── PPT preview ───────────────────────────────────────────────────────────────
 
+// ── memory management ─────────────────────────────────────────────────────────
+
+const initialMemories = [
+  {
+    title: "关于你",
+    content: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  },
+  {
+    title: "XXXX",
+    content: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  },
+  {
+    title: "XXXX",
+    content: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  },
+];
+
+function MemoryModal({ onClose }: { onClose: () => void }) {
+  const [enabled, setEnabled] = useState(true);
+  const [memories, setMemories] = useState(initialMemories);
+  const [memoryInput, setMemoryInput] = useState("");
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  const addMemory = (event: React.FormEvent) => {
+    event.preventDefault();
+    const value = memoryInput.trim();
+    if (!value) return;
+    setMemories(current => [...current, { title: "XXXX", content: value }]);
+    setMemoryInput("");
+  };
+
+  return (
+    <div className="fixed inset-0 z-[300] overflow-hidden bg-[rgba(0,0,0,0.5)]">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="memory-title"
+        className="fixed bottom-0 flex h-[calc(100vh-72px)] max-h-[828px] w-[min(800px,calc(100vw-32px))] -translate-x-1/2 flex-col overflow-hidden rounded-t-[16px] bg-white"
+        style={{ left: "calc(50% + min(40px, 3vw))" }}
+      >
+        <header className="relative h-[76px] shrink-0">
+          <h2
+            id="memory-title"
+            className="absolute left-[24px] top-[17px] font-['PingFang_SC:Medium'] text-[20px] leading-[28px] tracking-[0.02px] text-[rgba(0,0,0,0.88)]"
+          >
+            记忆
+          </h2>
+          <button
+            type="button"
+            aria-label="关闭记忆管理"
+            onClick={onClose}
+            className="absolute right-[24px] top-[24px] flex size-[32px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]"
+          >
+            <img src="/assets/30367.svg" alt="" />
+          </button>
+        </header>
+
+        <div className="flex shrink-0 items-center gap-[12px] px-[24px]">
+          <div className="min-w-0 flex-1">
+            <p className="font-['PingFang_SC:Medium'] text-[16px] leading-[24px] tracking-[0.016px] text-[rgba(0,0,0,0.88)]">允许记忆</p>
+            <p className="mt-[4px] font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.6)]">
+              允许 AI从对话中提取并记住相关上下文，以便在未来对话中提供更连贯、个性化的回应。
+            </p>
+          </div>
+          {enabled && (
+            <>
+              <button
+                type="button"
+                onClick={() => setMemories([])}
+                className="shrink-0 cursor-pointer rounded-[4px] px-[4px] py-[3px] font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[#fc5926]"
+              >
+                重置
+              </button>
+              <button
+                type="button"
+                className="shrink-0 cursor-pointer rounded-[4px] px-[4px] py-[3px] font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[#1e63f5]"
+              >
+                导入
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={enabled}
+            aria-label="允许记忆"
+            onClick={() => setEnabled(value => !value)}
+            className="shrink-0 cursor-pointer rounded-full"
+          >
+            <img src={enabled ? "/assets/07533.svg" : "/assets/29026.svg"} alt="" />
+          </button>
+        </div>
+
+        {enabled && (
+          <>
+            <div className="mt-[16px] min-h-0 flex-1 overflow-y-auto px-[24px] pb-[72px]">
+              {memories.map((memory, index) => (
+                <div key={`${memory.title}-${index}`} className="mb-[24px]">
+                  <p className="font-['PingFang_SC:Medium'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+                    {memory.title}
+                  </p>
+                  <p className="mt-[12px] break-words font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+                    {memory.content}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <form onSubmit={addMemory} className="absolute bottom-0 left-0 flex w-full items-center bg-[rgba(255,255,255,0.01)] p-[16px]">
+              <div className="flex h-[40px] flex-1 items-center overflow-hidden rounded-full border border-[#e6e6e6] bg-white pl-[15px] pr-[7px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
+                <input
+                  value={memoryInput}
+                  onChange={event => setMemoryInput(event.target.value)}
+                  aria-label="添加或删除记忆"
+                  placeholder="告诉我记住什么？忘记什么？"
+                  className="min-w-0 flex-1 bg-transparent font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] outline-none placeholder:text-[rgba(0,0,0,0.26)]"
+                />
+                <button
+                  type="submit"
+                  aria-label="提交记忆"
+                  className="flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#f2f2f2]"
+                >
+                  <img src="/assets/23b2e.svg" alt="" />
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+      </section>
+    </div>
+  );
+}
+
 // ── sidebar ───────────────────────────────────────────────────────────────────
 
 type HistoryItem = { id: number; title: string; pinned?: boolean; messages: Message[] };
@@ -595,6 +734,7 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const [profileHovered, setProfileHovered] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [memoryOpen, setMemoryOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const profileTriggerRef = useRef<HTMLButtonElement>(null);
@@ -755,7 +895,10 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
             <button
               type="button"
               role="menuitem"
-              onClick={() => setProfileMenuOpen(false)}
+              onClick={() => {
+                setProfileMenuOpen(false);
+                setMemoryOpen(true);
+              }}
               className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
             >
               <img src="/assets/7ba18.svg" alt="" className="shrink-0" />
@@ -812,6 +955,7 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
           )}
         </button>
       </div>
+      {memoryOpen && <MemoryModal onClose={() => setMemoryOpen(false)} />}
     </div>
   );
 }
