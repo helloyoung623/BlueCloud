@@ -799,6 +799,13 @@ function TaskIcon({ type, expanded = false }: { type: ToolKind; expanded?: boole
   return expanded ? <span className="relative block h-[22px] w-[16px] shrink-0"><svg className="absolute inset-[33.8%_23.48%_33.79%_23.48%]" viewBox="0 0 8.48533 5.18533" fill="none"><path d={svgProgress.p33898580} fill="black" fillOpacity="0.38"/></svg></span> : <span className="relative block h-[22px] w-[16px] shrink-0"><svg className="absolute inset-[23.48%_33.8%_23.48%_33.79%]" viewBox="0 0 5.18533 8.48533" fill="none"><path d={svgProgress.p13a1fe00} fill="black" fillOpacity="0.38"/></svg></span>;
 }
 
+function ToolLoading({ text }: { text: string }) {
+  return <span className="relative inline-block overflow-hidden text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">
+    {text}
+    <motion.span aria-hidden className="absolute inset-y-0 left-0 whitespace-nowrap text-[rgba(0,0,0,0.88)]" initial={{ clipPath: "circle(16px at -16px 11px)" }} animate={{ clipPath: ["circle(16px at -16px 11px)", "circle(16px at calc(100% + 16px) 11px)"] }} transition={{ duration: 1.6, ease: "linear", repeat: Infinity }}>{text}</motion.span>
+  </span>;
+}
+
 function ExecutionProcess({ running }: { running: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const [visibleActions, setVisibleActions] = useState(0);
@@ -846,8 +853,8 @@ function ExecutionProcess({ running }: { running: boolean }) {
         </button>
         {expanded && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} transition={{ duration: 0.2, ease: "easeOut" }} className="flex flex-col gap-[12px] overflow-hidden px-[16px] pb-[12px]">
           {actions.slice(0, visibleActions).map(({ label, icon }, index) => <motion.div key={label} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: "easeOut" }} className="flex items-center gap-[8px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">
-            {index === 2 ? <motion.span className="size-[16px] shrink-0 rounded-full border border-[#1e63f5] border-t-transparent" animate={{ rotate: 360 }} transition={{ duration: 2, ease: "linear", repeat: Infinity }} /> : <TaskIcon type={icon} />}
-            <span className={index === 2 ? "text-[rgba(0,0,0,0.38)]" : ""}>{label}</span>
+            <TaskIcon type={icon} />
+            {index === visibleActions - 1 ? <ToolLoading text={`正在${label.split("；")[0]}相关信息`} /> : <span>{label}</span>}
           </motion.div>)}
         </motion.div>}
       </div>
