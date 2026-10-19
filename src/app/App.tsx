@@ -689,7 +689,7 @@ function HomeView({ input, onInputChange, onSend }: { input: string; onInputChan
               {SUGGESTIONS.map((s, i) => (
                 <button key={s} onClick={() => onInputChange(s)} className="flex items-center gap-[10px] px-[8px] py-[8px] bg-[#f7f7f7] hover:bg-[#f2f2f2] rounded-[8px] transition-colors cursor-pointer">
                   <AIIcon uid={`s${i}`} />
-                  <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] whitespace-nowrap">{s}</span>
+                  <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] whitespace-nowrap font-bold">{s}</span>
                 </button>
               ))}
             </div>
