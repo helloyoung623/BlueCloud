@@ -679,13 +679,13 @@ const SUGGESTIONS = ["找出近一周的邮件", "请帮我起草一封给团队
 
 function HomeView({ input, onInputChange, onSend, onSidebarToggle }: { input: string; onInputChange: (v: string) => void; onSend: () => void; onSidebarToggle?: () => void }) {
   return (
-    <div className="relative w-full h-full bg-white flex flex-col">
+    <div className="w-full h-full bg-white flex flex-col">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-        <div className="w-[756px] h-[400px] rounded bg-gradient-to-r from-[#a3ffff] to-[#1e63f5] opacity-10 blur-[100px]" />
-      </div>
       <ChatHeader onSidebarToggle={onSidebarToggle} />
-      <div className="flex-1 flex flex-col items-center px-[24px] pt-0 pb-0 min-h-0">
+      <div className="relative flex-1 flex flex-col items-center px-[24px] pt-0 pb-0 min-h-0 overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+          <div className="w-[756px] h-[400px] rounded bg-gradient-to-r from-[#a3ffff] to-[#1e63f5] opacity-10 blur-[100px]" />
+        </div>
         <div className="w-full max-w-[800px] flex flex-col items-center flex-1 pt-[200px] min-h-0">
           <div className="shrink-0 flex items-baseline gap-[8px] py-[32px]">
             <span className="text-[46px] font-medium leading-[56px] text-[rgba(0,0,0,0.88)] tracking-[0.046px]">Hi，xxxx</span>
