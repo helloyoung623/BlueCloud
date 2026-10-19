@@ -700,10 +700,10 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
   };
 
   return (
-    <div className="relative w-full rounded-[20px] bg-white" style={{ boxShadow: "0 0 12px rgba(0,0,0,0.08)", border: "1px solid #e6e6e6" }}>
+    <div className="relative w-full max-h-[328px] rounded-[20px] bg-white" style={{ boxShadow: "0 0 12px rgba(0,0,0,0.08)", border: "1px solid #e6e6e6" }}>
       <div className="px-[12px] pt-[12px] pb-[12px]" onPointerDown={() => textareaRef.current?.focus()}>
         <textarea ref={textareaRef} value={value} onChange={e => onChange(e.target.value)} onKeyDown={handleKeyDown}
-          placeholder="有问题，尽管问；/调用技能" rows={1} style={{ minHeight: 22, maxHeight: 160 }}
+          placeholder="有问题，尽管问；/调用技能" rows={1} style={{ minHeight: 22, maxHeight: 228 }}
           className="relative z-10 block w-full resize-none bg-transparent text-[14px] font-normal leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] placeholder:text-[rgba(0,0,0,0.26)] outline-none overflow-y-auto"
         />
         <div className="h-[36px]" />
@@ -767,7 +767,7 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
   return (
     <div className="flex-1 min-h-0 bg-white flex flex-col overflow-hidden">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-      <div className="relative flex-1 flex flex-col items-center px-[24px] min-h-0">
+      <div className="relative flex-1 flex flex-col items-center px-[40px] max-[560px]:px-[16px] min-h-0">
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
           <div className="w-[756px] h-[400px] rounded bg-gradient-to-r from-[#a3ffff] to-[#1e63f5] opacity-10 blur-[100px]" />
         </div>
@@ -812,22 +812,22 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true, on
   return (
     <div className="flex-1 min-h-0 bg-white flex flex-col">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
-        <div className="min-h-full px-[24px] pt-[16px]">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-[16px] max-[560px]:px-0">
+        <div className="min-h-full px-[24px] pt-[16px] max-[560px]:px-[16px]">
           <div className="mx-auto w-full max-w-[800px]">
             <div className="flex flex-col gap-[32px] pb-[16px]">
               {messages.map((msg, i) => msg.role === "user" ? (
                 <div key={i} className="flex justify-end">
-                  <div className="max-w-[680px] bg-[#f7f7f7] px-[12px] py-[8px] rounded-tl-[8px] rounded-br-[8px] rounded-bl-[8px]">
+                  <div className="max-w-[85%] bg-[#f7f7f7] px-[12px] py-[8px] rounded-tl-[8px] rounded-br-[8px] rounded-bl-[8px]">
                     <p className="text-[16px] leading-[26px] text-[rgba(0,0,0,0.88)] whitespace-pre-wrap break-words">{msg.text}</p>
                   </div>
                 </div>
               ) : msg.role === "process" ? (
-                <div key={i}><ExecutionProcess running={Boolean(msg.thinking)} variant={msg.variant ?? "requirement"} /></div>
+                <div key={i} className="w-full max-w-[768px]"><ExecutionProcess running={Boolean(msg.thinking)} variant={msg.variant ?? "requirement"} /></div>
               ) : msg.role === "result" ? (
-                <div key={i}><PptResultMessage onOpen={() => onOpenPpt?.()} onRegenerate={onRegeneratePpt} /></div>
+                <div key={i} className="w-full max-w-[768px]"><PptResultMessage onOpen={() => onOpenPpt?.()} onRegenerate={onRegeneratePpt} /></div>
               ) : (
-                <div key={i}>
+                <div key={i} className="w-full max-w-[768px]">
                   {msg.thinking ? (
                     <div className="flex items-center gap-[6px] py-[4px]">
                       {[0, 200, 400].map(d => <span key={d} className="w-[6px] h-[6px] rounded-full bg-[rgba(0,0,0,0.26)] inline-block" style={{ animation: `blink 1s ${d}ms step-end infinite` }} />)}
@@ -841,7 +841,7 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true, on
           </div>
         </div>
       </div>
-      <div aria-hidden={!showInput} className={`shrink-0 px-[24px] transition-opacity duration-200 ${showInput ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+      <div aria-hidden={!showInput} className={`shrink-0 px-[40px] max-[560px]:px-[16px] transition-opacity duration-200 ${showInput ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
         <div className="mx-auto w-full max-w-[800px]">
           <ChatInput value={input} onChange={onInputChange} onSend={onSend} pptGeneration={pptGeneration} onPptGenerationChange={onPptGenerationChange} agentRunning={agentRunning} onStop={onStop} />
         </div>
