@@ -761,7 +761,7 @@ function ChatHeader({ title, sidebarOpen, onSidebarToggle, onNewChat }: { title?
 const SUGGESTIONS = ["找出近一周的邮件", "请帮我起草一封给团队的邮件", "总结下智能助手项目邮件"];
 
 function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGenerationChange }: {
-  input: string; onInputChange: (v: string) => void; onSend: () => void;
+  input: string; onInputChange: (v: string) => void; onSend: (text?: string) => void;
   pptGeneration: boolean; onPptGenerationChange: (selected: boolean) => void;
 }) {
   return (
@@ -784,7 +784,7 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
             </div>
             <div className="shrink-0 flex flex-wrap items-center justify-center gap-[12px]">
               {SUGGESTIONS.map((s, i) => (
-                <button key={s} onClick={() => onInputChange(s)} className="flex items-center gap-[10px] px-[8px] py-[8px] bg-[#f7f7f7] hover:bg-[#f2f2f2] rounded-[8px] transition-colors cursor-pointer">
+                <button key={s} onClick={() => onSend(s)} className="flex items-center gap-[10px] px-[8px] py-[8px] bg-[#f7f7f7] hover:bg-[#f2f2f2] rounded-[8px] transition-colors cursor-pointer">
                   <AIIcon uid={`s${i}`} />
                   <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] whitespace-nowrap font-normal">{s}</span>
                 </button>
@@ -1038,8 +1038,8 @@ export default function App() {
     setMessages(item.messages);
   };
 
-  const handleSend = () => {
-    const text = input.trim();
+  const handleSend = (suggestion?: string) => {
+    const text = (suggestion ?? input).trim();
     if (!text) return;
     const shouldGeneratePpt = pptGeneration || isPPTIntent(text);
     const runId = ++activeRunId.current;
