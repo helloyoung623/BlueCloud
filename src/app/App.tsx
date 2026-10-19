@@ -291,33 +291,63 @@ function RequirementPanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
 
 type PresentationMode = "smart" | "visual";
 
+function VisualizationSubmenu({ onSelect }: { onSelect: (style: string) => void }) {
+  const styles = ["智能匹配", "折线图", "柱状图", "饼图"];
+  return (
+    <div className="absolute left-[calc(100%+8px)] top-0 z-30 w-[168px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
+      {styles.map((style, index) => (
+        <button
+          key={style}
+          type="button"
+          onClick={event => { event.stopPropagation(); onSelect(style); }}
+          className="flex w-full items-center justify-between rounded-[8px] px-[8px] py-[7px] text-left hover:bg-[#f7f7f7]"
+        >
+          <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">{style}</span>
+          {index === 0 && <span className="text-[#1e63f5]">✓</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function PresentationMenu({ mode, onChange, onClose }: {
   mode: PresentationMode;
   onChange: (mode: PresentationMode) => void;
   onClose: () => void;
 }) {
-  const options: { mode: PresentationMode; title: string; detail: string }[] = [
-    { mode: "smart", title: "智能呈现", detail: "AI 综合内容，自动匹配最佳呈现方式" },
-    { mode: "visual", title: "可视化呈现", detail: "把数据、流程和知识概念转成直观图表可视化" },
-  ];
+  const [visualHovered, setVisualHovered] = useState(false);
   return (
     <div className="absolute right-0 top-[30px] z-20 w-[304px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
-      {options.map(option => (
+      <button
+        type="button"
+        onClick={event => { event.stopPropagation(); onChange("smart"); onClose(); }}
+        className="flex w-full items-start gap-[8px] rounded-[8px] p-[8px] text-left hover:bg-[#f7f7f7]"
+      >
+        <span className={`mt-[5px] flex size-[16px] shrink-0 items-center justify-center rounded-full border ${mode === "smart" ? "border-[#1e63f5]" : "border-[rgba(0,0,0,0.26)]"}`}>
+          {mode === "smart" && <span className="size-[8px] rounded-full bg-[#1e63f5]" />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">智能呈现</span>
+          <span className="block text-[14px] leading-[22px] text-[rgba(0,0,0,0.6)]">AI 综合内容，自动匹配最佳呈现方式</span>
+        </span>
+      </button>
+      <div className="relative" onMouseEnter={() => setVisualHovered(true)} onMouseLeave={() => setVisualHovered(false)}>
         <button
-          key={option.mode}
           type="button"
-          onClick={event => { event.stopPropagation(); onChange(option.mode); onClose(); }}
+          onClick={event => { event.stopPropagation(); onChange("visual"); onClose(); }}
           className="flex w-full items-start gap-[8px] rounded-[8px] p-[8px] text-left hover:bg-[#f7f7f7]"
         >
-          <span className={`mt-[5px] flex size-[16px] shrink-0 items-center justify-center rounded-full border ${mode === option.mode ? "border-[#1e63f5]" : "border-[rgba(0,0,0,0.26)]"}`}>
-            {mode === option.mode && <span className="size-[8px] rounded-full bg-[#1e63f5]" />}
+          <span className={`mt-[5px] flex size-[16px] shrink-0 items-center justify-center rounded-full border ${mode === "visual" ? "border-[#1e63f5]" : "border-[rgba(0,0,0,0.26)]"}`}>
+            {mode === "visual" && <span className="size-[8px] rounded-full bg-[#1e63f5]" />}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">{option.title}</span>
-            <span className="block text-[14px] leading-[22px] text-[rgba(0,0,0,0.6)]">{option.detail}</span>
+            <span className="block text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">可视化呈现</span>
+            <span className="block text-[14px] leading-[22px] text-[rgba(0,0,0,0.6)]">把数据、流程和知识概念转成直观图表可视化</span>
           </span>
+          <span className="mt-[5px] text-[rgba(0,0,0,0.26)]">›</span>
         </button>
-      ))}
+        {visualHovered && <VisualizationSubmenu onSelect={() => { onChange("visual"); onClose(); }} />}
+      </div>
     </div>
   );
 }
@@ -339,21 +369,23 @@ function OutlinePageCard({ page, presentation, onPresentationChange }: {
       onMouseLeave={() => { setHovered(false); if (!menuOpen) setMenuOpen(false); }}
     >
       <div className="flex flex-col gap-[8px] items-start p-[8px]">
-        <div className="relative flex w-full min-h-[20px] items-start justify-between gap-[8px]">
+        <div className="relative w-full min-h-[20px]">
           <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[12px] text-[rgba(0,0,0,0.38)] tracking-[0.012px] whitespace-nowrap">{page.pageLabel}</p>
           {showControl && (
-            <button
-              type="button"
-              onClick={event => { event.stopPropagation(); setMenuOpen(value => !value); }}
-              className={`relative flex items-center gap-[8px] rounded-[4px] bg-white px-[8px] py-px text-[14px] leading-[22px] tracking-[0.014px] transition-colors ${presentation === "visual" ? "text-[#1e63f5]" : "text-[rgba(0,0,0,0.88)]"}`}
-            >
-              {presentation === "visual" && <span className="text-[#1e63f5]">▣</span>}
-              <span>{label}</span>
-              <svg className="size-[8px]" fill="none" viewBox="0 0 5.82064 4.69468" preserveAspectRatio="none">
-                <path d={svgPresentation.p35e26b00} fill={presentation === "visual" ? "#1E63F5" : "black"} fillOpacity={presentation === "visual" ? "1" : "0.88"} />
-              </svg>
+            <div className="absolute right-0 top-0 z-10">
+              <button
+                type="button"
+                onClick={event => { event.stopPropagation(); setMenuOpen(value => !value); }}
+                className={`flex items-center gap-[8px] rounded-[4px] bg-white px-[8px] py-px text-[14px] leading-[22px] tracking-[0.014px] transition-colors ${presentation === "visual" ? "text-[#1e63f5]" : "text-[rgba(0,0,0,0.88)]"}`}
+              >
+                {presentation === "visual" && <span className="text-[#1e63f5]">▣</span>}
+                <span>{label}</span>
+                <svg className="size-[8px]" fill="none" viewBox="0 0 5.82064 4.69468" preserveAspectRatio="none">
+                  <path d={svgPresentation.p35e26b00} fill={presentation === "visual" ? "#1E63F5" : "black"} fillOpacity={presentation === "visual" ? "1" : "0.88"} />
+                </svg>
+              </button>
               {menuOpen && <PresentationMenu mode={presentation} onChange={onPresentationChange} onClose={() => setMenuOpen(false)} />}
-            </button>
+            </div>
           )}
         </div>
         <p className="font-medium leading-[24px] text-[16px] text-[rgba(0,0,0,0.88)] w-full">{page.title}</p>
