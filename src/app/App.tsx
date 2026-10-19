@@ -514,10 +514,13 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
             const hasMenu = menuId === item.id;
             return (
               <div key={item.id} className="relative">
-                <button
+                <div
+                  role="button"
+                  tabIndex={0}
                   onMouseEnter={() => setHoverId(item.id)}
                   onMouseLeave={() => { if (menuId !== item.id) setHoverId(null); }}
                   onClick={() => { onSelect(item.id); setMenuId(null); }}
+                  onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { onSelect(item.id); setMenuId(null); } }}
                   className={`w-full h-[40px] rounded-[4px] flex items-center pl-[12px] pr-[4px] py-[8px] text-left transition-colors cursor-pointer
                     ${isActive ? "bg-[#f7f7f7]" : isHover ? "bg-[#f2f2f2]" : ""}`}
                 >
@@ -547,7 +550,7 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
                       </svg>
                     </button>
                   )}
-                </button>
+                </div>
               </div>
             );
           })
