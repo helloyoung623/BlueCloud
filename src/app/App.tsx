@@ -973,7 +973,7 @@ function ChatView({ messages, input, onInputChange, onSend, showInput = true, on
                       {[0, 200, 400].map(d => <span key={d} className="w-[6px] h-[6px] rounded-full bg-[rgba(0,0,0,0.26)] inline-block" style={{ animation: `blink 1s ${d}ms step-end infinite` }} />)}
                     </div>
                   ) : (
-                    <p className="text-[16px] leading-[26px] text-[rgba(0,0,0,0.88)] whitespace-pre-wrap">{msg.text}</p>
+                    <p className="text-[16px] leading-[26px] text-[rgba(0,0,0,0.88)] whitespace-pre-wrap"><Typewriter text={msg.text ?? ""} /></p>
                   )}
                 </div>
               ))}
@@ -1032,6 +1032,21 @@ function ToolLoading({ text }: { text: string }) {
     `}</style>
     {text}
   </span>;
+}
+
+function Typewriter({ text, speed = 30, className }: { text: string; speed?: number; className?: string }) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    setCount(0);
+    let i = 0;
+    const id = window.setInterval(() => {
+      i += 1;
+      setCount(i);
+      if (i >= text.length) window.clearInterval(id);
+    }, speed);
+    return () => window.clearInterval(id);
+  }, [text, speed]);
+  return <span className={className}>{text.slice(0, count)}</span>;
 }
 
 const PROCESS_PRESETS: Record<ProcessVariant, { goal: string; running: string; actions: { label: string; icon: ToolKind }[] }> = {
@@ -1112,7 +1127,7 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
   }, [running, total]);
   if (!running) return (
     <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
-      <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]">{preset.goal}</p>
+      <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]"><Typewriter text={preset.goal} /></p>
       <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-[8px] text-left">
         <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap">任务已完成</span>
         <TaskIcon type="chevron" expanded={expanded} />
@@ -1124,7 +1139,7 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
   );
   return (
     <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
-      <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]">{preset.goal}</p>
+      <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]"><Typewriter text={preset.goal} /></p>
       <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-[8px] text-left">
         <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap">{preset.running}</span>
         <TaskIcon type="chevron" expanded={expanded} />
