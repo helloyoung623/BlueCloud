@@ -452,16 +452,7 @@ function PptPreview({ onClose }: { onClose: () => void }) {
 
 type HistoryItem = { id: number; title: string; pinned?: boolean };
 
-const INITIAL_HISTORY: HistoryItem[] = [
-  { id: 1, title: "标题标题标题标题", pinned: true },
-  { id: 2, title: "标题标题标题标题标题" },
-  { id: 3, title: "历史对话标题" },
-  { id: 4, title: "历史对话标题" },
-  { id: 5, title: "标题标题标题标题" },
-  { id: 6, title: "历史对话标题" },
-  { id: 7, title: "标题标题标题标题标题" },
-  { id: 8, title: "标题标题标题标题" },
-];
+const INITIAL_HISTORY: HistoryItem[] = [];
 
 function Sidebar({ onClose, onNewChat, activeId, onSelect }: {
   onClose: () => void;
