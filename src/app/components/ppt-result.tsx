@@ -45,7 +45,7 @@ function PptFileCard({ onOpen }: { onOpen: () => void }) {
         <FileIcon />
         <div className="flex-1 min-w-0 flex flex-col">
           <p className="text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] truncate font-normal">{PPT_FILE_NAME}</p>
-          <p className="text-[12px] leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)] truncate">PPT · 36M</p>
+          <p className="text-[12px] leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)] truncate font-normal">PPT · 36M</p>
         </div>
       </button>
     </div>
