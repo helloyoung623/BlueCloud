@@ -1129,7 +1129,7 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
     <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
       <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]"><Typewriter text={preset.goal} /></p>
       <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-[8px] text-left">
-        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap">任务已完成</span>
+        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap font-normal">显示执行意图</span>
         <TaskIcon type="chevron" expanded={expanded} />
       </button>
       {expanded && <div className="flex flex-col gap-[12px]">
@@ -1139,9 +1139,9 @@ function ExecutionProcess({ running, variant = "requirement" }: { running: boole
   );
   return (
     <div className="w-full max-w-[768px] flex flex-col gap-[12px]">
-      <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px]"><Typewriter text={preset.goal} /></p>
+      <p className="text-[14px] leading-[22px]  font-normaltext-[rgba(0,0,0,0.88)] tracking-[0.014px]"><Typewriter text={preset.goal} /></p>
       <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-[8px] text-left">
-        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap">{preset.running}</span>
+        <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap font-normal">{preset.running}</span>
         <TaskIcon type="chevron" expanded={expanded} />
       </button>
       {expanded && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} transition={{ duration: 0.2, ease: "easeOut" }} className="flex flex-col gap-[12px] overflow-hidden">
