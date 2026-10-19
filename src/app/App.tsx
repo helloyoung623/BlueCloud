@@ -8,6 +8,7 @@ import svgTask from "@/imports/任务执行过程/svg-tkwirjnqmk";
 import svgProgress from "@/imports/渐进式ReAct/svg-x4n03n8we0";
 import svgSearching from "@/imports/搜索中/svg-pcft5f0tqe";
 import svgPptToggle from "@/imports/Container/svg-ky29gei8j7";
+import svgPresentation from "@/imports/Ppt-1/svg-b6redky6le";
 import imgStyle1 from "@/imports/需求确认-1/29d4a489057188d7298a9a9f8b923d2d9c630925.png";
 import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c6709a8e1bdf.png";
 import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
@@ -288,11 +289,73 @@ function RequirementPanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
 
 // ── outline panel ─────────────────────────────────────────────────────────────
 
-function OutlinePageCard({ page }: { page: OutlinePage }) {
+type PresentationMode = "smart" | "visual";
+
+function PresentationMenu({ mode, onChange, onClose }: {
+  mode: PresentationMode;
+  onChange: (mode: PresentationMode) => void;
+  onClose: () => void;
+}) {
+  const options: { mode: PresentationMode; title: string; detail: string }[] = [
+    { mode: "smart", title: "智能呈现", detail: "AI 综合内容，自动匹配最佳呈现方式" },
+    { mode: "visual", title: "可视化呈现", detail: "把数据、流程和知识概念转成直观图表可视化" },
+  ];
   return (
-    <div className="bg-[#f7f7f7] relative rounded-[8px] shrink-0 w-full">
+    <div className="absolute right-0 top-[30px] z-20 w-[304px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
+      {options.map(option => (
+        <button
+          key={option.mode}
+          type="button"
+          onClick={event => { event.stopPropagation(); onChange(option.mode); onClose(); }}
+          className="flex w-full items-start gap-[8px] rounded-[8px] p-[8px] text-left hover:bg-[#f7f7f7]"
+        >
+          <span className={`mt-[5px] flex size-[16px] shrink-0 items-center justify-center rounded-full border ${mode === option.mode ? "border-[#1e63f5]" : "border-[rgba(0,0,0,0.26)]"}`}>
+            {mode === option.mode && <span className="size-[8px] rounded-full bg-[#1e63f5]" />}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">{option.title}</span>
+            <span className="block text-[14px] leading-[22px] text-[rgba(0,0,0,0.6)]">{option.detail}</span>
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function OutlinePageCard({ page, presentation, onPresentationChange }: {
+  page: OutlinePage;
+  presentation: PresentationMode;
+  onPresentationChange: (mode: PresentationMode) => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const showControl = hovered || menuOpen || presentation === "visual";
+  const label = presentation === "visual" ? "呈现形式：可视化呈现" : "呈现形式：智能呈现";
+
+  return (
+    <div
+      className="bg-[#f7f7f7] relative rounded-[8px] shrink-0 w-full"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); if (!menuOpen) setMenuOpen(false); }}
+    >
       <div className="flex flex-col gap-[8px] items-start p-[8px]">
-        <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[12px] text-[rgba(0,0,0,0.38)] tracking-[0.012px] whitespace-nowrap">{page.pageLabel}</p>
+        <div className="relative flex w-full min-h-[20px] items-start justify-between gap-[8px]">
+          <p className="font-['PingFang_SC:Regular',sans-serif] leading-[20px] text-[12px] text-[rgba(0,0,0,0.38)] tracking-[0.012px] whitespace-nowrap">{page.pageLabel}</p>
+          {showControl && (
+            <button
+              type="button"
+              onClick={event => { event.stopPropagation(); setMenuOpen(value => !value); }}
+              className={`relative flex items-center gap-[8px] rounded-[4px] bg-white px-[8px] py-px text-[14px] leading-[22px] tracking-[0.014px] transition-colors ${presentation === "visual" ? "text-[#1e63f5]" : "text-[rgba(0,0,0,0.88)]"}`}
+            >
+              {presentation === "visual" && <span className="text-[#1e63f5]">▣</span>}
+              <span>{label}</span>
+              <svg className="size-[8px]" fill="none" viewBox="0 0 5.82064 4.69468" preserveAspectRatio="none">
+                <path d={svgPresentation.p35e26b00} fill={presentation === "visual" ? "#1E63F5" : "black"} fillOpacity={presentation === "visual" ? "1" : "0.88"} />
+              </svg>
+              {menuOpen && <PresentationMenu mode={presentation} onChange={onPresentationChange} onClose={() => setMenuOpen(false)} />}
+            </button>
+          )}
+        </div>
         <p className="font-medium leading-[24px] text-[16px] text-[rgba(0,0,0,0.88)] w-full">{page.title}</p>
         {page.content.type === "text" ? (
           <p className="leading-[22px] text-[14px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] w-full">{page.content.text}</p>
@@ -315,11 +378,12 @@ function OutlinePanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
   const [showAiEdit, setShowAiEdit] = useState(false);
   const [aiEditText, setAiEditText] = useState("");
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [presentations, setPresentations] = useState<Record<number, PresentationMode>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const aiInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (visible) { setPages(mockOutlinePages()); setShowAiEdit(false); }
+    if (visible) { setPages(mockOutlinePages()); setShowAiEdit(false); setPresentations({}); }
   }, [visible]);
 
   const handleConfirm = useCallback(() => onConfirm(), [onConfirm]);
@@ -367,7 +431,12 @@ function OutlinePanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
             AI 正在优化大纲…
           </div>
         ) : (
-          pages.map(p => <OutlinePageCard key={p.id} page={p} />)
+          pages.map(p => <OutlinePageCard
+            key={p.id}
+            page={p}
+            presentation={presentations[p.id] ?? "smart"}
+            onPresentationChange={mode => setPresentations(current => ({ ...current, [p.id]: mode }))}
+          />)
         )}
       </div>
 
