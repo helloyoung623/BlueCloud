@@ -902,7 +902,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
   const [profileHovered, setProfileHovered] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
-  const [projectsExpanded, setProjectsExpanded] = useState(false);
+  const [projectsExpanded, setProjectsExpanded] = useState(true);
   const [tasksExpanded, setTasksExpanded] = useState(true);
   const [expandedProjectIds, setExpandedProjectIds] = useState<Set<number>>(() => new Set());
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
@@ -1941,7 +1941,7 @@ export default function App() {
   const [input, setInput] = useState("");
   const [pptGeneration, setPptGeneration] = useState(false);
   const [stage, setStage] = useState<PptStage>("idle");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeHistoryId, setActiveHistoryId] = useState<number | null>(null);
   const [activeProjectId, setActiveProjectId] = useState<number | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
