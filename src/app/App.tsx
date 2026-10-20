@@ -995,15 +995,16 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
           <div className="flex w-full flex-col items-start">
             {projects.map(project => {
               const projectTasks = history.filter(item => item.projectId === project.id);
-              const isActiveProject = activeProjectId === project.id;
+              const isActiveProjectContext = activeProjectId === project.id;
+              const isActiveProjectHome = isActiveProjectContext && activeId === null;
               return (
                 <div key={project.id} className="w-full">
                   <button
                     type="button"
                     onClick={() => onSelectProject(project.id)}
-                    className={`flex h-[40px] w-full cursor-pointer items-center gap-[8px] overflow-hidden rounded-[4px] py-[8px] pl-[12px] pr-[4px] text-left hover:bg-[#f7f7f7] ${isActiveProject ? "bg-[#f7f7f7]" : ""}`}
+                    className={`flex h-[40px] w-full cursor-pointer items-center gap-[8px] overflow-hidden rounded-[4px] py-[8px] pl-[12px] pr-[4px] text-left hover:bg-[#f7f7f7] ${isActiveProjectHome ? "bg-[#f7f7f7]" : ""}`}
                   >
-                    <img src={isActiveProject ? "/assets/bf868.svg" : "/assets/6bcaa.svg"} alt="" className="shrink-0" />
+                    <img src={isActiveProjectContext ? "/assets/bf868.svg" : "/assets/6bcaa.svg"} alt="" className="shrink-0" />
                     <span className="min-w-0 flex-1 truncate text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
                       {project.name}
                     </span>
@@ -1013,9 +1014,9 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
                       key={task.id}
                       type="button"
                       onClick={() => onSelect(task.id)}
-                      className={`flex h-[40px] w-full cursor-pointer items-center gap-[8px] overflow-hidden rounded-[4px] py-[8px] pl-[32px] pr-[4px] text-left hover:bg-[#f7f7f7] ${activeId === task.id ? "bg-[#f7f7f7]" : ""}`}
+                      className={`flex h-[40px] w-full cursor-pointer items-center gap-[4px] overflow-hidden rounded-[4px] py-[8px] pl-[36px] pr-[4px] text-left hover:bg-[#f7f7f7] ${activeId === task.id ? "bg-[#f7f7f7]" : ""}`}
                     >
-                      <span className="min-w-0 flex-1 truncate text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+                      <span className={`min-w-0 flex-1 truncate text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${activeId === task.id ? "font-medium" : "font-normal"}`}>
                         {task.title}
                       </span>
                     </button>
@@ -1385,7 +1386,13 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
 
 // ── header ────────────────────────────────────────────────────────────────────
 
-function ChatHeader({ title, sidebarOpen, onSidebarToggle, onNewChat }: { title?: string; sidebarOpen?: boolean; onSidebarToggle?: () => void; onNewChat?: () => void }) {
+function ChatHeader({ title, projectBreadcrumb, sidebarOpen, onSidebarToggle, onNewChat }: {
+  title?: string;
+  projectBreadcrumb?: { projectName: string; taskName: string };
+  sidebarOpen?: boolean;
+  onSidebarToggle?: () => void;
+  onNewChat?: () => void;
+}) {
   return (
     <div className="relative shrink-0 w-full h-[48px] min-h-[48px] bg-white flex items-center gap-[8px] px-[16px] z-30">
       {!sidebarOpen && (
@@ -1406,7 +1413,19 @@ function ChatHeader({ title, sidebarOpen, onSidebarToggle, onNewChat }: { title?
           </button>
         </>
       )}
-      {title && <p className="absolute left-0 right-0 text-center text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.88)] truncate px-[80px] pointer-events-none">{title}</p>}
+      {projectBreadcrumb ? (
+        <div className={`absolute top-1/2 flex -translate-y-1/2 items-center gap-[8px] overflow-hidden ${sidebarOpen ? "left-[16px]" : "left-[96px]"}`}>
+          <span className="max-w-[240px] truncate font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">
+            {projectBreadcrumb.projectName}
+          </span>
+          <span className="font-['PingFang_SC:Regular'] text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.26)]">/</span>
+          <span className="max-w-[320px] truncate font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+            {projectBreadcrumb.taskName}
+          </span>
+        </div>
+      ) : title ? (
+        <p className="pointer-events-none absolute left-0 right-0 truncate px-[80px] text-center text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.88)]">{title}</p>
+      ) : null}
       <div className="flex-1" />
     </div>
   );
@@ -1623,8 +1642,9 @@ function ChatMessageRow({ msg, index, advance, onOpenPpt, onRegeneratePpt }: {
   );
 }
 
-function ChatView({ conversationId, messages, input, onInputChange, onSend, showInput = true, onOpenPpt, onRegeneratePpt, pptGeneration, onPptGenerationChange, agentRunning, onStop }: {
+function ChatView({ conversationId, projectName, messages, input, onInputChange, onSend, showInput = true, onOpenPpt, onRegeneratePpt, pptGeneration, onPptGenerationChange, agentRunning, onStop }: {
   conversationId: number | null;
+  projectName?: string;
   messages: Message[]; input: string; onInputChange: (v: string) => void; onSend: () => void; showInput?: boolean;
   onOpenPpt?: () => void; onRegeneratePpt?: () => void;
   pptGeneration: boolean; onPptGenerationChange: (selected: boolean) => void;
@@ -1667,7 +1687,11 @@ function ChatView({ conversationId, messages, input, onInputChange, onSend, show
       </div>
       <div aria-hidden={!showInput} className={`shrink-0 px-[24px] max-[560px]:px-0 transition-opacity duration-200 ${showInput ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
         <div className="mx-auto w-full max-w-[800px]">
-          <ChatInput value={input} onChange={onInputChange} onSend={onSend} pptGeneration={pptGeneration} onPptGenerationChange={onPptGenerationChange} agentRunning={agentRunning} onStop={onStop} />
+          {projectName ? (
+            <ProjectChatInput projectName={projectName} value={input} onChange={onInputChange} onSend={onSend} />
+          ) : (
+            <ChatInput value={input} onChange={onInputChange} onSend={onSend} pptGeneration={pptGeneration} onPptGenerationChange={onPptGenerationChange} agentRunning={agentRunning} onStop={onStop} />
+          )}
         </div>
       </div>
       <div className="shrink-0 flex items-center justify-center p-[4px]">
@@ -2026,6 +2050,7 @@ export default function App() {
     ? messages[0].text.slice(0, 20) + (messages[0].text.length > 20 ? "…" : "")
     : undefined;
   const activeProject = projects.find(project => project.id === activeProjectId) ?? null;
+  const activeTask = history.find(item => item.id === activeHistoryId) ?? null;
 
   return (
     <div className="w-screen h-screen flex flex-row overflow-hidden">
@@ -2048,13 +2073,15 @@ export default function App() {
       <div className="relative z-20 flex-1 min-w-0 min-h-0 flex flex-col bg-white">
         <ChatHeader
           title={chatTitle}
+          projectBreadcrumb={activeProject && activeTask ? { projectName: activeProject.name, taskName: activeTask.title } : undefined}
           sidebarOpen={sidebarOpen}
           onSidebarToggle={() => setSidebarOpen(o => !o)}
           onNewChat={messages.length > 0 || activeProject !== null ? handleNewChat : undefined}
         />
         {messages.length > 0
-          ? <ChatView
+            ? <ChatView
               conversationId={activeHistoryId}
+              projectName={activeProject?.name}
               messages={messages}
               input={input}
               onInputChange={setInput}
