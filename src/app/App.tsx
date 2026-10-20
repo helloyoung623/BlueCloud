@@ -926,6 +926,16 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
     return () => document.removeEventListener("mousedown", handler);
   }, [profileMenuOpen]);
 
+  useEffect(() => {
+    if (activeId === null) return;
+    const activeTask = history.find(item => item.id === activeId);
+    if (activeTask?.projectId === undefined) return;
+    setExpandedProjectIds(current => {
+      if (current.has(activeTask.projectId!)) return current;
+      return new Set(current).add(activeTask.projectId!);
+    });
+  }, [activeId, history]);
+
   return (
     <div className="shrink-0 w-[240px] self-stretch bg-white flex flex-col items-center relative border-r border-[#f2f2f2]">
       {/* head */}
@@ -1006,7 +1016,6 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
                     aria-expanded={isProjectExpanded}
                     onClick={() => {
                       if (projectTasks.length === 0) {
-                        setExpandedProjectIds(current => new Set(current).add(project.id));
                         onSelectProject(project.id);
                         return;
                       }
@@ -1245,7 +1254,6 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
           const id = Date.now();
           setProjects(current => [...current, { ...project, id }]);
           setProjectsExpanded(true);
-          setExpandedProjectIds(current => new Set(current).add(id));
           onSelectProject(id);
         }}
       />
