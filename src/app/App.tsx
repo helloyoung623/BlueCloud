@@ -785,6 +785,8 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
   const [profileHovered, setProfileHovered] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
+  const [projectsExpanded, setProjectsExpanded] = useState(false);
+  const [tasksExpanded, setTasksExpanded] = useState(true);
   const menuRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const profileTriggerRef = useRef<HTMLButtonElement>(null);
@@ -829,33 +831,62 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
 
       {/* projects */}
       <div className="shrink-0 w-[216px] pb-[16px] flex flex-col items-start">
-        <div className="relative flex w-full items-center gap-[4px] px-[12px]">
-          <p className="text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">项目</p>
-        </div>
-        <div className="flex w-full flex-col items-start p-[8px]">
+        <div className="group relative flex w-full items-center">
+          <button
+            type="button"
+            aria-expanded={projectsExpanded}
+            onClick={() => setProjectsExpanded(expanded => !expanded)}
+            className="flex w-full cursor-pointer items-center gap-[4px] rounded-[4px] px-[12px] pr-[36px] text-left hover:bg-[#f7f7f7]"
+          >
+            <span className="text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">项目</span>
+            <svg
+              aria-hidden
+              className={`size-[16px] shrink-0 text-[rgba(0,0,0,0.38)] transition-opacity ${projectsExpanded ? "opacity-0 group-hover:opacity-100" : "opacity-100"}`}
+              viewBox="0 0 16 16"
+              fill="none"
+            >
+              <path d={projectsExpanded ? "M4 6L8 10L12 6" : "M6 4L10 8L6 12"} stroke="currentColor" strokeWidth="1.333" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
           <button
             type="button"
             aria-label="新建项目"
-            className="flex cursor-pointer items-center gap-[8px] rounded-[4px] px-[4px] py-[3px] hover:bg-[#f7f7f7]"
+            className="absolute right-[4px] top-[-1px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]"
           >
             <img src="/assets/4fe43.svg" alt="" className="size-[16px] shrink-0" />
-            <span className="whitespace-nowrap text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">新建项目</span>
           </button>
         </div>
       </div>
 
       {/* tasks */}
       <div className="flex min-h-0 w-[216px] flex-1 flex-col items-start">
-        <div className="relative flex w-full shrink-0 items-center gap-[4px] px-[12px]">
-          <p className="text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">任务</p>
-          <button aria-label="搜索任务" className="absolute right-[4px] top-[-1px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
-            <svg width="14" height="14" viewBox="0 0 13.5427 13.5427" fill="none">
-              <path d={svgSidebar.p21ae8c80} fill="black" fillOpacity="0.38" />
+        <div className="group relative flex w-full shrink-0 items-center">
+          <button
+            type="button"
+            aria-expanded={tasksExpanded}
+            onClick={() => setTasksExpanded(expanded => !expanded)}
+            className={`flex w-full cursor-pointer items-center gap-[4px] rounded-[4px] px-[12px] text-left hover:bg-[#f7f7f7] ${history.length > 0 ? "pr-[36px]" : ""}`}
+          >
+            <span className="text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">任务</span>
+            <svg
+              aria-hidden
+              className={`size-[16px] shrink-0 text-[rgba(0,0,0,0.38)] transition-opacity ${tasksExpanded ? "opacity-0 group-hover:opacity-100" : "opacity-100"}`}
+              viewBox="0 0 16 16"
+              fill="none"
+            >
+              <path d={tasksExpanded ? "M4 6L8 10L12 6" : "M6 4L10 8L6 12"} stroke="currentColor" strokeWidth="1.333" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
+          {history.length > 0 && (
+            <button aria-label="搜索任务" className="absolute right-[4px] top-[-1px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
+              <svg width="14" height="14" viewBox="0 0 13.5427 13.5427" fill="none">
+                <path d={svgSidebar.p21ae8c80} fill="black" fillOpacity="0.38" />
+              </svg>
+            </button>
+          )}
         </div>
 
-        <div className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto">
+        {tasksExpanded && <div className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto">
           {history.length === 0 ? (
             <p className="p-[12px] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.26)]">暂无任务</p>
           ) : (
@@ -906,7 +937,7 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
               );
             })
           )}
-        </div>
+        </div>}
       </div>
 
       {/* context menu — fixed to escape overflow clip */}
