@@ -1737,7 +1737,7 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
           </div>
         </div>
       </div>
-      <div className="shrink-0 flex items-center justify-center p-[4px]">
+      <div className="flex h-[22px] shrink-0 items-center justify-center p-[4px] opacity-0">
         <span className="text-[10px] text-[rgba(0,0,0,0.26)]">内容由AI生成，仅供参考</span>
       </div>
     </div>
