@@ -14,6 +14,7 @@ import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c670
 import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
 import { PptPanel, PptResultMessage } from "./components/ppt-result";
 import SendButtonFigma from "@/imports/发送按钮";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "./components/ui/dialog";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -770,10 +771,124 @@ function MemoryModal({ onClose }: { onClose: () => void }) {
 // ── sidebar ───────────────────────────────────────────────────────────────────
 
 type HistoryItem = { id: number; title: string; pinned?: boolean; messages: Message[] };
+type ProjectItem = { id: number; name: string; instruction: string };
 
-function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }: {
+function CreateProjectDialog({ open, onOpenChange, onCreate }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreate: (project: Omit<ProjectItem, "id">) => void;
+}) {
+  const [name, setName] = useState("");
+  const [instruction, setInstruction] = useState("");
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    onOpenChange(nextOpen);
+    if (!nextOpen) {
+      setName("");
+      setInstruction("");
+    }
+  };
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+    onCreate({ name: trimmedName, instruction: instruction.trim() });
+    handleOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        aria-describedby={undefined}
+        className="w-[720px] max-w-[calc(100%-32px)] gap-0 overflow-hidden rounded-[12px] border-0 bg-white p-0 shadow-[0_0_12px_rgba(0,0,0,0.08)] [&>button]:hidden"
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="flex w-full flex-col gap-[4px] px-[24px] py-[16px]">
+            <div className="relative h-[24px] w-full">
+              <DialogTitle className="font-['PingFang_SC:Medium'] text-[16px] font-medium leading-[24px] tracking-[0.016px] text-[rgba(0,0,0,0.88)]">
+                新建项目
+              </DialogTitle>
+              <DialogClose asChild>
+                <button
+                  type="button"
+                  aria-label="关闭新建项目弹窗"
+                  className="absolute right-0 top-0 flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]"
+                >
+                  <img src="/assets/f802d.svg" alt="" />
+                </button>
+              </DialogClose>
+            </div>
+          </div>
+
+          <div className="flex w-full flex-col items-start px-[12px] pt-[16px]">
+            <label className="flex w-full flex-col gap-[8px] pb-[24px]">
+              <span className="pl-[12px] font-['PingFang_SC:Medium'] text-[14px] font-medium leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.6)]">
+                项目名称
+              </span>
+              <div className="px-[12px]">
+                <div className="flex h-[32px] w-full items-center gap-[8px] rounded-[8px] border border-[#e6e6e6] px-[12px] focus-within:border-[#1e63f5]">
+                  <input
+                    autoFocus
+                    required
+                    maxLength={15}
+                    value={name}
+                    onChange={event => setName(event.target.value)}
+                    placeholder="请输入项目名称"
+                    className="min-w-0 flex-1 bg-transparent font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] outline-none placeholder:text-[rgba(0,0,0,0.26)]"
+                  />
+                  <span className="shrink-0 font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">
+                    {name.length}/15
+                  </span>
+                </div>
+              </div>
+            </label>
+
+            <label className="flex w-full flex-col gap-[8px] pb-[24px]">
+              <span className="pl-[12px] font-['PingFang_SC:Medium'] text-[14px] font-medium leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.6)]">
+                指令
+              </span>
+              <div className="px-[12px]">
+                <div className="relative w-full overflow-hidden rounded-[8px] border border-[#e6e6e6] focus-within:border-[#1e63f5]">
+                  <textarea
+                    value={instruction}
+                    onChange={event => setInstruction(event.target.value)}
+                    placeholder="提供当前项目的背景信息和规范，让 AI 的回复更精准、更符合要求。比如：项目目标、团队习惯、风格偏好、输出约束等"
+                    className="block h-[96px] w-full resize-none bg-white p-[12px] pb-[28px] font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] outline-none placeholder:text-[rgba(0,0,0,0.26)]"
+                  />
+                  <img src="/assets/166cb.svg" alt="" className="pointer-events-none absolute bottom-[4px] right-[4px]" />
+                </div>
+              </div>
+            </label>
+          </div>
+
+          <div className="flex w-full items-center justify-end gap-[24px] border-t border-[#f2f2f2] p-[24px]">
+            <DialogClose asChild>
+              <button
+                type="button"
+                className="cursor-pointer rounded-[4px] px-[4px] py-[3px] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.6)] hover:bg-[#f7f7f7]"
+              >
+                取消
+              </button>
+            </DialogClose>
+            <button
+              type="submit"
+              className="cursor-pointer rounded-[4px] bg-[#1e63f5] px-[16px] py-[5px] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(255,255,255,0.98)] hover:bg-[#1554d1]"
+            >
+              确定
+            </button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewChat, activeId, onSelect }: {
   history: HistoryItem[];
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>;
+  projects: ProjectItem[];
+  setProjects: React.Dispatch<React.SetStateAction<ProjectItem[]>>;
   onClose: () => void;
   onNewChat: () => void;
   activeId: number | null;
@@ -787,6 +902,7 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [projectsExpanded, setProjectsExpanded] = useState(false);
   const [tasksExpanded, setTasksExpanded] = useState(true);
+  const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const profileTriggerRef = useRef<HTMLButtonElement>(null);
@@ -848,26 +964,44 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
               <path d={projectsExpanded ? "M4 6L8 10L12 6" : "M6 4L10 8L6 12"} stroke="currentColor" strokeWidth="1.333" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          {!projectsExpanded && (
+          {(!projectsExpanded || projects.length > 0) && (
             <button
               type="button"
               aria-label="新建项目"
+              onClick={() => setCreateProjectOpen(true)}
               className="absolute right-[4px] top-[-1px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]"
             >
               <img src="/assets/4fe43.svg" alt="" className="size-[16px] shrink-0" />
             </button>
           )}
         </div>
-        {projectsExpanded && (
+        {projectsExpanded && projects.length === 0 && (
           <div className="flex w-full flex-col items-start p-[8px]">
             <button
               type="button"
               aria-label="新建项目"
+              onClick={() => setCreateProjectOpen(true)}
               className="flex cursor-pointer items-center gap-[8px] rounded-[4px] px-[4px] py-[3px] hover:bg-[#f7f7f7]"
             >
               <img src="/assets/4fe43.svg" alt="" className="size-[16px] shrink-0" />
               <span className="whitespace-nowrap text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">新建项目</span>
             </button>
+          </div>
+        )}
+        {projectsExpanded && projects.length > 0 && (
+          <div className="flex w-full flex-col items-start">
+            {projects.map(project => (
+              <button
+                key={project.id}
+                type="button"
+                className="flex h-[40px] w-full cursor-pointer items-center gap-[8px] overflow-hidden rounded-[4px] py-[8px] pl-[12px] pr-[4px] text-left hover:bg-[#f7f7f7]"
+              >
+                <img src="/assets/6bcaa.svg" alt="" className="size-[16px] shrink-0" />
+                <span className="min-w-0 flex-1 truncate text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+                  {project.name}
+                </span>
+              </button>
+            ))}
           </div>
         )}
       </div>
@@ -1067,6 +1201,14 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
           )}
         </button>
       </div>
+      <CreateProjectDialog
+        open={createProjectOpen}
+        onOpenChange={setCreateProjectOpen}
+        onCreate={project => {
+          setProjects(current => [...current, { ...project, id: Date.now() }]);
+          setProjectsExpanded(true);
+        }}
+      />
       {memoryOpen && <MemoryModal onClose={() => setMemoryOpen(false)} />}
     </div>
   );
@@ -1600,6 +1742,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState<number | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
   const nextHistoryId = useRef(1);
   const activeRunId = useRef(0);
 
@@ -1724,6 +1867,8 @@ export default function App() {
         <Sidebar
           history={history}
           setHistory={setHistory}
+          projects={projects}
+          setProjects={setProjects}
           onClose={() => setSidebarOpen(false)}
           onNewChat={handleNewChat}
           activeId={activeHistoryId}
