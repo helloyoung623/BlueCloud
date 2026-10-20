@@ -848,14 +848,28 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
               <path d={projectsExpanded ? "M4 6L8 10L12 6" : "M6 4L10 8L6 12"} stroke="currentColor" strokeWidth="1.333" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          <button
-            type="button"
-            aria-label="新建项目"
-            className="absolute right-[4px] top-[-1px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]"
-          >
-            <img src="/assets/4fe43.svg" alt="" className="size-[16px] shrink-0" />
-          </button>
+          {!projectsExpanded && (
+            <button
+              type="button"
+              aria-label="新建项目"
+              className="absolute right-[4px] top-[-1px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]"
+            >
+              <img src="/assets/4fe43.svg" alt="" className="size-[16px] shrink-0" />
+            </button>
+          )}
         </div>
+        {projectsExpanded && (
+          <div className="flex w-full flex-col items-start p-[8px]">
+            <button
+              type="button"
+              aria-label="新建项目"
+              className="flex cursor-pointer items-center gap-[8px] rounded-[4px] px-[4px] py-[3px] hover:bg-[#f7f7f7]"
+            >
+              <img src="/assets/4fe43.svg" alt="" className="size-[16px] shrink-0" />
+              <span className="whitespace-nowrap text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">新建项目</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* tasks */}
