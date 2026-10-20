@@ -771,7 +771,7 @@ function MemoryModal({ onClose }: { onClose: () => void }) {
 // ── sidebar ───────────────────────────────────────────────────────────────────
 
 type HistoryItem = { id: number; title: string; pinned?: boolean; messages: Message[]; projectId?: number };
-type ProjectItem = { id: number; name: string; instruction: string };
+type ProjectItem = { id: number; name: string; instruction: string; pinned?: boolean };
 
 function CreateProjectDialog({ open, onOpenChange, onCreate }: {
   open: boolean;
@@ -898,6 +898,8 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
 }) {
   const [hoverId, setHoverId] = useState<number | null>(null);
   const [menuId, setMenuId] = useState<number | null>(null);
+  const [hoverProjectId, setHoverProjectId] = useState<number | null>(null);
+  const [projectMenuId, setProjectMenuId] = useState<number | null>(null);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const [profileHovered, setProfileHovered] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -913,7 +915,10 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuId(null);
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuId(null);
+        setProjectMenuId(null);
+      }
       if (
         profileMenuOpen &&
         !profileMenuRef.current?.contains(e.target as Node) &&
@@ -1009,11 +1014,16 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
               const isActiveProjectContext = activeProjectId === project.id;
               const isActiveProjectHome = isActiveProjectContext && activeId === null;
               const isProjectExpanded = expandedProjectIds.has(project.id);
+              const isProjectHover = hoverProjectId === project.id;
+              const hasProjectMenu = projectMenuId === project.id;
               return (
                 <div key={project.id} className="w-full">
-                  <button
-                    type="button"
+                  <div
+                    role="button"
+                    tabIndex={0}
                     aria-expanded={isProjectExpanded}
+                    onMouseEnter={() => setHoverProjectId(project.id)}
+                    onMouseLeave={() => { if (!hasProjectMenu) setHoverProjectId(null); }}
                     onClick={() => {
                       if (projectTasks.length === 0) {
                         onSelectProject(project.id);
@@ -1026,25 +1036,115 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
                         return next;
                       });
                     }}
-                    className={`flex h-[40px] w-full cursor-pointer items-center gap-[8px] overflow-hidden rounded-[4px] py-[8px] pl-[12px] pr-[4px] text-left hover:bg-[#f7f7f7] ${isActiveProjectHome ? "bg-[#f7f7f7]" : ""}`}
+                    onKeyDown={event => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      if (projectTasks.length === 0) onSelectProject(project.id);
+                      else {
+                        setExpandedProjectIds(current => {
+                          const next = new Set(current);
+                          if (next.has(project.id)) next.delete(project.id);
+                          else next.add(project.id);
+                          return next;
+                        });
+                      }
+                    }}
+                    className={`flex h-[40px] w-full cursor-pointer items-center gap-[8px] overflow-hidden rounded-[4px] py-[8px] pl-[12px] pr-[4px] text-left transition-colors ${isActiveProjectHome ? "bg-[#f7f7f7]" : isProjectHover ? "bg-[#f2f2f2]" : ""}`}
                   >
                     <img src={isProjectExpanded ? "/assets/bf868.svg" : "/assets/6bcaa.svg"} alt="" className="shrink-0" />
                     <span className="min-w-0 flex-1 truncate text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
                       {project.name}
                     </span>
-                  </button>
-                  {isProjectExpanded && projectTasks.map(task => (
-                    <button
-                      key={task.id}
-                      type="button"
-                      onClick={() => onSelect(task.id)}
-                      className={`flex h-[40px] w-full cursor-pointer items-center gap-[4px] overflow-hidden rounded-[4px] py-[8px] pl-[36px] pr-[4px] text-left hover:bg-[#f7f7f7] ${activeId === task.id ? "bg-[#f7f7f7]" : ""}`}
-                    >
-                      <span className={`min-w-0 flex-1 truncate text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${activeId === task.id ? "font-medium" : "font-normal"}`}>
-                        {task.title}
-                      </span>
-                    </button>
-                  ))}
+                    {project.pinned && !isProjectHover && !hasProjectMenu && (
+                      <div className="flex size-[24px] shrink-0 items-center justify-center">
+                        <svg width="12" height="13" viewBox="0 0 12 12.6667" fill="none">
+                          <path d={svgSidebar.p3170f400} fill="black" fillOpacity="0.26" />
+                          <path d="M0 0H12V1.33333H0V0Z" fill="black" fillOpacity="0.26" />
+                        </svg>
+                      </div>
+                    )}
+                    {(isProjectHover || hasProjectMenu) && (
+                      <button
+                        type="button"
+                        aria-label="项目更多操作"
+                        onClick={event => {
+                          event.stopPropagation();
+                          if (hasProjectMenu) {
+                            setProjectMenuId(null);
+                            return;
+                          }
+                          const rect = event.currentTarget.getBoundingClientRect();
+                          setMenuPos({ x: rect.right + 4, y: rect.top });
+                          setMenuId(null);
+                          setProjectMenuId(project.id);
+                          setHoverProjectId(project.id);
+                        }}
+                        className="flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] hover:bg-[rgba(0,0,0,0.06)]"
+                      >
+                        <svg width="3" height="12" viewBox="0 0 2.66667 12" fill="none">
+                          <path d={svgSidebar.p19c91c80} fill="black" fillOpacity="0.38" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  {isProjectExpanded && projectTasks.map(task => {
+                    const isTaskActive = activeId === task.id;
+                    const isTaskHover = hoverId === task.id;
+                    const hasTaskMenu = menuId === task.id;
+                    return (
+                      <div
+                        key={task.id}
+                        role="button"
+                        tabIndex={0}
+                        onMouseEnter={() => setHoverId(task.id)}
+                        onMouseLeave={() => { if (!hasTaskMenu) setHoverId(null); }}
+                        onClick={() => { onSelect(task.id); setMenuId(null); }}
+                        onKeyDown={event => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            onSelect(task.id);
+                            setMenuId(null);
+                          }
+                        }}
+                        className={`flex h-[40px] w-full cursor-pointer items-center gap-[4px] overflow-hidden rounded-[4px] py-[8px] pl-[36px] pr-[4px] text-left transition-colors ${isTaskActive ? "bg-[#f7f7f7]" : isTaskHover ? "bg-[#f2f2f2]" : ""}`}
+                      >
+                        <span className={`min-w-0 flex-1 truncate text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${isTaskActive ? "font-medium" : "font-normal"}`}>
+                          {task.title}
+                        </span>
+                        {task.pinned && !isTaskHover && !hasTaskMenu && (
+                          <div className="flex size-[24px] shrink-0 items-center justify-center">
+                            <svg width="12" height="13" viewBox="0 0 12 12.6667" fill="none">
+                              <path d={svgSidebar.p3170f400} fill="black" fillOpacity="0.26" />
+                              <path d="M0 0H12V1.33333H0V0Z" fill="black" fillOpacity="0.26" />
+                            </svg>
+                          </div>
+                        )}
+                        {(isTaskHover || hasTaskMenu) && (
+                          <button
+                            type="button"
+                            aria-label="任务更多操作"
+                            onClick={event => {
+                              event.stopPropagation();
+                              if (hasTaskMenu) {
+                                setMenuId(null);
+                                return;
+                              }
+                              const rect = event.currentTarget.getBoundingClientRect();
+                              setMenuPos({ x: rect.right + 4, y: rect.top });
+                              setProjectMenuId(null);
+                              setMenuId(task.id);
+                              setHoverId(task.id);
+                            }}
+                            className="flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] hover:bg-[rgba(0,0,0,0.06)]"
+                          >
+                            <svg width="3" height="12" viewBox="0 0 2.66667 12" fill="none">
+                              <path d={svgSidebar.p19c91c80} fill="black" fillOpacity="0.38" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
@@ -1116,6 +1216,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
                           if (hasMenu) { setMenuId(null); return; }
                           const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
                           setMenuPos({ x: rect.right + 4, y: rect.top });
+                          setProjectMenuId(null);
                           setMenuId(item.id);
                           setHoverId(item.id);
                         }}
@@ -1135,14 +1236,46 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
       </div>
 
       {/* context menu — fixed to escape overflow clip */}
-      {menuId !== null && (
+      {(menuId !== null || projectMenuId !== null) && (
         <div ref={menuRef} className="fixed z-[200] bg-white rounded-[12px] w-[192px]"
           style={{ left: menuPos.x, top: menuPos.y, boxShadow: "0 0 12px rgba(0,0,0,0.08)", border: "1px solid #f2f2f2" }}>
           <div className="px-[8px] py-[4px] flex flex-col">
             {[
-              { label: "置顶此对话", icon: svgSidebar.p3170f400, isPin: true, action: () => { setHistory(h => h.map(i => i.id === menuId ? { ...i, pinned: !i.pinned } : i)); setMenuId(null); } },
-              { label: "编辑名称",   icon: svgSidebar.p20221d00, isPin: false, action: () => setMenuId(null) },
-              { label: "删除",       icon: svgSidebar.p2ffde100, isPin: false, action: () => { setHistory(h => h.filter(i => i.id !== menuId)); setMenuId(null); } },
+              {
+                label: projectMenuId !== null ? "置顶此项目" : "置顶此对话",
+                icon: svgSidebar.p3170f400,
+                isPin: true,
+                action: () => {
+                  if (projectMenuId !== null) setProjects(items => items.map(item => item.id === projectMenuId ? { ...item, pinned: !item.pinned } : item));
+                  else setHistory(items => items.map(item => item.id === menuId ? { ...item, pinned: !item.pinned } : item));
+                  setMenuId(null);
+                  setProjectMenuId(null);
+                },
+              },
+              {
+                label: "编辑名称",
+                icon: svgSidebar.p20221d00,
+                isPin: false,
+                action: () => {
+                  setMenuId(null);
+                  setProjectMenuId(null);
+                },
+              },
+              {
+                label: "删除",
+                icon: svgSidebar.p2ffde100,
+                isPin: false,
+                action: () => {
+                  if (projectMenuId !== null) {
+                    setProjects(items => items.filter(item => item.id !== projectMenuId));
+                    setHistory(items => items.filter(item => item.projectId !== projectMenuId));
+                  } else {
+                    setHistory(items => items.filter(item => item.id !== menuId));
+                  }
+                  setMenuId(null);
+                  setProjectMenuId(null);
+                },
+              },
             ].map(({ label, icon, isPin, action }) => (
               <button key={label} onClick={action}
                 className="flex items-center gap-[8px] px-[8px] py-[11px] rounded-[8px] hover:bg-[#f7f7f7] cursor-pointer w-full text-left">
@@ -1232,6 +1365,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
           onMouseLeave={() => setProfileHovered(false)}
           onClick={() => {
             setMenuId(null);
+            setProjectMenuId(null);
             setProfileMenuOpen(open => !open);
           }}
           className="flex h-[32px] flex-1 min-w-0 cursor-pointer items-center gap-[8px] rounded-[8px] px-[12px] py-[4px] text-left"
