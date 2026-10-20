@@ -22,6 +22,8 @@ type ProcessVariant = "requirement" | "outline" | "ppt";
 type ProcessPreset = { goal: string; running: string; actions: { label: string; icon: ToolKind }[] };
 type Message = { role: "user" | "ai" | "process" | "result"; text: string; thinking?: boolean; variant?: ProcessVariant; preset?: ProcessPreset };
 type PptStage = "idle" | "requirement" | "outline_generating" | "outline" | "ppt_generating" | "preview";
+type PptMode = "标准" | "PowerPoint";
+type PptPageCount = "智能匹配" | "5～8页" | "8～12页" | "12～18页";
 
 type OutlinePageContent =
   | { type: "text"; text: string }
@@ -172,7 +174,13 @@ function CloseBtn({ onClick }: { onClick: () => void }) {
 
 // ── panel footer with countdown ───────────────────────────────────────────────
 
-function PanelFooter({ count, cancelled, onConfirm }: { count: number; cancelled: boolean; onConfirm: () => void }) {
+function PanelFooter({ count, cancelled, onConfirm, pptMode, onPptModeChange }: {
+  count: number;
+  cancelled: boolean;
+  onConfirm: () => void;
+  pptMode: PptMode;
+  onPptModeChange: (mode: PptMode) => void;
+}) {
   return (
     <div className="shrink-0 px-[16px] py-[16px] flex items-center gap-[16px] bg-[rgba(255,255,255,0.92)] border-t border-[#f2f2f2]">
       <p className="flex-1 text-[14px] leading-[22px]">
@@ -180,6 +188,7 @@ function PanelFooter({ count, cancelled, onConfirm }: { count: number; cancelled
           <><span className="text-[#1e63f5] font-medium">{count}S</span><span className="text-[rgba(0,0,0,0.38)]"> 后自动确认</span></>
         )}
       </p>
+      <PptSettingPicker kind="mode" value={pptMode} onChange={onPptModeChange} footer />
       <button onClick={onConfirm} className="bg-[#1e63f5] text-white text-[14px] leading-[22px] font-normal px-[16px] py-[5px] rounded-[8px] cursor-pointer hover:opacity-90 transition-opacity">
         确认
       </button>
@@ -212,16 +221,26 @@ function GridItem({ label, selected, onClick }: { label: string; selected: boole
   );
 }
 
-function RequirementPanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
-  visible: boolean; onClose: () => void; onConfirm: () => void; mainOffset?: number;
+function RequirementPanel({ visible, onClose, onConfirm, pptMode, onPptModeChange, initialPages, mainOffset = 0 }: {
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  pptMode: PptMode;
+  onPptModeChange: (mode: PptMode) => void;
+  initialPages: PptPageCount;
+  mainOffset?: number;
 }) {
   const [style, setStyle] = useState("科技现代");
   const [scenes, setScenes] = useState<string[]>(["商业路演"]);
   const [audience, setAudience] = useState<string[]>(["投资人"]);
-  const [pages, setPages] = useState("8～12页");
+  const [pages, setPages] = useState(initialPages === "智能匹配" ? "8～12页" : initialPages);
   const [moreStylesOpen, setMoreStylesOpen] = useState(false);
   const closeMoreStylesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (visible) setPages(initialPages === "智能匹配" ? "8～12页" : initialPages);
+  }, [initialPages, visible]);
 
   const openMoreStyles = () => {
     if (closeMoreStylesTimer.current) clearTimeout(closeMoreStylesTimer.current);
@@ -322,7 +341,7 @@ function RequirementPanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
         <div className="flex flex-col gap-[12px]">
           <span className="text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.88)]">页数</span>
           <div className="flex gap-[12px]">
-            {["8～12页", "12～16页", "16页以上"].map(s => (
+            {["5～8页", "8～12页", "12～18页"].map(s => (
               <OptionItem key={s} label={s} selected={pages === s} onClick={() => setPages(s)} />
             ))}
           </div>
@@ -338,7 +357,7 @@ function RequirementPanel({ visible, onClose, onConfirm, mainOffset = 0 }: {
         </div>
       </div>
 
-      <PanelFooter count={count} cancelled={cancelled} onConfirm={handleConfirm} />
+      <PanelFooter count={count} cancelled={cancelled} onConfirm={handleConfirm} pptMode={pptMode} onPptModeChange={onPptModeChange} />
     </SlidePanel>
   );
 }
@@ -1447,6 +1466,94 @@ function PptGenerationToggle({ selected, onChange }: { selected: boolean; onChan
   );
 }
 
+type PptSettingPickerProps =
+  | { kind: "mode"; value: PptMode; onChange: (value: PptMode) => void; footer?: boolean }
+  | { kind: "pages"; value: PptPageCount; onChange: (value: PptPageCount) => void; footer?: false };
+
+function PptSettingPicker(props: PptSettingPickerProps) {
+  const [open, setOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const isMode = props.kind === "mode";
+  const options = isMode
+    ? [
+        { value: "标准" as const, description: "快速；适合常规汇报" },
+        { value: "PowerPoint" as const, description: "PowerPoint原生文件" },
+      ]
+    : [
+        { value: "智能匹配" as const },
+        { value: "5～8页" as const },
+        { value: "8～12页" as const },
+        { value: "12～18页" as const },
+      ];
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!pickerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, [open]);
+
+  return (
+    <div ref={pickerRef} className="relative shrink-0">
+      {open && (
+        <div className={`absolute bottom-[calc(100%+8px)] z-50 overflow-hidden rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)] ${isMode ? "left-0 w-[232px]" : "left-0 w-[192px]"}`}>
+          <div className="flex max-h-[480px] w-full flex-col overflow-y-auto py-[4px]">
+            {!isMode && (
+              <p className="px-[8px] text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">
+                生成的PPT页面数量
+              </p>
+            )}
+            {options.map((option, index) => {
+              const selected = props.value === option.value;
+              return (
+                <div key={option.value}>
+                  {!isMode && index === 1 && <div className="h-px w-full bg-[#f2f2f2]" />}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (props.kind === "mode") props.onChange(option.value as PptMode);
+                      else props.onChange(option.value as PptPageCount);
+                      setOpen(false);
+                    }}
+                    className="relative flex w-full cursor-pointer items-center justify-between rounded-[8px] p-[8px] text-left hover:bg-[#f7f7f7]"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className={`block truncate text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${selected ? "font-medium" : "font-normal"}`}>
+                        {option.value}
+                      </span>
+                      {"description" in option && (
+                        <span className="block truncate text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">
+                          {option.description}
+                        </span>
+                      )}
+                    </span>
+                    {selected && <img src="/assets/9e503.svg" alt="" className="shrink-0" />}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen(value => !value)}
+        className={`flex cursor-pointer items-center gap-[4px] rounded-full ${props.footer ? "px-[4px] py-[3px]" : "border border-[#f2f2f2] px-[8px] py-[4px] hover:bg-[#f7f7f7]"}`}
+      >
+        <img src={props.footer ? "/assets/985b1.svg" : isMode ? "/assets/a80d5.svg" : "/assets/b3301.svg"} alt="" className="shrink-0" />
+        <span className="whitespace-nowrap text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+          {props.value}
+        </span>
+        {props.footer && <img src="/assets/27bf2.svg" alt="" className="shrink-0" />}
+      </button>
+    </div>
+  );
+}
+
 type SendButtonState = "Default" | "激活" | "暂停" | "激活_hover" | "激活_pressed" | "暂停_Hover" | "暂停_pressed" | "loading";
 
 function SendButton({ hasText, agentRunning = false, onSend, onStop }: {
@@ -1506,12 +1613,16 @@ function SendButton({ hasText, agentRunning = false, onSend, onStop }: {
   );
 }
 
-function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChange, agentRunning = false, onStop }: {
+function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChange, pptMode, onPptModeChange, pptPages, onPptPagesChange, agentRunning = false, onStop }: {
   value: string;
   onChange: (v: string) => void;
   onSend: () => void;
   pptGeneration: boolean;
   onPptGenerationChange: (selected: boolean) => void;
+  pptMode: PptMode;
+  onPptModeChange: (mode: PptMode) => void;
+  pptPages: PptPageCount;
+  onPptPagesChange: (pages: PptPageCount) => void;
   agentRunning?: boolean;
   onStop?: () => void;
 }) {
@@ -1551,6 +1662,12 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
           <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] whitespace-nowrap">来源</span>
         </div>
         <PptGenerationToggle selected={pptGeneration} onChange={onPptGenerationChange} />
+        {pptGeneration && (
+          <>
+            <PptSettingPicker kind="mode" value={pptMode} onChange={onPptModeChange} />
+            <PptSettingPicker kind="pages" value={pptPages} onChange={onPptPagesChange} />
+          </>
+        )}
         <SendButton hasText={hasText} agentRunning={agentRunning} onSend={onSend} onStop={onStop} />
       </div>
     </div>
@@ -1706,9 +1823,11 @@ function ChatHeader({ title, projectBreadcrumb, sidebarOpen, onSidebarToggle, on
 
 const SUGGESTIONS = ["找出近一周的邮件", "请帮我起草一封给团队的邮件", "总结下智能助手项目邮件"];
 
-function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGenerationChange, projects, selectedProjectId, onSelectProject, onCreateProject }: {
+function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGenerationChange, pptMode, onPptModeChange, pptPages, onPptPagesChange, projects, selectedProjectId, onSelectProject, onCreateProject }: {
   input: string; onInputChange: (v: string) => void; onSend: (text?: string) => void;
   pptGeneration: boolean; onPptGenerationChange: (selected: boolean) => void;
+  pptMode: PptMode; onPptModeChange: (mode: PptMode) => void;
+  pptPages: PptPageCount; onPptPagesChange: (pages: PptPageCount) => void;
   projects: ProjectItem[];
   selectedProjectId: number | null;
   onSelectProject: (id: number | null) => void;
@@ -1742,7 +1861,17 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
             </div>
           </div>
           <div className="shrink-0 w-full">
-            <ChatInput value={input} onChange={onInputChange} onSend={onSend} pptGeneration={pptGeneration} onPptGenerationChange={onPptGenerationChange} />
+            <ChatInput
+              value={input}
+              onChange={onInputChange}
+              onSend={onSend}
+              pptGeneration={pptGeneration}
+              onPptGenerationChange={onPptGenerationChange}
+              pptMode={pptMode}
+              onPptModeChange={onPptModeChange}
+              pptPages={pptPages}
+              onPptPagesChange={onPptPagesChange}
+            />
             <HomeProjectPicker
               projects={projects}
               selectedProjectId={selectedProjectId}
@@ -1925,12 +2054,14 @@ function ChatMessageRow({ msg, index, advance, onOpenPpt, onRegeneratePpt }: {
   );
 }
 
-function ChatView({ conversationId, projectName, messages, input, onInputChange, onSend, showInput = true, onOpenPpt, onRegeneratePpt, pptGeneration, onPptGenerationChange, agentRunning, onStop }: {
+function ChatView({ conversationId, projectName, messages, input, onInputChange, onSend, showInput = true, onOpenPpt, onRegeneratePpt, pptGeneration, onPptGenerationChange, pptMode, onPptModeChange, pptPages, onPptPagesChange, agentRunning, onStop }: {
   conversationId: number | null;
   projectName?: string;
   messages: Message[]; input: string; onInputChange: (v: string) => void; onSend: () => void; showInput?: boolean;
   onOpenPpt?: () => void; onRegeneratePpt?: () => void;
   pptGeneration: boolean; onPptGenerationChange: (selected: boolean) => void;
+  pptMode: PptMode; onPptModeChange: (mode: PptMode) => void;
+  pptPages: PptPageCount; onPptPagesChange: (pages: PptPageCount) => void;
   agentRunning: boolean; onStop: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1973,7 +2104,19 @@ function ChatView({ conversationId, projectName, messages, input, onInputChange,
           {projectName ? (
             <ProjectChatInput projectName={projectName} value={input} onChange={onInputChange} onSend={onSend} />
           ) : (
-            <ChatInput value={input} onChange={onInputChange} onSend={onSend} pptGeneration={pptGeneration} onPptGenerationChange={onPptGenerationChange} agentRunning={agentRunning} onStop={onStop} />
+            <ChatInput
+              value={input}
+              onChange={onInputChange}
+              onSend={onSend}
+              pptGeneration={pptGeneration}
+              onPptGenerationChange={onPptGenerationChange}
+              pptMode={pptMode}
+              onPptModeChange={onPptModeChange}
+              pptPages={pptPages}
+              onPptPagesChange={onPptPagesChange}
+              agentRunning={agentRunning}
+              onStop={onStop}
+            />
           )}
         </div>
       </div>
@@ -2199,6 +2342,8 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [pptGeneration, setPptGeneration] = useState(false);
+  const [pptMode, setPptMode] = useState<PptMode>("PowerPoint");
+  const [pptPages, setPptPages] = useState<PptPageCount>("智能匹配");
   const [stage, setStage] = useState<PptStage>("idle");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeHistoryId, setActiveHistoryId] = useState<number | null>(null);
@@ -2340,7 +2485,7 @@ export default function App() {
     setMessages(prev => prev.map(message => message.role === "process" && message.thinking ? { ...message, thinking: false } : message));
   };
 
-  const handleNewChat = () => { activeRunId.current += 1; setMessages([]); setInput(""); setPptGeneration(false); setStage("idle"); setActiveHistoryId(null); setActiveProjectId(null); setSelectedProjectId(null); };
+  const handleNewChat = () => { activeRunId.current += 1; setMessages([]); setInput(""); setPptGeneration(false); setPptMode("PowerPoint"); setPptPages("智能匹配"); setStage("idle"); setActiveHistoryId(null); setActiveProjectId(null); setSelectedProjectId(null); };
   const handleNewProjectTask = (projectId: number) => {
     handleNewChat();
     setSelectedProjectId(projectId);
@@ -2391,6 +2536,10 @@ export default function App() {
               onRegeneratePpt={handleOutlineConfirm}
               pptGeneration={pptGeneration}
               onPptGenerationChange={setPptGeneration}
+              pptMode={pptMode}
+              onPptModeChange={setPptMode}
+              pptPages={pptPages}
+              onPptPagesChange={setPptPages}
               agentRunning={messages.some(message => message.role === "process" && Boolean(message.thinking))}
               onStop={handleStop}
             />
@@ -2407,6 +2556,10 @@ export default function App() {
               onSend={handleSend}
               pptGeneration={pptGeneration}
               onPptGenerationChange={setPptGeneration}
+              pptMode={pptMode}
+              onPptModeChange={setPptMode}
+              pptPages={pptPages}
+              onPptPagesChange={setPptPages}
               projects={projects}
               selectedProjectId={selectedProjectId}
               onSelectProject={setSelectedProjectId}
@@ -2427,6 +2580,9 @@ export default function App() {
         visible={stage === "requirement"}
         onClose={resetPptFlow}
         onConfirm={handleRequirementConfirm}
+        pptMode={pptMode}
+        onPptModeChange={setPptMode}
+        initialPages={pptPages}
         mainOffset={sidebarOpen ? 120 : 0}
       />
       <OutlinePanel
