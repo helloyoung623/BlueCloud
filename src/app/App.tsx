@@ -1530,7 +1530,7 @@ function ProjectHomeView({ project, input, onInputChange, onSend }: {
         <div className="relative min-h-0 w-full max-w-[800px] flex-1">
           <div className="absolute left-0 top-0 flex max-w-full items-center gap-[8px] overflow-hidden rounded-[4px]">
             <img src="/assets/0fc4d.svg" alt="" className="shrink-0" />
-            <p className="min-w-0 truncate font-['PingFang_SC:Medium'] text-[20px] font-medium leading-[28px] tracking-[0.02px] text-[rgba(0,0,0,0.88)]">
+            <p className="min-w-0 truncate font-['PingFang_SC:Medium'] text-[20px] font-semibold leading-[28px] tracking-[0.02px] text-[rgba(0,0,0,0.88)]">
               {project.name}
             </p>
             <button type="button" aria-label="项目操作" className="flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
@@ -1561,7 +1561,7 @@ function ProjectHomeView({ project, input, onInputChange, onSend }: {
             <ProjectChatInput projectName={project.name} value={input} onChange={onInputChange} onSend={onSend} />
           </div>
         </div>
-        <div className="shrink-0 p-[4px] opacity-0">
+        <div className="h-[20px] shrink-0 p-[4px] opacity-0">
           <span className="text-[10px] text-[rgba(0,0,0,0.26)]">内容由AI生成，仅供参考</span>
         </div>
       </div>
