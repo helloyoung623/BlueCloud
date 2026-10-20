@@ -12,7 +12,6 @@ import svgPresentation from "@/imports/Ppt-1/svg-b6redky6le";
 import imgStyle1 from "@/imports/需求确认-1/29d4a489057188d7298a9a9f8b923d2d9c630925.png";
 import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c6709a8e1bdf.png";
 import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
-import imgEmpty from "@/imports/Frame427318236/9e55d93ab34e49b9baf8a7d585a49321a5312a43.png";
 import { PptPanel, PptResultMessage } from "./components/ppt-result";
 import SendButtonFigma from "@/imports/发送按钮";
 
@@ -806,10 +805,10 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
   }, [profileMenuOpen]);
 
   return (
-    <div className="shrink-0 w-[240px] self-stretch bg-white flex flex-col relative border-r border-[#f2f2f2]">
+    <div className="shrink-0 w-[240px] self-stretch bg-white flex flex-col items-center relative border-r border-[#f2f2f2]">
       {/* head */}
-      <div className="shrink-0 h-[120px] relative bg-white">
-        <p className="absolute left-[24px] top-[12px] text-[16px] font-medium leading-[24px] text-[rgba(0,0,0,0.88)] tracking-[0.016px] whitespace-nowrap">任务</p>
+      <div className="shrink-0 h-[92px] w-full relative bg-white">
+        <p className="absolute left-[24px] top-[12px] text-[16px] font-medium leading-[24px] text-[rgba(0,0,0,0.88)] tracking-[0.016px] whitespace-nowrap">世纪互联办公智能体</p>
         {/* sidebar toggle (close) */}
         <button onClick={onClose} aria-label="收起侧边栏" className="absolute left-[196px] top-[8px] rounded-[4px] w-[32px] h-[32px] flex items-center justify-center hover:bg-[#f7f7f7] cursor-pointer">
           <span aria-hidden className="relative size-[20px] overflow-hidden">
@@ -826,71 +825,88 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
           </svg>
           <span className="text-[14px] font-normal leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap">新任务</span>
         </button>
-        {/* 历史记录 label + search */}
-        <p className="absolute left-[24px] top-[89px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)] tracking-[0.014px] whitespace-nowrap">历史记录</p>
-        <button className="absolute left-[200px] top-[88px] w-[24px] h-[24px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer">
-          <svg width="14" height="14" viewBox="0 0 13.5427 13.5427" fill="none">
-            <path d={svgSidebar.p21ae8c80} fill="black" fillOpacity="0.38" />
-          </svg>
-        </button>
       </div>
 
-      {/* history list */}
-      <div className="flex-1 overflow-y-auto min-h-0 px-[12px] py-[4px] flex flex-col gap-[2px]">
-        {history.length === 0 ? (
-          <div className="flex flex-col items-center pt-[12px]">
-            <img src={imgEmpty} alt="" className="w-[120px] h-[120px] object-cover" />
-            <p className="text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.38)] mt-[12px]">暂无历史对话</p>
-            <p className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">快去输入问题发起新的咨询</p>
-          </div>
-        ) : (
-          history.map(item => {
-            const isActive = activeId === item.id;
-            const isHover = hoverId === item.id;
-            const hasMenu = menuId === item.id;
-            return (
-              <div key={item.id} className="relative">
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onMouseEnter={() => setHoverId(item.id)}
-                  onMouseLeave={() => { if (menuId !== item.id) setHoverId(null); }}
-                  onClick={() => { onSelect(item.id); setMenuId(null); }}
-                  onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { onSelect(item.id); setMenuId(null); } }}
-                  className={`w-full h-[40px] rounded-[4px] flex items-center pl-[12px] pr-[4px] py-[8px] text-left transition-colors cursor-pointer
-                    ${isActive ? "bg-[#f7f7f7]" : isHover ? "bg-[#f2f2f2]" : ""}`}
-                >
-                  <p className={`flex-1 min-w-0 text-[14px] leading-[22px] tracking-[0.014px] truncate ${isActive ? "font-medium" : ""} text-[rgba(0,0,0,0.88)]`}>{item.title}</p>
-                  {item.pinned && !isHover && !hasMenu && (
-                    <div className="shrink-0 w-[24px] h-[24px] flex items-center justify-center">
-                      <svg width="12" height="13" viewBox="0 0 12 12.6667" fill="none">
-                        <path d={svgSidebar.p3170f400} fill="black" fillOpacity="0.26" />
-                        <path d="M0 0H12V1.33333H0V0Z" fill="black" fillOpacity="0.26" />
-                      </svg>
-                    </div>
-                  )}
-                  {(isHover || hasMenu) && (
-                    <button
-                      onClick={e => {
-                        e.stopPropagation();
-                        if (hasMenu) { setMenuId(null); return; }
-                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                        setMenuPos({ x: rect.right + 4, y: rect.top });
-                        setMenuId(item.id);
-                        setHoverId(item.id);
-                      }}
-                      className="shrink-0 w-[24px] h-[24px] flex items-center justify-center rounded-[4px] hover:bg-[rgba(0,0,0,0.06)] cursor-pointer"
-                    >
-                      <svg width="3" height="12" viewBox="0 0 2.66667 12" fill="none">
-                        <path d={svgSidebar.p19c91c80} fill="black" fillOpacity="0.38" />
-                      </svg>
-                    </button>
-                  )}
+      {/* projects */}
+      <div className="shrink-0 w-[216px] pb-[16px] flex flex-col items-start">
+        <div className="relative flex w-full items-center gap-[4px] px-[12px]">
+          <p className="text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">项目</p>
+        </div>
+        <div className="flex w-full flex-col items-start p-[8px]">
+          <button
+            type="button"
+            aria-label="新建项目"
+            className="flex cursor-pointer items-center gap-[8px] rounded-[4px] px-[4px] py-[3px] hover:bg-[#f7f7f7]"
+          >
+            <img src="/assets/4fe43.svg" alt="" className="size-[16px] shrink-0" />
+            <span className="whitespace-nowrap text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">新建项目</span>
+          </button>
+        </div>
+      </div>
+
+      {/* tasks */}
+      <div className="flex min-h-0 w-[216px] flex-1 flex-col items-start">
+        <div className="relative flex w-full shrink-0 items-center gap-[4px] px-[12px]">
+          <p className="text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">任务</p>
+          <button aria-label="搜索任务" className="absolute right-[4px] top-[-1px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
+            <svg width="14" height="14" viewBox="0 0 13.5427 13.5427" fill="none">
+              <path d={svgSidebar.p21ae8c80} fill="black" fillOpacity="0.38" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto">
+          {history.length === 0 ? (
+            <p className="p-[12px] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.26)]">暂无任务</p>
+          ) : (
+            history.map(item => {
+              const isActive = activeId === item.id;
+              const isHover = hoverId === item.id;
+              const hasMenu = menuId === item.id;
+              return (
+                <div key={item.id} className="relative">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onMouseEnter={() => setHoverId(item.id)}
+                    onMouseLeave={() => { if (menuId !== item.id) setHoverId(null); }}
+                    onClick={() => { onSelect(item.id); setMenuId(null); }}
+                    onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { onSelect(item.id); setMenuId(null); } }}
+                    className={`w-full h-[40px] rounded-[4px] flex items-center pl-[12px] pr-[4px] py-[8px] text-left transition-colors cursor-pointer
+                      ${isActive ? "bg-[#f7f7f7]" : isHover ? "bg-[#f2f2f2]" : ""}`}
+                  >
+                    <p className={`flex-1 min-w-0 text-[14px] leading-[22px] tracking-[0.014px] truncate ${isActive ? "font-medium" : ""} text-[rgba(0,0,0,0.88)]`}>{item.title}</p>
+                    {item.pinned && !isHover && !hasMenu && (
+                      <div className="shrink-0 w-[24px] h-[24px] flex items-center justify-center">
+                        <svg width="12" height="13" viewBox="0 0 12 12.6667" fill="none">
+                          <path d={svgSidebar.p3170f400} fill="black" fillOpacity="0.26" />
+                          <path d="M0 0H12V1.33333H0V0Z" fill="black" fillOpacity="0.26" />
+                        </svg>
+                      </div>
+                    )}
+                    {(isHover || hasMenu) && (
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (hasMenu) { setMenuId(null); return; }
+                          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                          setMenuPos({ x: rect.right + 4, y: rect.top });
+                          setMenuId(item.id);
+                          setHoverId(item.id);
+                        }}
+                        className="shrink-0 w-[24px] h-[24px] flex items-center justify-center rounded-[4px] hover:bg-[rgba(0,0,0,0.06)] cursor-pointer"
+                      >
+                        <svg width="3" height="12" viewBox="0 0 2.66667 12" fill="none">
+                          <path d={svgSidebar.p19c91c80} fill="black" fillOpacity="0.38" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })
-        )}
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* context menu — fixed to escape overflow clip */}
@@ -981,7 +997,7 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
       )}
 
       {/* bottom — user info */}
-      <div className="shrink-0 flex items-center px-[12px] py-[8px] bg-white">
+      <div className="shrink-0 flex w-full items-center px-[12px] py-[8px] bg-white">
         <button
           ref={profileTriggerRef}
           type="button"
