@@ -904,6 +904,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [projectsExpanded, setProjectsExpanded] = useState(false);
   const [tasksExpanded, setTasksExpanded] = useState(true);
+  const [expandedProjectIds, setExpandedProjectIds] = useState<Set<number>>(() => new Set());
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -997,19 +998,33 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
               const projectTasks = history.filter(item => item.projectId === project.id);
               const isActiveProjectContext = activeProjectId === project.id;
               const isActiveProjectHome = isActiveProjectContext && activeId === null;
+              const isProjectExpanded = expandedProjectIds.has(project.id);
               return (
                 <div key={project.id} className="w-full">
                   <button
                     type="button"
-                    onClick={() => onSelectProject(project.id)}
+                    aria-expanded={isProjectExpanded}
+                    onClick={() => {
+                      if (projectTasks.length === 0) {
+                        setExpandedProjectIds(current => new Set(current).add(project.id));
+                        onSelectProject(project.id);
+                        return;
+                      }
+                      setExpandedProjectIds(current => {
+                        const next = new Set(current);
+                        if (next.has(project.id)) next.delete(project.id);
+                        else next.add(project.id);
+                        return next;
+                      });
+                    }}
                     className={`flex h-[40px] w-full cursor-pointer items-center gap-[8px] overflow-hidden rounded-[4px] py-[8px] pl-[12px] pr-[4px] text-left hover:bg-[#f7f7f7] ${isActiveProjectHome ? "bg-[#f7f7f7]" : ""}`}
                   >
-                    <img src={isActiveProjectContext ? "/assets/bf868.svg" : "/assets/6bcaa.svg"} alt="" className="shrink-0" />
+                    <img src={isProjectExpanded ? "/assets/bf868.svg" : "/assets/6bcaa.svg"} alt="" className="shrink-0" />
                     <span className="min-w-0 flex-1 truncate text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
                       {project.name}
                     </span>
                   </button>
-                  {projectTasks.map(task => (
+                  {isProjectExpanded && projectTasks.map(task => (
                     <button
                       key={task.id}
                       type="button"
@@ -1230,6 +1245,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
           const id = Date.now();
           setProjects(current => [...current, { ...project, id }]);
           setProjectsExpanded(true);
+          setExpandedProjectIds(current => new Set(current).add(id));
           onSelectProject(id);
         }}
       />
