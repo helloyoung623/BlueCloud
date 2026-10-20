@@ -943,7 +943,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
   }, [activeId, history]);
 
   return (
-    <div className="shrink-0 w-[240px] self-stretch bg-white flex flex-col items-center relative border-r border-[#f2f2f2]">
+    <div className="relative w-[240px] shrink-0 self-stretch border-r border-[#f2f2f2] bg-white p-0 flex flex-col items-center">
       {/* head */}
       <div className="relative h-[92px] w-full shrink-0 bg-white py-[var(--spacing)]">
         <p className="absolute left-[24px] top-[12px] text-[16px] font-medium leading-[24px] text-[rgba(0,0,0,0.88)] tracking-[0.016px] whitespace-nowrap">世纪互联办公智能体</p>
@@ -967,7 +967,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
 
       {/* projects */}
       <div className="shrink-0 w-[216px] pb-[16px] flex flex-col items-start">
-        <div className="group relative flex w-full items-center">
+        <div className="group relative m-0 flex w-full items-center p-0">
           <button
             type="button"
             aria-expanded={projectsExpanded}
@@ -989,7 +989,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
               type="button"
               aria-label="新建项目"
               onClick={() => setCreateProjectOpen(true)}
-              className="absolute right-[4px] top-[-1px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]"
+              className="absolute bottom-[7px] left-[188px] right-[4px] top-[3px] flex cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]"
             >
               <img src="/assets/4fe43.svg" alt="" className="shrink-0" />
             </button>
@@ -1169,7 +1169,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
 
       {/* tasks */}
       <div className="flex min-h-0 w-[216px] flex-1 flex-col items-start">
-        <div className="group relative flex w-full shrink-0 items-center">
+        <div className="group relative flex w-full shrink-0 items-center p-0">
           <button
             type="button"
             aria-expanded={tasksExpanded}
@@ -1187,7 +1187,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
             </svg>
           </button>
           {standaloneHistory.length > 0 && (
-            <button aria-label="搜索任务" className="absolute right-[4px] top-[-1px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
+            <button aria-label="搜索任务" className="absolute bottom-[7px] right-[4px] top-[2px] z-[3] flex w-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
               <svg width="14" height="14" viewBox="0 0 13.5427 13.5427" fill="none">
                 <path d={svgSidebar.p21ae8c80} fill="black" fillOpacity="0.38" />
               </svg>
@@ -1665,7 +1665,7 @@ function ChatHeader({ title, projectBreadcrumb, sidebarOpen, onSidebarToggle, on
   onNewChat?: () => void;
 }) {
   return (
-    <div className="relative shrink-0 w-full h-[48px] min-h-[48px] bg-white flex items-center gap-[8px] px-[16px] z-30">
+    <div className="relative z-30 flex h-[48px] min-h-[48px] w-full shrink-0 items-center gap-[8px] bg-white px-[16px] py-0">
       {!sidebarOpen && (
         <>
           <button className="relative z-10 shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer" onClick={onSidebarToggle} aria-label="展开侧边栏">
@@ -2370,7 +2370,7 @@ export default function App() {
         />
       )}
       {/* main content: header always at App level so sidebar can never affect it */}
-      <div className="relative z-20 flex-1 min-w-0 min-h-0 flex flex-col bg-white">
+      <div className="relative z-20 flex min-h-0 min-w-0 flex-1 flex-col bg-white p-0">
         <ChatHeader
           title={chatTitle}
           projectBreadcrumb={activeProject && activeTask ? { projectName: activeProject.name, taskName: activeTask.title } : undefined}
