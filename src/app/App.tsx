@@ -838,7 +838,7 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
             onClick={() => setProjectsExpanded(expanded => !expanded)}
             className="flex w-full cursor-pointer items-center gap-[4px] rounded-[4px] px-[12px] pr-[36px] text-left hover:bg-[#f7f7f7]"
           >
-            <span className="text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">项目</span>
+            <span className="text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">项目</span>
             <svg
               aria-hidden
               className={`size-[16px] shrink-0 text-[rgba(0,0,0,0.38)] transition-opacity ${projectsExpanded ? "opacity-0 group-hover:opacity-100" : "opacity-100"}`}
@@ -867,7 +867,7 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
             onClick={() => setTasksExpanded(expanded => !expanded)}
             className={`flex w-full cursor-pointer items-center gap-[4px] rounded-[4px] px-[12px] text-left hover:bg-[#f7f7f7] ${history.length > 0 ? "pr-[36px]" : ""}`}
           >
-            <span className="text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">任务</span>
+            <span className="text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">任务</span>
             <svg
               aria-hidden
               className={`size-[16px] shrink-0 text-[rgba(0,0,0,0.38)] transition-opacity ${tasksExpanded ? "opacity-0 group-hover:opacity-100" : "opacity-100"}`}
