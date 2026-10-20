@@ -770,7 +770,7 @@ function MemoryModal({ onClose }: { onClose: () => void }) {
 
 // ── sidebar ───────────────────────────────────────────────────────────────────
 
-type HistoryItem = { id: number; title: string; pinned?: boolean; messages: Message[] };
+type HistoryItem = { id: number; title: string; pinned?: boolean; messages: Message[]; projectId?: number };
 type ProjectItem = { id: number; name: string; instruction: string };
 
 function CreateProjectDialog({ open, onOpenChange, onCreate }: {
@@ -884,7 +884,7 @@ function CreateProjectDialog({ open, onOpenChange, onCreate }: {
   );
 }
 
-function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewChat, activeId, onSelect }: {
+function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewChat, activeId, activeProjectId, onSelect, onSelectProject }: {
   history: HistoryItem[];
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>;
   projects: ProjectItem[];
@@ -892,7 +892,9 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
   onClose: () => void;
   onNewChat: () => void;
   activeId: number | null;
+  activeProjectId: number | null;
   onSelect: (id: number) => void;
+  onSelectProject: (id: number) => void;
 }) {
   const [hoverId, setHoverId] = useState<number | null>(null);
   const [menuId, setMenuId] = useState<number | null>(null);
@@ -906,6 +908,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
   const menuRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const profileTriggerRef = useRef<HTMLButtonElement>(null);
+  const standaloneHistory = history.filter(item => item.projectId === undefined);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -971,7 +974,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
               onClick={() => setCreateProjectOpen(true)}
               className="absolute right-[4px] top-[-1px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]"
             >
-              <img src="/assets/4fe43.svg" alt="" className="size-[16px] shrink-0" />
+              <img src="/assets/4fe43.svg" alt="" className="shrink-0" />
             </button>
           )}
         </div>
@@ -983,25 +986,43 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
               onClick={() => setCreateProjectOpen(true)}
               className="flex cursor-pointer items-center gap-[8px] rounded-[4px] px-[4px] py-[3px] hover:bg-[#f7f7f7]"
             >
-              <img src="/assets/4fe43.svg" alt="" className="size-[16px] shrink-0" />
+              <img src="/assets/4fe43.svg" alt="" className="shrink-0" />
               <span className="whitespace-nowrap text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">新建项目</span>
             </button>
           </div>
         )}
         {projectsExpanded && projects.length > 0 && (
           <div className="flex w-full flex-col items-start">
-            {projects.map(project => (
-              <button
-                key={project.id}
-                type="button"
-                className="flex h-[40px] w-full cursor-pointer items-center gap-[8px] overflow-hidden rounded-[4px] py-[8px] pl-[12px] pr-[4px] text-left hover:bg-[#f7f7f7]"
-              >
-                <img src="/assets/6bcaa.svg" alt="" className="size-[16px] shrink-0" />
-                <span className="min-w-0 flex-1 truncate text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
-                  {project.name}
-                </span>
-              </button>
-            ))}
+            {projects.map(project => {
+              const projectTasks = history.filter(item => item.projectId === project.id);
+              const isActiveProject = activeProjectId === project.id;
+              return (
+                <div key={project.id} className="w-full">
+                  <button
+                    type="button"
+                    onClick={() => onSelectProject(project.id)}
+                    className={`flex h-[40px] w-full cursor-pointer items-center gap-[8px] overflow-hidden rounded-[4px] py-[8px] pl-[12px] pr-[4px] text-left hover:bg-[#f7f7f7] ${isActiveProject ? "bg-[#f7f7f7]" : ""}`}
+                  >
+                    <img src={isActiveProject ? "/assets/bf868.svg" : "/assets/6bcaa.svg"} alt="" className="shrink-0" />
+                    <span className="min-w-0 flex-1 truncate text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+                      {project.name}
+                    </span>
+                  </button>
+                  {projectTasks.map(task => (
+                    <button
+                      key={task.id}
+                      type="button"
+                      onClick={() => onSelect(task.id)}
+                      className={`flex h-[40px] w-full cursor-pointer items-center gap-[8px] overflow-hidden rounded-[4px] py-[8px] pl-[32px] pr-[4px] text-left hover:bg-[#f7f7f7] ${activeId === task.id ? "bg-[#f7f7f7]" : ""}`}
+                    >
+                      <span className="min-w-0 flex-1 truncate text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+                        {task.title}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -1013,7 +1034,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
             type="button"
             aria-expanded={tasksExpanded}
             onClick={() => setTasksExpanded(expanded => !expanded)}
-            className={`flex w-full cursor-pointer items-center gap-[4px] rounded-[4px] px-[12px] text-left hover:bg-[#f7f7f7] ${history.length > 0 ? "pr-[36px]" : ""}`}
+            className={`flex w-full cursor-pointer items-center gap-[4px] rounded-[4px] px-[12px] text-left hover:bg-[#f7f7f7] ${standaloneHistory.length > 0 ? "pr-[36px]" : ""}`}
           >
             <span className="text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">任务</span>
             <svg
@@ -1025,7 +1046,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
               <path d={tasksExpanded ? "M4 6L8 10L12 6" : "M6 4L10 8L6 12"} stroke="currentColor" strokeWidth="1.333" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          {history.length > 0 && (
+          {standaloneHistory.length > 0 && (
             <button aria-label="搜索任务" className="absolute right-[4px] top-[-1px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
               <svg width="14" height="14" viewBox="0 0 13.5427 13.5427" fill="none">
                 <path d={svgSidebar.p21ae8c80} fill="black" fillOpacity="0.38" />
@@ -1035,10 +1056,10 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
         </div>
 
         {tasksExpanded && <div className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto">
-          {history.length === 0 ? (
+          {standaloneHistory.length === 0 ? (
             <p className="p-[12px] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.26)]">暂无任务</p>
           ) : (
-            history.map(item => {
+            standaloneHistory.map(item => {
               const isActive = activeId === item.id;
               const isHover = hoverId === item.id;
               const hasMenu = menuId === item.id;
@@ -1205,8 +1226,10 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
         open={createProjectOpen}
         onOpenChange={setCreateProjectOpen}
         onCreate={project => {
-          setProjects(current => [...current, { ...project, id: Date.now() }]);
+          const id = Date.now();
+          setProjects(current => [...current, { ...project, id }]);
           setProjectsExpanded(true);
+          onSelectProject(id);
         }}
       />
       {memoryOpen && <MemoryModal onClose={() => setMemoryOpen(false)} />}
@@ -1429,6 +1452,137 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
       </div>
       <div className="shrink-0 flex items-center justify-center p-[4px]">
         <span className="text-[10px] text-[rgba(0,0,0,0.26)]">内容由AI生成，仅供参考</span>
+      </div>
+    </div>
+  );
+}
+
+function ProjectChatInput({ projectName, value, onChange, onSend }: {
+  projectName: string;
+  value: string;
+  onChange: (value: string) => void;
+  onSend: () => void;
+}) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const hasText = value.trim().length > 0;
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
+  }, [value]);
+
+  return (
+    <div className="relative max-h-[328px] w-full rounded-[20px] border border-[#e6e6e6] bg-white shadow-[0_0_12px_rgba(0,0,0,0.08)]">
+      <div className="px-[12px] pb-[12px] pt-[12px]" onPointerDown={() => textareaRef.current?.focus()}>
+        <textarea
+          ref={textareaRef}
+          value={value}
+          rows={1}
+          placeholder={`在“${projectName}”中开始对话`}
+          onChange={event => onChange(event.target.value)}
+          onKeyDown={event => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              if (hasText) onSend();
+            }
+          }}
+          className="relative z-10 block max-h-[228px] min-h-[22px] w-full resize-none overflow-y-auto bg-transparent text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] outline-none placeholder:text-[rgba(0,0,0,0.26)]"
+        />
+        <div className="h-[36px]" />
+      </div>
+      <div className="flex items-center gap-[8px] px-[8px] pb-[8px]">
+        <button type="button" aria-label="添加内容" className="flex size-[30px] shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#f2f2f2] hover:bg-[#f7f7f7]">
+          <img src="/assets/0b1e3.svg" alt="" />
+        </button>
+        <button type="button" className="flex shrink-0 cursor-pointer items-center gap-[4px] rounded-full border border-[#f2f2f2] px-[8px] py-[4px] hover:bg-[#f7f7f7]">
+          <img src="/assets/33252.svg" alt="" className="shrink-0" />
+          <span className="whitespace-nowrap text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">来源</span>
+        </button>
+        <button type="button" className="flex shrink-0 cursor-pointer items-center gap-[4px] rounded-full border border-[#f2f2f2] px-[8px] py-[4px] hover:bg-[#f7f7f7]">
+          <img src="/assets/031c9.svg" alt="" className="shrink-0" />
+          <span className="whitespace-nowrap text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">技能</span>
+        </button>
+        <button
+          type="button"
+          aria-label="发送"
+          disabled={!hasText}
+          onClick={onSend}
+          className={`ml-auto flex size-[30px] shrink-0 items-center justify-center overflow-hidden rounded-full ${hasText ? "cursor-pointer bg-[#1e63f5]" : "cursor-default bg-[#f2f2f2]"}`}
+        >
+          <img src={hasText ? "/assets/3b7df.svg" : "/assets/7f4a7.svg"} alt="" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ProjectHomeView({ project, input, onInputChange, onSend }: {
+  project: ProjectItem;
+  input: string;
+  onInputChange: (value: string) => void;
+  onSend: () => void;
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 items-start gap-[16px] bg-white px-[16px]">
+      <div className="flex h-full min-w-0 flex-1 flex-col items-center">
+        <div className="relative min-h-0 w-full max-w-[800px] flex-1">
+          <div className="absolute left-0 top-0 flex max-w-full items-center gap-[8px] overflow-hidden rounded-[4px]">
+            <img src="/assets/0fc4d.svg" alt="" className="shrink-0" />
+            <p className="min-w-0 truncate font-['PingFang_SC:Medium'] text-[20px] font-medium leading-[28px] tracking-[0.02px] text-[rgba(0,0,0,0.88)]">
+              {project.name}
+            </p>
+            <button type="button" aria-label="项目操作" className="flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
+              <img src="/assets/bfc6f.svg" alt="" />
+            </button>
+          </div>
+
+          <div className="absolute left-0 top-[28px] flex h-[48px] w-full items-end gap-[24px] border-b border-[#e6e6e6]">
+            <button type="button" className="flex h-[48px] cursor-pointer items-center border-b-2 border-[#1e63f5] font-['PingFang_SC:Medium'] text-[16px] font-medium leading-[24px] tracking-[0.016px] text-[#1e63f5]">
+              任务
+            </button>
+            <button type="button" className="flex h-[48px] cursor-pointer items-center font-['PingFang_SC:Regular'] text-[16px] font-normal leading-[24px] tracking-[0.016px] text-[rgba(0,0,0,0.6)]">
+              来源
+            </button>
+          </div>
+
+          <div className="absolute left-1/2 top-[calc(50%-167px)] size-[240px] -translate-x-1/2 -translate-y-1/2">
+            <img src="/assets/b7105.png" alt="" className="pointer-events-none absolute inset-0 size-[240px] object-cover" />
+            <p className="absolute left-1/2 top-[186px] -translate-x-1/2 whitespace-nowrap font-['PingFang_SC:Medium'] text-[14px] font-medium leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">
+              暂无项目任务
+            </p>
+            <p className="absolute left-1/2 top-[210px] -translate-x-1/2 whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">
+              快去输入问题发起新的咨询
+            </p>
+          </div>
+
+          <div className="absolute bottom-0 left-0 w-full">
+            <ProjectChatInput projectName={project.name} value={input} onChange={onInputChange} onSend={onSend} />
+          </div>
+        </div>
+        <div className="shrink-0 p-[4px] opacity-0">
+          <span className="text-[10px] text-[rgba(0,0,0,0.26)]">内容由AI生成，仅供参考</span>
+        </div>
+      </div>
+
+      <div className="w-[320px] shrink-0 overflow-hidden rounded-[12px] border border-[#e6e6e6] max-[1000px]:hidden">
+        <div className="relative flex flex-col gap-[4px] border-b border-[#e6e6e6] p-[16px]">
+          <p className="font-['PingFang_SC:Medium'] text-[14px] font-medium leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">指令</p>
+          <button type="button" aria-label="添加指令" className="absolute right-[16px] top-[16px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
+            <img src="/assets/49891.svg" alt="" />
+          </button>
+          <p className="truncate font-['PingFang_SC:Regular'] text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">
+            {project.instruction || "设定项目背景与规范，让 AI 与你高效协作"}
+          </p>
+        </div>
+        <div className="relative flex flex-col gap-[4px] p-[16px]">
+          <p className="font-['PingFang_SC:Medium'] text-[14px] font-medium leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">成员</p>
+          <button type="button" aria-label="添加成员" className="absolute right-[16px] top-[16px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
+            <img src="/assets/49891.svg" alt="" />
+          </button>
+          <p className="font-['PingFang_SC:Regular'] text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">协作者</p>
+        </div>
       </div>
     </div>
   );
@@ -1741,6 +1895,7 @@ export default function App() {
   const [stage, setStage] = useState<PptStage>("idle");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState<number | null>(null);
+  const [activeProjectId, setActiveProjectId] = useState<number | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const nextHistoryId = useRef(1);
@@ -1769,7 +1924,18 @@ export default function App() {
     setStage("idle");
     setInput("");
     setActiveHistoryId(id);
+    setActiveProjectId(item.projectId ?? null);
     setMessages(item.messages);
+  };
+
+  const handleSelectProject = (id: number) => {
+    activeRunId.current += 1;
+    setMessages([]);
+    setInput("");
+    setPptGeneration(false);
+    setStage("idle");
+    setActiveHistoryId(null);
+    setActiveProjectId(id);
   };
 
   const handleSend = (suggestion?: string) => {
@@ -1782,7 +1948,7 @@ export default function App() {
     // create a history entry when starting a brand-new conversation
     if (activeHistoryId === null) {
       const id = nextHistoryId.current++;
-      setHistory(h => [{ id, title: text.slice(0, 20), messages: [] }, ...h]);
+      setHistory(h => [{ id, title: text.slice(0, 20), messages: [], ...(activeProjectId !== null ? { projectId: activeProjectId } : {}) }, ...h]);
       setActiveHistoryId(id);
     }
     const initialProcess: Message = shouldGeneratePpt
@@ -1855,10 +2021,11 @@ export default function App() {
     setMessages(prev => prev.map(message => message.role === "process" && message.thinking ? { ...message, thinking: false } : message));
   };
 
-  const handleNewChat = () => { activeRunId.current += 1; setMessages([]); setInput(""); setPptGeneration(false); setStage("idle"); setActiveHistoryId(null); };
+  const handleNewChat = () => { activeRunId.current += 1; setMessages([]); setInput(""); setPptGeneration(false); setStage("idle"); setActiveHistoryId(null); setActiveProjectId(null); };
   const chatTitle = messages.length > 0
     ? messages[0].text.slice(0, 20) + (messages[0].text.length > 20 ? "…" : "")
     : undefined;
+  const activeProject = projects.find(project => project.id === activeProjectId) ?? null;
 
   return (
     <div className="w-screen h-screen flex flex-row overflow-hidden">
@@ -1872,7 +2039,9 @@ export default function App() {
           onClose={() => setSidebarOpen(false)}
           onNewChat={handleNewChat}
           activeId={activeHistoryId}
+          activeProjectId={activeProjectId}
           onSelect={handleSelectHistory}
+          onSelectProject={handleSelectProject}
         />
       )}
       {/* main content: header always at App level so sidebar can never affect it */}
@@ -1881,7 +2050,7 @@ export default function App() {
           title={chatTitle}
           sidebarOpen={sidebarOpen}
           onSidebarToggle={() => setSidebarOpen(o => !o)}
-          onNewChat={messages.length > 0 ? handleNewChat : undefined}
+          onNewChat={messages.length > 0 || activeProject !== null ? handleNewChat : undefined}
         />
         {messages.length > 0
           ? <ChatView
@@ -1898,6 +2067,13 @@ export default function App() {
               agentRunning={messages.some(message => message.role === "process" && Boolean(message.thinking))}
               onStop={handleStop}
             />
+          : activeProject
+            ? <ProjectHomeView
+                project={activeProject}
+                input={input}
+                onInputChange={setInput}
+                onSend={handleSend}
+              />
           : <HomeView
               input={input}
               onInputChange={setInput}
