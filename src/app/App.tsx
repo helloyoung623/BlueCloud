@@ -1542,6 +1542,104 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
   );
 }
 
+function HomeProjectPicker({ projects, selectedProjectId, onSelectProject, onCreateProject }: {
+  projects: ProjectItem[];
+  selectedProjectId: number | null;
+  onSelectProject: (id: number | null) => void;
+  onCreateProject: (project: Omit<ProjectItem, "id">) => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [createProjectOpen, setCreateProjectOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const selectedProject = projects.find(project => project.id === selectedProjectId) ?? null;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!pickerRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, [menuOpen]);
+
+  return (
+    <>
+      <div ref={pickerRef} className="relative w-full px-[16px]">
+        {menuOpen && (
+          <div className="absolute bottom-[48px] left-[16px] z-50 flex max-h-[480px] w-[232px] flex-col overflow-y-auto rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
+            <div className="flex w-full flex-col py-[4px]">
+              {projects.map(project => {
+                const isSelected = selectedProjectId === project.id;
+                return (
+                  <button
+                    key={project.id}
+                    type="button"
+                    onClick={() => {
+                      onSelectProject(project.id);
+                      setMenuOpen(false);
+                    }}
+                    className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+                  >
+                    <img src="/assets/d95df.svg" alt="" className="shrink-0" />
+                    <span className={`min-w-0 flex-1 truncate text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${isSelected ? "font-medium" : "font-normal"}`}>
+                      {project.name}
+                    </span>
+                    {isSelected && <img src="/assets/ecd73.svg" alt="" className="shrink-0" />}
+                  </button>
+                );
+              })}
+              <div className="relative h-px w-full">
+                <img src="/assets/4b9c6.svg" alt="" className="absolute left-0 top-0" />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setCreateProjectOpen(true);
+                }}
+                className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+              >
+                <img src="/assets/eede2.svg" alt="" className="shrink-0" />
+                <span className="text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">新建项目</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectProject(null);
+                  setMenuOpen(false);
+                }}
+                className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+              >
+                <img src="/assets/92b7f.svg" alt="" className="shrink-0" />
+                <span className="text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">不选择项目</span>
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="flex h-[40px] w-full items-center overflow-hidden rounded-b-[16px] bg-[#f7f7f7] py-[4px] pl-[8px] pr-[4px]">
+          <button
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(open => !open)}
+            className="flex min-w-0 cursor-pointer items-center gap-[8px] rounded-full px-[8px] py-[4px] hover:bg-[#f2f2f2]"
+          >
+            <img src="/assets/6bcaa.svg" alt="" className="shrink-0" />
+            <span className={`truncate text-[14px] font-normal leading-[22px] tracking-[0.014px] ${selectedProject ? "text-[rgba(0,0,0,0.88)]" : "text-[rgba(0,0,0,0.6)]"}`}>
+              {selectedProject?.name ?? "选择项目"}
+            </span>
+          </button>
+        </div>
+      </div>
+      <CreateProjectDialog
+        open={createProjectOpen}
+        onOpenChange={setCreateProjectOpen}
+        onCreate={onCreateProject}
+      />
+    </>
+  );
+}
+
 // ── header ────────────────────────────────────────────────────────────────────
 
 function ChatHeader({ title, projectBreadcrumb, sidebarOpen, onSidebarToggle, onNewChat }: {
@@ -1593,9 +1691,13 @@ function ChatHeader({ title, projectBreadcrumb, sidebarOpen, onSidebarToggle, on
 
 const SUGGESTIONS = ["找出近一周的邮件", "请帮我起草一封给团队的邮件", "总结下智能助手项目邮件"];
 
-function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGenerationChange }: {
+function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGenerationChange, projects, selectedProjectId, onSelectProject, onCreateProject }: {
   input: string; onInputChange: (v: string) => void; onSend: (text?: string) => void;
   pptGeneration: boolean; onPptGenerationChange: (selected: boolean) => void;
+  projects: ProjectItem[];
+  selectedProjectId: number | null;
+  onSelectProject: (id: number | null) => void;
+  onCreateProject: (project: Omit<ProjectItem, "id">) => void;
 }) {
   return (
     <div className="flex-1 min-h-0 bg-white flex flex-col overflow-hidden">
@@ -1624,7 +1726,15 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
               ))}
             </div>
           </div>
-          <div className="shrink-0 w-full"><ChatInput value={input} onChange={onInputChange} onSend={onSend} pptGeneration={pptGeneration} onPptGenerationChange={onPptGenerationChange} /></div>
+          <div className="shrink-0 w-full">
+            <ChatInput value={input} onChange={onInputChange} onSend={onSend} pptGeneration={pptGeneration} onPptGenerationChange={onPptGenerationChange} />
+            <HomeProjectPicker
+              projects={projects}
+              selectedProjectId={selectedProjectId}
+              onSelectProject={onSelectProject}
+              onCreateProject={onCreateProject}
+            />
+          </div>
         </div>
       </div>
       <div className="shrink-0 flex items-center justify-center p-[4px]">
@@ -2078,6 +2188,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeHistoryId, setActiveHistoryId] = useState<number | null>(null);
   const [activeProjectId, setActiveProjectId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const nextHistoryId = useRef(1);
@@ -2100,6 +2211,12 @@ export default function App() {
     }
   }, [history, activeHistoryId]);
 
+  useEffect(() => {
+    if (selectedProjectId !== null && !projects.some(project => project.id === selectedProjectId)) {
+      setSelectedProjectId(null);
+    }
+  }, [projects, selectedProjectId]);
+
   const handleSelectHistory = (id: number) => {
     const item = history.find(i => i.id === id);
     if (!item) return;
@@ -2107,6 +2224,7 @@ export default function App() {
     setInput("");
     setActiveHistoryId(id);
     setActiveProjectId(item.projectId ?? null);
+    setSelectedProjectId(null);
     setMessages(item.messages);
   };
 
@@ -2118,11 +2236,13 @@ export default function App() {
     setStage("idle");
     setActiveHistoryId(null);
     setActiveProjectId(id);
+    setSelectedProjectId(null);
   };
 
   const handleSend = (suggestion?: string) => {
     const text = (suggestion ?? input).trim();
     if (!text) return;
+    const targetProjectId = activeProjectId ?? selectedProjectId;
     const shouldGeneratePpt = pptGeneration || isPPTIntent(text);
     const runId = ++activeRunId.current;
     setInput("");
@@ -2130,9 +2250,11 @@ export default function App() {
     // create a history entry when starting a brand-new conversation
     if (activeHistoryId === null) {
       const id = nextHistoryId.current++;
-      setHistory(h => [{ id, title: text.slice(0, 20), messages: [], ...(activeProjectId !== null ? { projectId: activeProjectId } : {}) }, ...h]);
+      setHistory(h => [{ id, title: text.slice(0, 20), messages: [], ...(targetProjectId !== null ? { projectId: targetProjectId } : {}) }, ...h]);
       setActiveHistoryId(id);
+      setActiveProjectId(targetProjectId);
     }
+    setSelectedProjectId(null);
     const initialProcess: Message = shouldGeneratePpt
       ? { role: "process", text: "", thinking: true, variant: "requirement" }
       : { role: "process", text: "", thinking: true, variant: "requirement", preset: buildQueryProcess(text) };
@@ -2203,7 +2325,7 @@ export default function App() {
     setMessages(prev => prev.map(message => message.role === "process" && message.thinking ? { ...message, thinking: false } : message));
   };
 
-  const handleNewChat = () => { activeRunId.current += 1; setMessages([]); setInput(""); setPptGeneration(false); setStage("idle"); setActiveHistoryId(null); setActiveProjectId(null); };
+  const handleNewChat = () => { activeRunId.current += 1; setMessages([]); setInput(""); setPptGeneration(false); setStage("idle"); setActiveHistoryId(null); setActiveProjectId(null); setSelectedProjectId(null); };
   const chatTitle = messages.length > 0
     ? messages[0].text.slice(0, 20) + (messages[0].text.length > 20 ? "…" : "")
     : undefined;
@@ -2265,6 +2387,14 @@ export default function App() {
               onSend={handleSend}
               pptGeneration={pptGeneration}
               onPptGenerationChange={setPptGeneration}
+              projects={projects}
+              selectedProjectId={selectedProjectId}
+              onSelectProject={setSelectedProjectId}
+              onCreateProject={project => {
+                const id = Date.now();
+                setProjects(current => [...current, { ...project, id }]);
+                setSelectedProjectId(id);
+              }}
             />
         }
       </div>
