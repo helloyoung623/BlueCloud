@@ -884,13 +884,14 @@ function CreateProjectDialog({ open, onOpenChange, onCreate }: {
   );
 }
 
-function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewChat, activeId, activeProjectId, onSelect, onSelectProject }: {
+function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewChat, onNewProjectTask, activeId, activeProjectId, onSelect, onSelectProject }: {
   history: HistoryItem[];
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>;
   projects: ProjectItem[];
   setProjects: React.Dispatch<React.SetStateAction<ProjectItem[]>>;
   onClose: () => void;
   onNewChat: () => void;
+  onNewProjectTask: (projectId: number) => void;
   activeId: number | null;
   activeProjectId: number | null;
   onSelect: (id: number) => void;
@@ -1064,27 +1065,41 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
                       </div>
                     )}
                     {(isProjectHover || hasProjectMenu) && (
-                      <button
-                        type="button"
-                        aria-label="项目更多操作"
-                        onClick={event => {
-                          event.stopPropagation();
-                          if (hasProjectMenu) {
+                      <>
+                        <button
+                          type="button"
+                          aria-label="项目更多操作"
+                          onClick={event => {
+                            event.stopPropagation();
+                            if (hasProjectMenu) {
+                              setProjectMenuId(null);
+                              return;
+                            }
+                            const rect = event.currentTarget.getBoundingClientRect();
+                            setMenuPos({ x: rect.right + 4, y: rect.top });
+                            setMenuId(null);
+                            setProjectMenuId(project.id);
+                            setHoverProjectId(project.id);
+                          }}
+                          className="flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] hover:bg-[rgba(0,0,0,0.06)]"
+                        >
+                          <svg width="3" height="12" viewBox="0 0 2.66667 12" fill="none">
+                            <path d={svgSidebar.p19c91c80} fill="black" fillOpacity="0.38" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`在${project.name}中新建任务`}
+                          onClick={event => {
+                            event.stopPropagation();
                             setProjectMenuId(null);
-                            return;
-                          }
-                          const rect = event.currentTarget.getBoundingClientRect();
-                          setMenuPos({ x: rect.right + 4, y: rect.top });
-                          setMenuId(null);
-                          setProjectMenuId(project.id);
-                          setHoverProjectId(project.id);
-                        }}
-                        className="flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] hover:bg-[rgba(0,0,0,0.06)]"
-                      >
-                        <svg width="3" height="12" viewBox="0 0 2.66667 12" fill="none">
-                          <path d={svgSidebar.p19c91c80} fill="black" fillOpacity="0.38" />
-                        </svg>
-                      </button>
+                            onNewProjectTask(project.id);
+                          }}
+                          className="flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] hover:bg-[rgba(0,0,0,0.06)]"
+                        >
+                          <img src="/assets/49891.svg" alt="" />
+                        </button>
+                      </>
                     )}
                   </div>
                   {isProjectExpanded && projectTasks.map(task => {
@@ -2326,6 +2341,10 @@ export default function App() {
   };
 
   const handleNewChat = () => { activeRunId.current += 1; setMessages([]); setInput(""); setPptGeneration(false); setStage("idle"); setActiveHistoryId(null); setActiveProjectId(null); setSelectedProjectId(null); };
+  const handleNewProjectTask = (projectId: number) => {
+    handleNewChat();
+    setSelectedProjectId(projectId);
+  };
   const chatTitle = messages.length > 0
     ? messages[0].text.slice(0, 20) + (messages[0].text.length > 20 ? "…" : "")
     : undefined;
@@ -2343,6 +2362,7 @@ export default function App() {
           setProjects={setProjects}
           onClose={() => setSidebarOpen(false)}
           onNewChat={handleNewChat}
+          onNewProjectTask={handleNewProjectTask}
           activeId={activeHistoryId}
           activeProjectId={activeProjectId}
           onSelect={handleSelectHistory}
