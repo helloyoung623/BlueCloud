@@ -839,7 +839,7 @@ function Sidebar({ history, setHistory, onClose, onNewChat, activeId, onSelect }
             className="flex cursor-pointer items-center gap-[8px] rounded-[4px] px-[4px] py-[3px] hover:bg-[#f7f7f7]"
           >
             <img src="/assets/4fe43.svg" alt="" className="size-[16px] shrink-0" />
-            <span className="whitespace-nowrap text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">新建项目</span>
+            <span className="whitespace-nowrap text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">新建项目</span>
           </button>
         </div>
       </div>
