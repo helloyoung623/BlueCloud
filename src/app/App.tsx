@@ -945,7 +945,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
   return (
     <div className="shrink-0 w-[240px] self-stretch bg-white flex flex-col items-center relative border-r border-[#f2f2f2]">
       {/* head */}
-      <div className="shrink-0 h-[92px] w-full relative bg-white">
+      <div className="relative h-[92px] w-full shrink-0 bg-white py-[var(--spacing)]">
         <p className="absolute left-[24px] top-[12px] text-[16px] font-medium leading-[24px] text-[rgba(0,0,0,0.88)] tracking-[0.016px] whitespace-nowrap">世纪互联办公智能体</p>
         {/* sidebar toggle (close) */}
         <button onClick={onClose} aria-label="收起侧边栏" className="absolute left-[196px] top-[8px] rounded-[4px] w-[32px] h-[32px] flex items-center justify-center hover:bg-[#f7f7f7] cursor-pointer">
@@ -972,7 +972,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
             type="button"
             aria-expanded={projectsExpanded}
             onClick={() => setProjectsExpanded(expanded => !expanded)}
-            className="flex w-full cursor-pointer items-center gap-[4px] rounded-[4px] px-[12px] pr-[36px] text-left hover:bg-[#f7f7f7]"
+            className="flex w-full cursor-pointer items-center gap-[4px] rounded-[4px] px-[12px] py-[var(--spacing)] pr-[36px] text-left hover:bg-[#f7f7f7]"
           >
             <span className="text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">项目</span>
             <svg
@@ -1174,7 +1174,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
             type="button"
             aria-expanded={tasksExpanded}
             onClick={() => setTasksExpanded(expanded => !expanded)}
-            className={`flex w-full cursor-pointer items-center gap-[4px] rounded-[4px] px-[12px] text-left hover:bg-[#f7f7f7] ${standaloneHistory.length > 0 ? "pr-[36px]" : ""}`}
+            className={`flex w-full cursor-pointer items-center gap-[4px] rounded-[4px] px-[12px] py-[var(--spacing)] text-left hover:bg-[#f7f7f7] ${standaloneHistory.length > 0 ? "pr-[36px]" : ""}`}
           >
             <span className="text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">任务</span>
             <svg
