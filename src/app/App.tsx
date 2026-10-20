@@ -1551,7 +1551,7 @@ function ProjectChatInput({ projectName, value, onChange, onSend }: {
           type="button"
           aria-label="发送"
           disabled={!hasText}
-          onClick={onSend}
+          onClick={() => onSend()}
           className={`ml-auto flex size-[30px] shrink-0 items-center justify-center overflow-hidden rounded-full ${hasText ? "cursor-pointer bg-[#1e63f5]" : "cursor-default bg-[#f2f2f2]"}`}
         >
           <img src={hasText ? "/assets/3b7df.svg" : "/assets/7f4a7.svg"} alt="" />
