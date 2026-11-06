@@ -1051,6 +1051,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
       </div>
 
       {/* projects */}
+      {projects.length > 0 && (
       <div className="shrink-0 w-[216px] pb-[16px] flex flex-col items-start">
         <div className="group relative m-0 flex w-full items-center p-0">
           <button
@@ -1251,8 +1252,10 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
           </div>
         )}
       </div>
+      )}
 
       {/* tasks */}
+      {standaloneHistory.length > 0 && (
       <div className="flex min-h-0 w-[216px] flex-1 flex-col items-start">
         <div className="group relative flex w-full shrink-0 items-center p-0">
           <button
@@ -1325,6 +1328,8 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
             })}
         </div>}
       </div>
+      )}
+      {projects.length === 0 && standaloneHistory.length === 0 && <div className="flex-1" />}
 
       {/* context menu — fixed to escape overflow clip */}
       {(menuId !== null || projectMenuId !== null) && (
