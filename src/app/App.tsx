@@ -929,6 +929,9 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
   const [tasksExpanded, setTasksExpanded] = useState(true);
   const [expandedProjectIds, setExpandedProjectIds] = useState<Set<number>>(() => new Set());
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
+  const [moveMenuOpen, setMoveMenuOpen] = useState(false);
+  const [pendingTaskMoveId, setPendingTaskMoveId] = useState<number | null>(null);
+  const closeMoveMenuTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const profileTriggerRef = useRef<HTMLButtonElement>(null);
@@ -939,6 +942,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuId(null);
         setProjectMenuId(null);
+        setMoveMenuOpen(false);
       }
       if (
         profileMenuOpen &&
@@ -961,6 +965,23 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
       return new Set(current).add(activeTask.projectId!);
     });
   }, [activeId, history]);
+
+  const menuTask = menuId === null ? null : history.find(item => item.id === menuId) ?? null;
+  const moveTargets = menuTask?.projectId === undefined
+    ? projects
+    : projects.filter(project => project.id !== menuTask.projectId);
+  const openMoveMenu = () => {
+    if (closeMoveMenuTimer.current) clearTimeout(closeMoveMenuTimer.current);
+    setMoveMenuOpen(true);
+  };
+  const deferCloseMoveMenu = () => {
+    closeMoveMenuTimer.current = setTimeout(() => setMoveMenuOpen(false), 140);
+  };
+  const closeContextMenu = () => {
+    setMenuId(null);
+    setProjectMenuId(null);
+    setMoveMenuOpen(false);
+  };
 
   return (
     <div className="relative w-[240px] shrink-0 self-stretch border-r border-[#f2f2f2] bg-white p-0 flex flex-col items-center">
@@ -1233,9 +1254,10 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
                                 return;
                               }
                               const rect = event.currentTarget.getBoundingClientRect();
-                              setMenuPos({ x: rect.right + 4, y: rect.top });
+                              setMenuPos({ x: rect.right + 4, y: rect.top + 32 });
                               setProjectMenuId(null);
                               setMenuId(task.id);
+                              setMoveMenuOpen(false);
                               setHoverId(task.id);
                             }}
                             className="flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] hover:bg-[rgba(0,0,0,0.06)]"
@@ -1312,9 +1334,10 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
                           e.stopPropagation();
                           if (hasMenu) { setMenuId(null); return; }
                           const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                          setMenuPos({ x: rect.right + 4, y: rect.top });
+                          setMenuPos({ x: rect.right + 4, y: rect.top + 32 });
                           setProjectMenuId(null);
                           setMenuId(item.id);
+                          setMoveMenuOpen(false);
                           setHoverId(item.id);
                         }}
                         className="shrink-0 w-[24px] h-[24px] flex items-center justify-center rounded-[4px] hover:bg-[rgba(0,0,0,0.06)] cursor-pointer"
@@ -1334,62 +1357,151 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
       {projects.length === 0 && standaloneHistory.length === 0 && <div className="flex-1" />}
 
       {/* context menu — fixed to escape overflow clip */}
-      {(menuId !== null || projectMenuId !== null) && (
-        <div ref={menuRef} className="fixed z-[200] bg-white rounded-[12px] w-[192px]"
-          style={{ left: menuPos.x, top: menuPos.y, boxShadow: "0 0 12px rgba(0,0,0,0.08)", border: "1px solid #f2f2f2" }}>
-          <div className="px-[8px] py-[4px] flex flex-col">
+      {projectMenuId !== null && (
+        <div ref={menuRef} className="fixed z-[200] w-[192px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+          style={{ left: menuPos.x, top: menuPos.y }}>
+          <div className="flex flex-col py-[4px]">
             {[
               {
-                label: projectMenuId !== null ? "置顶此项目" : "置顶此对话",
+                label: projects.find(item => item.id === projectMenuId)?.pinned ? "取消置顶" : "置顶此项目",
                 icon: svgSidebar.p3170f400,
-                isPin: true,
-                action: () => {
-                  if (projectMenuId !== null) setProjects(items => items.map(item => item.id === projectMenuId ? { ...item, pinned: !item.pinned } : item));
-                  else setHistory(items => items.map(item => item.id === menuId ? { ...item, pinned: !item.pinned } : item));
-                  setMenuId(null);
-                  setProjectMenuId(null);
-                },
+                action: () => setProjects(items => items.map(item => item.id === projectMenuId ? { ...item, pinned: !item.pinned } : item)),
               },
-              {
-                label: "编辑名称",
-                icon: svgSidebar.p20221d00,
-                isPin: false,
-                action: () => {
-                  setMenuId(null);
-                  setProjectMenuId(null);
-                },
-              },
+              { label: "编辑名称", icon: svgSidebar.p20221d00, action: () => undefined },
               {
                 label: "删除",
                 icon: svgSidebar.p2ffde100,
-                isPin: false,
                 action: () => {
-                  if (projectMenuId !== null) {
-                    setProjects(items => items.filter(item => item.id !== projectMenuId));
-                    setHistory(items => items.filter(item => item.projectId !== projectMenuId));
-                  } else {
-                    setHistory(items => items.filter(item => item.id !== menuId));
-                  }
-                  setMenuId(null);
-                  setProjectMenuId(null);
+                  setProjects(items => items.filter(item => item.id !== projectMenuId));
+                  setHistory(items => items.filter(item => item.projectId !== projectMenuId));
                 },
               },
-            ].map(({ label, icon, isPin, action }) => (
-              <button key={label} onClick={action}
-                className="flex items-center gap-[8px] px-[8px] py-[11px] rounded-[8px] hover:bg-[#f7f7f7] cursor-pointer w-full text-left">
-                {isPin ? (
-                  <svg width="16" height="16" viewBox="0 0 12 12.6667" fill="none" className="shrink-0">
-                    <path d={icon} fill="black" fillOpacity="0.26" />
-                    <path d="M0 0H12V1.33333H0V0Z" fill="black" fillOpacity="0.26" />
-                  </svg>
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 13.3333 13.3333" fill="none" className="shrink-0">
-                    <path d={icon} fill="black" fillOpacity="0.26" />
-                  </svg>
-                )}
-                <span className="text-[14px] font-normal leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap">{label}</span>
+            ].map(item => (
+              <button key={item.label} type="button" onClick={() => { item.action(); closeContextMenu(); }}
+                className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]">
+                <svg width="16" height="16" viewBox="0 0 13.3333 13.3333" fill="none" className="shrink-0">
+                  <path d={item.icon} fill="black" fillOpacity="0.26" />
+                </svg>
+                <span className="whitespace-nowrap text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">{item.label}</span>
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {menuTask && (
+        <div ref={menuRef} className="fixed z-[200] w-[192px] overflow-visible rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+          style={{ left: menuPos.x, top: menuPos.y }}>
+          <div className="flex flex-col py-[4px]">
+            <button
+              type="button"
+              onClick={() => {
+                setHistory(items => items.map(item => item.id === menuTask.id ? { ...item, pinned: !item.pinned } : item));
+                closeContextMenu();
+              }}
+              className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+            >
+              <img src={menuTask.pinned ? "/assets/67fe6.svg" : "/assets/4363a.svg"} alt="" className="shrink-0" />
+              <span className="whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+                {menuTask.pinned ? "取消置顶" : "置顶此对话"}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const name = window.prompt("请输入新的任务名称", menuTask.title)?.trim();
+                if (name) setHistory(items => items.map(item => item.id === menuTask.id ? { ...item, title: name } : item));
+                closeContextMenu();
+              }}
+              className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+            >
+              <img src="/assets/e2b81.svg" alt="" className="shrink-0" />
+              <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">重命名</span>
+            </button>
+            <div className="relative" onMouseEnter={openMoveMenu} onMouseLeave={deferCloseMoveMenu}>
+              <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={moveMenuOpen}
+                className={`flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left ${moveMenuOpen ? "bg-[#f2f2f2]" : "hover:bg-[#f7f7f7]"}`}
+              >
+                <img src="/assets/1d8f2.svg" alt="" className="shrink-0" />
+                <span className="min-w-0 flex-1 font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">移动到项目</span>
+                <img src="/assets/fb6a4.svg" alt="" className="shrink-0" />
+              </button>
+              {moveMenuOpen && (
+                <div
+                  role="menu"
+                  onMouseEnter={openMoveMenu}
+                  onMouseLeave={deferCloseMoveMenu}
+                  className="absolute left-[calc(100%+16px)] top-0 z-[210] w-[232px] overflow-hidden rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+                >
+                  <div className="flex max-h-[480px] flex-col overflow-y-auto py-[4px]">
+                    {moveTargets.length === 0 ? (
+                      <div className="flex items-center px-[8px] py-[11px]">
+                        <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">暂无项目</span>
+                      </div>
+                    ) : moveTargets.map(project => (
+                      <button
+                        key={project.id}
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setHistory(items => items.map(item => item.id === menuTask.id ? { ...item, projectId: project.id } : item));
+                          setExpandedProjectIds(current => new Set(current).add(project.id));
+                          closeContextMenu();
+                        }}
+                        className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+                      >
+                        <img src="/assets/d95df.svg" alt="" className="shrink-0" />
+                        <span className="min-w-0 flex-1 truncate font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">{project.name}</span>
+                      </button>
+                    ))}
+                    <div className="relative h-px w-full">
+                      <img src="/assets/4b9c6.svg" alt="" className="absolute left-0 top-0" />
+                    </div>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setPendingTaskMoveId(menuTask.id);
+                        closeContextMenu();
+                        setCreateProjectOpen(true);
+                      }}
+                      className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+                    >
+                      <img src="/assets/eede2.svg" alt="" className="shrink-0" />
+                      <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">新建项目</span>
+                    </button>
+                    {menuTask.projectId !== undefined && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setHistory(items => items.map(item => item.id === menuTask.id ? { ...item, projectId: undefined } : item));
+                          closeContextMenu();
+                        }}
+                        className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+                      >
+                        <img src="/assets/6ec2b.svg" alt="" className="shrink-0" />
+                        <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">从项目中移出</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setHistory(items => items.filter(item => item.id !== menuTask.id));
+                closeContextMenu();
+              }}
+              className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+            >
+              <img src="/assets/5ff6b.svg" alt="" className="shrink-0" />
+              <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">删除</span>
+            </button>
           </div>
         </div>
       )}
@@ -1481,12 +1593,21 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
       </div>
       <CreateProjectDialog
         open={createProjectOpen}
-        onOpenChange={setCreateProjectOpen}
+        onOpenChange={open => {
+          setCreateProjectOpen(open);
+          if (!open) setPendingTaskMoveId(null);
+        }}
         onCreate={project => {
           const id = Date.now();
           setProjects(current => [...current, { ...project, id }]);
           setProjectsExpanded(true);
-          onSelectProject(id);
+          if (pendingTaskMoveId !== null) {
+            setHistory(items => items.map(item => item.id === pendingTaskMoveId ? { ...item, projectId: id } : item));
+            setExpandedProjectIds(current => new Set(current).add(id));
+            setPendingTaskMoveId(null);
+          } else {
+            onSelectProject(id);
+          }
         }}
       />
       {memoryOpen && <MemoryModal onClose={() => setMemoryOpen(false)} />}
