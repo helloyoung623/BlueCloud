@@ -1002,8 +1002,10 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
             <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/a4798.svg" />
           </span>
           <span
-            className={`min-w-px flex-1 truncate text-left text-[14px] font-semibold leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${
-              !projectListOpen && activeId === null && activeProjectId === null ? "font-['PingFang_SC:Medium']" : "font-['PingFang_SC:Regular']"
+            className={`min-w-px flex-1 truncate text-left text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${
+              !projectListOpen && activeId === null && activeProjectId === null
+                ? "font-['PingFang_SC:Medium'] font-semibold"
+                : "font-['PingFang_SC:Regular'] font-normal"
             }`}
           >
             新任务
@@ -1020,7 +1022,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
           <span className="relative size-[16px] shrink-0">
             <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/6bcaa.svg" />
           </span>
-          <span className={`min-w-px flex-1 truncate text-left text-[14px] font-semibold leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${projectListOpen ? "font-['PingFang_SC:Medium']" : "font-['PingFang_SC:Regular']"}`}>
+          <span className={`min-w-px flex-1 truncate text-left text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${projectListOpen ? "font-['PingFang_SC:Medium'] font-semibold" : "font-['PingFang_SC:Regular'] font-normal"}`}>
             项目
           </span>
         </button>
@@ -2019,7 +2021,7 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
               ))}
             </div>
           </div>
-          <div className="shrink-0 w-full">
+          <div className="shrink-0 w-full shadow-none">
             <HomeProjectPicker
               projects={projects}
               selectedProjectId={selectedProjectId}
