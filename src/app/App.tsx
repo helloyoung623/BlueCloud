@@ -2007,10 +2007,200 @@ function ProjectChatInput({ projectName, value, onChange, onSend }: {
   );
 }
 
-function ProjectListView({ projects, onCreateProject, onSelectProject }: {
+const TRANSFER_MEMBERS = ["吴易奚", "吴易奚", "吴易奚", "吴易奚", "孙雨薇"];
+
+function ProjectCard({ project, onOpen, onRename, onArchive, onDelete }: {
+  project: ProjectItem;
+  onOpen: () => void;
+  onRename: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferOpensLeft, setTransferOpensLeft] = useState(false);
+  const [memberSearch, setMemberSearch] = useState("");
+  const cardRef = useRef<HTMLDivElement>(null);
+  const closeTransferTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const members = TRANSFER_MEMBERS.filter(member => member.includes(memberSearch.trim()));
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!cardRef.current?.contains(event.target as Node)) {
+        setMenuOpen(false);
+        setTransferOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, [menuOpen]);
+
+  const openTransfer = () => {
+    if (closeTransferTimer.current) clearTimeout(closeTransferTimer.current);
+    setTransferOpen(true);
+  };
+  const deferCloseTransfer = () => {
+    closeTransferTimer.current = setTimeout(() => setTransferOpen(false), 140);
+  };
+  const closeMenus = () => {
+    setMenuOpen(false);
+    setTransferOpen(false);
+  };
+
+  const menuItems = [
+    { label: "重命名", icon: "/assets/e2b81.svg", action: onRename },
+    { label: "归档", icon: "/assets/ae0d0.svg", action: onArchive },
+    { label: "删除", icon: "/assets/5ff6b.svg", action: onDelete },
+  ];
+
+  return (
+    <div ref={cardRef} className="relative min-w-0">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onOpen}
+        onKeyDown={event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onOpen();
+          }
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className={`flex h-[74px] w-full cursor-pointer items-center gap-[12px] overflow-hidden rounded-[12px] border border-[#e6e6e6] p-[12px] text-left transition-colors ${
+          hovered || menuOpen ? "bg-[#e6e6e6]" : "bg-white"
+        }`}
+      >
+        <div className="flex size-[48px] shrink-0 items-center justify-center rounded-[8px] bg-[#f7f7f7]">
+          <img src="/assets/0fc4d.svg" alt="" className="shrink-0" />
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col items-start justify-center font-['PingFang_SC:Regular']">
+          <p className="w-full truncate text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+            {project.name}
+          </p>
+          <p className="w-full truncate text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">
+            {project.instruction || "暂无描述"}
+          </p>
+        </div>
+        {(hovered || menuOpen) && (
+          <button
+            type="button"
+            aria-label={`${project.name}更多操作`}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={event => {
+              event.stopPropagation();
+              const rect = cardRef.current?.getBoundingClientRect();
+              if (rect) setTransferOpensLeft(rect.right + 424 > window.innerWidth);
+              setMenuOpen(open => !open);
+              setTransferOpen(false);
+            }}
+            className="flex size-[24px] shrink-0 cursor-pointer items-start rounded-[4px] p-[4px] hover:bg-[rgba(0,0,0,0.06)]"
+          >
+            <img src="/assets/bbe3b.svg" alt="" className="shrink-0" />
+          </button>
+        )}
+      </div>
+
+      {menuOpen && (
+        <div
+          role="menu"
+          className="absolute right-0 top-[56px] z-40 w-[192px] overflow-visible rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+        >
+          <div className="flex w-full flex-col py-[4px]">
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => { onRename(); closeMenus(); }}
+              className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+            >
+              <img src="/assets/e2b81.svg" alt="" className="shrink-0" />
+              <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">重命名</span>
+            </button>
+            <div className="relative" onMouseEnter={openTransfer} onMouseLeave={deferCloseTransfer}>
+              <button
+                type="button"
+                role="menuitem"
+                aria-haspopup="menu"
+                aria-expanded={transferOpen}
+                className={`flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left ${transferOpen ? "bg-[#f7f7f7]" : "hover:bg-[#f7f7f7]"}`}
+              >
+                <img src="/assets/65325.svg" alt="" className="shrink-0" />
+                <span className="min-w-0 flex-1 font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">移交项目</span>
+                <img src="/assets/fb6a4.svg" alt="" className="shrink-0" />
+              </button>
+              {transferOpen && (
+                <div
+                  role="menu"
+                  onMouseEnter={openTransfer}
+                  onMouseLeave={deferCloseTransfer}
+                  className={`absolute top-[-44px] z-50 w-[224px] overflow-hidden rounded-[8px] bg-white shadow-[0_0_12px_rgba(0,0,0,0.08)] ${
+                    transferOpensLeft ? "right-[calc(100%+8px)]" : "left-[calc(100%+8px)]"
+                  }`}
+                >
+                  <div className="bg-white px-[16px] py-[4px]">
+                    <label className="flex h-[32px] items-center gap-[8px] border-b border-[#1e63f5]">
+                      <img src="/assets/16710.svg" alt="" className="shrink-0" />
+                      <input
+                        autoFocus
+                        value={memberSearch}
+                        onChange={event => setMemberSearch(event.target.value)}
+                        placeholder="搜索"
+                        className="min-w-0 flex-1 bg-transparent font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] outline-none placeholder:text-[rgba(0,0,0,0.26)]"
+                      />
+                    </label>
+                  </div>
+                  <div className="max-h-[240px] overflow-y-auto px-[8px]">
+                    {members.map((member, index) => (
+                      <button
+                        key={`${member}-${index}`}
+                        type="button"
+                        role="menuitem"
+                        onClick={closeMenus}
+                        className="flex w-[192px] cursor-pointer items-center rounded-[8px] px-[8px] py-[10px] hover:bg-[#f7f7f7]"
+                      >
+                        <span className="flex h-[24px] max-w-[144px] items-center gap-[4px] rounded-[16px] bg-[#f7f7f7] pl-[2px] pr-[8px]">
+                          <span className="flex size-[20px] shrink-0 items-center justify-center rounded-full bg-[#1e63f5] font-['PingFang_SC:Regular'] text-[12px] leading-[20px] tracking-[0.012px] text-[rgba(255,255,255,0.98)]">
+                            {member.slice(0, 1)}
+                          </span>
+                          <span className="truncate font-['PingFang_SC:Regular'] text-[12px] leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.6)]">
+                            {member}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            {menuItems.slice(1).map(item => (
+              <button
+                key={item.label}
+                type="button"
+                role="menuitem"
+                onClick={() => { item.action(); closeMenus(); }}
+                className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+              >
+                <img src={item.icon} alt="" className="shrink-0" />
+                <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProjectListView({ projects, onCreateProject, onSelectProject, onRenameProject, onArchiveProject, onDeleteProject }: {
   projects: ProjectItem[];
   onCreateProject: (project: Omit<ProjectItem, "id">) => void;
   onSelectProject: (id: number) => void;
+  onRenameProject: (id: number, name: string) => void;
+  onArchiveProject: (id: number) => void;
+  onDeleteProject: (id: number) => void;
 }) {
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
 
@@ -2018,7 +2208,7 @@ function ProjectListView({ projects, onCreateProject, onSelectProject }: {
     <>
       <main className="relative min-h-0 flex-1 overflow-y-auto bg-white px-[24px]">
         <div className="mx-auto flex min-h-full w-full max-w-[960px] flex-col">
-          <header className="flex shrink-0 items-center gap-[12px] pb-[16px]">
+          <header className="flex shrink-0 items-center gap-[12px] pb-[32px]">
             <h1 className="min-w-0 flex-1 font-['PingFang_SC:Medium'] text-[20px] font-medium leading-[28px] tracking-[0.02px] text-[rgba(0,0,0,0.88)]">
               项目
             </h1>
@@ -2048,24 +2238,19 @@ function ProjectListView({ projects, onCreateProject, onSelectProject }: {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-[16px] pb-[24px] max-[900px]:grid-cols-2 max-[620px]:grid-cols-1">
+            <div className="grid grid-cols-3 gap-[16px] overflow-visible pb-[24px] max-[900px]:grid-cols-2 max-[620px]:grid-cols-1">
               {projects.map(project => (
-                <button
+                <ProjectCard
                   key={project.id}
-                  type="button"
-                  onClick={() => onSelectProject(project.id)}
-                  className="flex min-h-[112px] cursor-pointer flex-col items-start gap-[8px] rounded-[12px] border border-[#e6e6e6] bg-white p-[16px] text-left transition-colors hover:bg-[#f7f7f7]"
-                >
-                  <div className="flex w-full items-center gap-[8px]">
-                    <img src="/assets/6bcaa.svg" alt="" className="shrink-0" />
-                    <span className="min-w-0 flex-1 truncate font-['PingFang_SC:Medium'] text-[16px] font-medium leading-[24px] tracking-[0.016px] text-[rgba(0,0,0,0.88)]">
-                      {project.name}
-                    </span>
-                  </div>
-                  <span className="line-clamp-2 font-['PingFang_SC:Regular'] text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">
-                    {project.instruction || "设定项目背景与规范，让 AI 与你高效协作"}
-                  </span>
-                </button>
+                  project={project}
+                  onOpen={() => onSelectProject(project.id)}
+                  onRename={() => {
+                    const name = window.prompt("请输入新的项目名称", project.name)?.trim();
+                    if (name) onRenameProject(project.id, name);
+                  }}
+                  onArchive={() => onArchiveProject(project.id)}
+                  onDelete={() => onDeleteProject(project.id)}
+                />
               ))}
             </div>
           )}
@@ -2677,6 +2862,17 @@ export default function App() {
               onCreateProject={project => {
                 const id = Date.now();
                 setProjects(current => [...current, { ...project, id }]);
+              }}
+              onRenameProject={(id, name) => {
+                setProjects(current => current.map(project => project.id === id ? { ...project, name } : project));
+              }}
+              onArchiveProject={id => {
+                setProjects(current => current.filter(project => project.id !== id));
+                setHistory(current => current.filter(item => item.projectId !== id));
+              }}
+              onDeleteProject={id => {
+                setProjects(current => current.filter(project => project.id !== id));
+                setHistory(current => current.filter(item => item.projectId !== id));
               }}
             />
           : messages.length > 0
