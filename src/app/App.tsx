@@ -1002,8 +1002,8 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
             <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/a4798.svg" />
           </span>
           <span
-            className={`min-w-px flex-1 truncate text-left text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${
-              !projectListOpen && activeId === null && activeProjectId === null ? "font-['PingFang_SC:Medium'] font-medium" : "font-['PingFang_SC:Regular'] font-normal"
+            className={`min-w-px flex-1 truncate text-left text-[14px] font-semibold leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${
+              !projectListOpen && activeId === null && activeProjectId === null ? "font-['PingFang_SC:Medium']" : "font-['PingFang_SC:Regular']"
             }`}
           >
             新任务
@@ -1020,7 +1020,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
           <span className="relative size-[16px] shrink-0">
             <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/6bcaa.svg" />
           </span>
-          <span className={`min-w-px flex-1 truncate text-left text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${projectListOpen ? "font-['PingFang_SC:Medium'] font-medium" : "font-['PingFang_SC:Regular'] font-normal"}`}>
+          <span className={`min-w-px flex-1 truncate text-left text-[14px] font-semibold leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${projectListOpen ? "font-['PingFang_SC:Medium']" : "font-['PingFang_SC:Regular']"}`}>
             项目
           </span>
         </button>
@@ -2310,7 +2310,7 @@ function ProjectListView({ projects, onCreateProject, onSelectProject, onRenameP
     <>
       <main className="relative min-h-0 flex-1 overflow-y-auto bg-white px-[24px]">
         <div className="mx-auto flex min-h-full w-full max-w-[960px] flex-col">
-          <header className="flex shrink-0 items-center gap-[12px] pb-[32px]">
+          <header className="flex shrink-0 items-center gap-[12px] pb-[32px] pl-0 pr-0 pt-0">
             <h1 className="min-w-0 flex-1 font-['PingFang_SC:Medium'] text-[20px] font-medium leading-[28px] tracking-[0.02px] text-[rgba(0,0,0,0.88)]">
               项目
             </h1>
