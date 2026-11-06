@@ -13,7 +13,6 @@ import imgStyle1 from "@/imports/需求确认-1/29d4a489057188d7298a9a9f8b923d2d
 import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c6709a8e1bdf.png";
 import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
 import { PptPanel, PptResultMessage } from "./components/ppt-result";
-import SendButtonFigma from "@/imports/发送按钮";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "./components/ui/dialog";
 
 // ── types ─────────────────────────────────────────────────────────────────────
@@ -1513,6 +1512,8 @@ function PptGenerationToggle({ selected, onChange }: { selected: boolean; onChan
           <svg className="absolute inset-[8.33%]" fill="none" viewBox="0 0 13.3333 13.3333" preserveAspectRatio="none">
             <path d={svgPptToggle.p2186600} fill="#1E63F5" />
           </svg>
+        ) : !selected ? (
+          <img src="/assets/786f5.svg" alt="" className="absolute inset-0" />
         ) : (
           <svg className="absolute left-[2px] top-[1px] h-[13.333px] w-[12px]" fill="none" viewBox="0 0 12 13.3333" preserveAspectRatio="none">
             <path d={svgPaths.p10161080} fill={selected ? "#1E63F5" : "black"} fillOpacity={selected ? "1" : "0.88"} />
@@ -1612,29 +1613,17 @@ function PptSettingPicker(props: PptSettingPickerProps) {
   );
 }
 
-type SendButtonState = "Default" | "激活" | "暂停" | "激活_hover" | "激活_pressed" | "暂停_Hover" | "暂停_pressed" | "loading";
-
 function SendButton({ hasText, agentRunning = false, onSend, onStop }: {
   hasText: boolean;
   agentRunning?: boolean;
   onSend: () => void;
   onStop?: () => void;
 }) {
-  const [hovered, setHovered] = useState(false);
-  const [pressed, setPressed] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (agentRunning) setLoading(false);
   }, [agentRunning]);
-
-  const state: SendButtonState = loading
-    ? "loading"
-    : agentRunning
-      ? (pressed ? "暂停_pressed" : hovered ? "暂停_Hover" : "暂停")
-      : hasText
-        ? (pressed ? "激活_pressed" : hovered ? "激活_hover" : "激活")
-        : "Default";
 
   const handleClick = () => {
     if (agentRunning) {
@@ -1653,10 +1642,6 @@ function SendButton({ hasText, agentRunning = false, onSend, onStop }: {
       tabIndex={agentRunning || hasText ? 0 : -1}
       aria-label={agentRunning ? "暂停生成" : "发送消息"}
       aria-disabled={!agentRunning && !hasText}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setPressed(false); }}
-      onPointerDown={() => { if (agentRunning || hasText) setPressed(true); }}
-      onPointerUp={() => setPressed(false)}
       onClick={handleClick}
       onKeyDown={event => {
         if ((event.key === "Enter" || event.key === " ") && (agentRunning || hasText)) {
@@ -1666,7 +1651,15 @@ function SendButton({ hasText, agentRunning = false, onSend, onStop }: {
       }}
       className={`ml-auto shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#1e63f5] focus-visible:ring-offset-2 ${agentRunning || hasText ? "cursor-pointer" : "cursor-default"}`}
     >
-      <SendButtonFigma propValue={state} />
+      {agentRunning || loading ? (
+        <div className="flex size-[30px] items-center justify-center rounded-full bg-[#1e63f5]">
+          <span className={`block size-[10px] ${loading ? "animate-spin rounded-full border-2 border-white border-t-transparent" : "rounded-[2px] bg-white"}`} />
+        </div>
+      ) : (
+        <div className={`flex size-[30px] items-center justify-center overflow-hidden rounded-full ${hasText ? "bg-[#1e63f5]" : "bg-[#f2f2f2]"}`}>
+          <img src="/assets/9b290.svg" alt="" className={hasText ? "brightness-0 invert" : ""} />
+        </div>
+      )}
     </div>
   );
 }
@@ -1685,6 +1678,11 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
   onStop?: () => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const addMenuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const closeUploadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [uploadMenuOpen, setUploadMenuOpen] = useState(false);
   const hasText = value.trim().length > 0;
 
   useEffect(() => {
@@ -1693,6 +1691,26 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 160) + "px";
   }, [value]);
+
+  useEffect(() => {
+    if (!addMenuOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!addMenuRef.current?.contains(event.target as Node)) {
+        setAddMenuOpen(false);
+        setUploadMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, [addMenuOpen]);
+
+  const openUploadMenu = () => {
+    if (closeUploadTimer.current) clearTimeout(closeUploadTimer.current);
+    setUploadMenuOpen(true);
+  };
+  const deferCloseUploadMenu = () => {
+    closeUploadTimer.current = setTimeout(() => setUploadMenuOpen(false), 140);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (hasText) onSend(); }
@@ -1708,16 +1726,93 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
         <div className="h-[36px]" />
       </div>
       <div className="px-[8px] pb-[8px] flex items-center gap-[8px]">
-        <button className="shrink-0 w-[30px] h-[30px] rounded-full border border-[#f2f2f2] flex items-center justify-center hover:bg-[#f7f7f7]">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d={svgPaths.p4063380} fill="black" fillOpacity="0.88" /></svg>
-        </button>
-        <div className="shrink-0 flex items-center gap-[4px] px-[8px] py-[4px] rounded-full border border-[#f2f2f2]">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 translate-y-[1px]">
-            <path d={svgPaths.p3302ed00} fill="black" fillOpacity="0.88" />
-            <path d={svgPaths.p1868fc80} fill="black" fillOpacity="0.88" />
-            <path d={svgPaths.p3aa3c200} fill="black" fillOpacity="0.88" />
-          </svg>
-          <span className="text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)] whitespace-nowrap">来源</span>
+        <div ref={addMenuRef} className="relative shrink-0">
+          <button
+            type="button"
+            aria-label="添加内容"
+            aria-haspopup="menu"
+            aria-expanded={addMenuOpen}
+            onClick={() => {
+              setAddMenuOpen(open => !open);
+              setUploadMenuOpen(false);
+            }}
+            className={`flex size-[30px] cursor-pointer items-center justify-center rounded-full border border-[#f2f2f2] ${addMenuOpen ? "bg-[#f2f2f2]" : "hover:bg-[#f7f7f7]"}`}
+          >
+            <img src="/assets/afee9.svg" alt="" />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={() => {
+              setAddMenuOpen(false);
+              setUploadMenuOpen(false);
+            }}
+          />
+          {addMenuOpen && (
+            <div
+              role="menu"
+              className="absolute bottom-[calc(100%+8px)] left-[-2px] z-50 w-[240px] overflow-visible rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+            >
+              <div className="flex w-full flex-col py-[4px]">
+                <div className="relative" onMouseEnter={openUploadMenu} onMouseLeave={deferCloseUploadMenu}>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    aria-haspopup="menu"
+                    aria-expanded={uploadMenuOpen}
+                    className={`flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left ${uploadMenuOpen ? "bg-[#f2f2f2]" : "hover:bg-[#f7f7f7]"}`}
+                  >
+                    <img src="/assets/affa0.svg" alt="" className="shrink-0" />
+                    <span className="min-w-0 flex-1 font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">上传文件</span>
+                    <img src="/assets/fb6a4.svg" alt="" className="shrink-0" />
+                  </button>
+                  {uploadMenuOpen && (
+                    <div
+                      role="menu"
+                      onMouseEnter={openUploadMenu}
+                      onMouseLeave={deferCloseUploadMenu}
+                      className="absolute left-[calc(100%+16px)] top-[-52px] z-[60] w-[192px] overflow-hidden rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+                    >
+                      <div className="flex w-full flex-col py-[4px]">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+                        >
+                          <img src="/assets/f811e.svg" alt="" className="shrink-0" />
+                          <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">上传本地文件</span>
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setAddMenuOpen(false);
+                            setUploadMenuOpen(false);
+                          }}
+                          className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+                        >
+                          <img src="/assets/7a712.svg" alt="" className="shrink-0" />
+                          <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">添加工作内容</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => setAddMenuOpen(false)}
+                  className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+                >
+                  <img src="/assets/29219.svg" alt="" className="shrink-0" />
+                  <span className="min-w-0 flex-1 font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">来源</span>
+                  <img src="/assets/fb6a4.svg" alt="" className="shrink-0" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <PptGenerationToggle selected={pptGeneration} onChange={onPptGenerationChange} />
         {pptGeneration && (
@@ -1899,8 +1994,8 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
           <div className="w-[756px] h-[400px] rounded bg-gradient-to-r from-[#a3ffff] to-[#1e63f5] opacity-10 blur-[100px]" />
         </div>
         <div className="relative mx-auto flex h-full w-full max-w-[800px] flex-col items-center pt-[160px]">
-          <div className="shrink-0 flex items-baseline gap-[8px] py-[32px]">
-            <span className="text-[46px] font-medium leading-[56px] text-[rgba(0,0,0,0.88)] tracking-[0.046px]">Hi，xxxx</span>
+          <div className="shrink-0 flex items-baseline gap-[8px] pb-[16px]">
+            <span className="text-[46px] font-semibold leading-[56px] text-[rgba(0,0,0,0.88)] tracking-[0.046px]">Hi，xxxx</span>
             <span className="w-[16px] h-[4px] bg-[rgba(0,0,0,0.88)] self-end mb-[10px]" style={{ animation: "blink 1s step-end infinite" }} />
           </div>
           <div className="flex-1 flex flex-col items-center w-full">
