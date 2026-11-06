@@ -964,27 +964,100 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
   return (
     <div className="relative w-[240px] shrink-0 self-stretch border-r border-[#f2f2f2] bg-white p-0 flex flex-col items-center">
       {/* head */}
-      <div className="relative h-[92px] w-full shrink-0 bg-white py-[var(--spacing)]">
-        <p className="absolute left-[24px] top-[12px] text-[16px] font-medium leading-[24px] text-[rgba(0,0,0,0.88)] tracking-[0.016px] whitespace-nowrap">世纪互联办公智能体</p>
+      <div className="relative h-[256px] w-full shrink-0 bg-white">
+        <div className="absolute left-[calc(50%-15.8px)] top-[52px] h-[16px] w-[160.403px] -translate-x-1/2">
+          <img alt="世纪互联办公智能体" className="absolute inset-0 block size-full max-w-none" src="/assets/9d907.svg" />
+        </div>
         {/* sidebar toggle (close) */}
-        <button onClick={onClose} aria-label="收起侧边栏" className="absolute left-[196px] top-[8px] rounded-[4px] w-[32px] h-[32px] flex items-center justify-center hover:bg-[#f7f7f7] cursor-pointer">
-          <span aria-hidden className="relative size-[20px] overflow-hidden">
-            <svg className="absolute inset-[6.25%] size-[87.5%]" viewBox="0 0 17.5 17.5" fill="none" preserveAspectRatio="none">
-              <path d={svgSidebar.p2861a580} fill="black" fillOpacity="0.6" />
-            </svg>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="收起侧边栏"
+          className="absolute left-[20px] top-[12px] flex size-[24px] cursor-pointer items-start rounded-[4px] p-[4px] hover:bg-[#f7f7f7]"
+        >
+          <span className="relative h-full min-w-px flex-1">
+            <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/0c886.svg" />
           </span>
         </button>
-        {/* 新任务 button */}
-        <button onClick={onNewChat} className="absolute left-1/2 top-[48px] -translate-x-1/2 w-[216px] rounded-[4px] flex items-center justify-center gap-[8px] px-[16px] py-[5px] cursor-pointer hover:bg-[#f7f7f7] transition-colors">
-          <div aria-hidden className="absolute inset-0 rounded-[4px] border border-[#e6e6e6] pointer-events-none bg-[#00000000]" />
-          <svg width="16" height="15" viewBox="0 0 14.6667 15" fill="none" className="shrink-0">
-            <path d={svgSidebar.p2e5a6e00} fill="black" fillOpacity="0.88" />
-          </svg>
-          <span className="text-[14px] font-normal leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] whitespace-nowrap">新任务</span>
+        {/* search button */}
+        <button
+          type="button"
+          aria-label="搜索"
+          className="absolute left-[52px] top-[12px] flex size-[24px] cursor-pointer items-start rounded-[4px] p-[4px] hover:bg-[#f7f7f7]"
+        >
+          <span className="relative h-full min-w-px flex-1">
+            <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/ed737.svg" />
+          </span>
+        </button>
+        {/* 新任务 */}
+        <button
+          type="button"
+          onClick={onNewChat}
+          className={`absolute left-[12px] top-[84px] flex h-[40px] w-[216px] cursor-pointer items-center gap-[8px] overflow-clip rounded-[8px] py-[8px] pl-[12px] pr-[4px] transition-colors ${
+            activeId === null && activeProjectId === null ? "bg-[#f7f7f7]" : "hover:bg-[#f2f2f2]"
+          }`}
+        >
+          <span className="relative size-[16px] shrink-0">
+            <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/a4798.svg" />
+          </span>
+          <span
+            className={`min-w-px flex-1 truncate text-left text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${
+              activeId === null && activeProjectId === null ? "font-['PingFang_SC:Medium'] font-medium" : "font-['PingFang_SC:Regular'] font-normal"
+            }`}
+          >
+            新任务
+          </span>
+        </button>
+        {/* 项目 */}
+        <button
+          type="button"
+          onClick={() => {
+            if (projects.length === 0) {
+              setCreateProjectOpen(true);
+            } else {
+              setProjectsExpanded(true);
+              onSelectProject(activeProjectId ?? projects[0].id);
+            }
+          }}
+          className={`absolute left-[12px] top-[124px] flex h-[40px] w-[216px] cursor-pointer items-center gap-[8px] overflow-clip rounded-[8px] py-[8px] pl-[12px] pr-[4px] transition-colors ${
+            activeProjectId !== null && activeId === null ? "bg-[#f7f7f7]" : "hover:bg-[#f2f2f2]"
+          }`}
+        >
+          <span className="relative size-[16px] shrink-0">
+            <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/6bcaa.svg" />
+          </span>
+          <span className="min-w-px flex-1 truncate text-left font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+            项目
+          </span>
+        </button>
+        {/* 资料库 */}
+        <button
+          type="button"
+          className="absolute left-[12px] top-[164px] flex h-[40px] w-[216px] cursor-pointer items-center gap-[8px] overflow-clip rounded-[8px] py-[8px] pl-[12px] pr-[4px] transition-colors hover:bg-[#f2f2f2]"
+        >
+          <span className="relative size-[16px] shrink-0">
+            <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/f7258.svg" />
+          </span>
+          <span className="min-w-px flex-1 truncate text-left font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+            资料库
+          </span>
+        </button>
+        {/* 会议助手 */}
+        <button
+          type="button"
+          className="absolute left-[12px] top-[204px] flex h-[40px] w-[216px] cursor-pointer items-center gap-[8px] overflow-clip rounded-[8px] py-[8px] pl-[12px] pr-[4px] transition-colors hover:bg-[#f2f2f2]"
+        >
+          <span className="relative size-[16px] shrink-0">
+            <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/bacdf.svg" />
+          </span>
+          <span className="min-w-px flex-1 truncate text-left font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+            会议助手
+          </span>
         </button>
       </div>
 
       {/* projects */}
+      {projects.length > 0 && (
       <div className="shrink-0 w-[216px] pb-[16px] flex flex-col items-start">
         <div className="group relative m-0 flex w-full items-center p-0">
           <button
@@ -1069,7 +1142,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
                         });
                       }
                     }}
-                    className={`flex h-[40px] w-full cursor-pointer items-center gap-[8px] overflow-hidden rounded-[4px] py-[8px] pl-[12px] pr-[4px] text-left transition-colors ${isActiveProjectHome ? "bg-[#f7f7f7]" : isProjectHover ? "bg-[#f2f2f2]" : ""}`}
+                    className={`flex h-[40px] w-full cursor-pointer items-center gap-[8px] overflow-hidden rounded-[8px] py-[8px] pl-[12px] pr-[4px] text-left transition-colors ${isActiveProjectHome ? "bg-[#f7f7f7]" : isProjectHover ? "bg-[#f2f2f2]" : ""}`}
                   >
                     <img src={isProjectExpanded ? "/assets/bf868.svg" : "/assets/6bcaa.svg"} alt="" className="shrink-0" />
                     <span className="min-w-0 flex-1 truncate text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
@@ -1140,7 +1213,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
                             setMenuId(null);
                           }
                         }}
-                        className={`flex h-[40px] w-full cursor-pointer items-center gap-[4px] overflow-hidden rounded-[4px] py-[8px] pl-[36px] pr-[4px] text-left transition-colors ${isTaskActive ? "bg-[#f7f7f7]" : isTaskHover ? "bg-[#f2f2f2]" : ""}`}
+                        className={`flex h-[40px] w-full cursor-pointer items-center gap-[4px] overflow-hidden rounded-[8px] py-[8px] pl-[36px] pr-[4px] text-left transition-colors ${isTaskActive ? "bg-[#f7f7f7]" : isTaskHover ? "bg-[#f2f2f2]" : ""}`}
                       >
                         <span className={`min-w-0 flex-1 truncate text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${isTaskActive ? "font-medium" : "font-normal"}`}>
                           {task.title}
@@ -1185,15 +1258,17 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
           </div>
         )}
       </div>
+      )}
 
       {/* tasks */}
+      {standaloneHistory.length > 0 ? (
       <div className="flex min-h-0 w-[216px] flex-1 flex-col items-start">
         <div className="group relative flex w-full shrink-0 items-center p-0">
           <button
             type="button"
             aria-expanded={tasksExpanded}
             onClick={() => setTasksExpanded(expanded => !expanded)}
-            className={`flex w-full cursor-pointer items-center gap-[4px] rounded-[4px] px-[12px] py-[var(--spacing)] text-left hover:bg-[#f7f7f7] ${standaloneHistory.length > 0 ? "pr-[36px]" : ""}`}
+            className="flex w-full cursor-pointer items-center gap-[4px] rounded-[4px] px-[12px] py-[var(--spacing)] text-left hover:bg-[#f7f7f7]"
           >
             <span className="text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">任务</span>
             <svg
@@ -1205,20 +1280,10 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
               <path d={tasksExpanded ? "M4 6L8 10L12 6" : "M6 4L10 8L6 12"} stroke="currentColor" strokeWidth="1.333" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          {standaloneHistory.length > 0 && (
-            <button aria-label="搜索任务" className="absolute bottom-[7px] right-[4px] top-[2px] z-[3] flex w-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
-              <svg width="14" height="14" viewBox="0 0 13.5427 13.5427" fill="none">
-                <path d={svgSidebar.p21ae8c80} fill="black" fillOpacity="0.38" />
-              </svg>
-            </button>
-          )}
         </div>
 
         {tasksExpanded && <div className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto">
-          {standaloneHistory.length === 0 ? (
-            <p className="p-[12px] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.26)]">暂无任务</p>
-          ) : (
-            standaloneHistory.map(item => {
+          {standaloneHistory.map(item => {
               const isActive = activeId === item.id;
               const isHover = hoverId === item.id;
               const hasMenu = menuId === item.id;
@@ -1231,7 +1296,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
                     onMouseLeave={() => { if (menuId !== item.id) setHoverId(null); }}
                     onClick={() => { onSelect(item.id); setMenuId(null); }}
                     onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { onSelect(item.id); setMenuId(null); } }}
-                    className={`w-full h-[40px] rounded-[4px] flex items-center pl-[12px] pr-[4px] py-[8px] text-left transition-colors cursor-pointer
+                    className={`w-full h-[40px] rounded-[8px] flex items-center pl-[12px] pr-[4px] py-[8px] text-left transition-colors cursor-pointer
                       ${isActive ? "bg-[#f7f7f7]" : isHover ? "bg-[#f2f2f2]" : ""}`}
                   >
                     <p className={`flex-1 min-w-0 text-[14px] leading-[22px] tracking-[0.014px] truncate ${isActive ? "font-medium" : ""} text-[rgba(0,0,0,0.88)]`}>{item.title}</p>
@@ -1264,10 +1329,12 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
                   </div>
                 </div>
               );
-            })
-          )}
+            })}
         </div>}
       </div>
+      ) : (
+        <div className="flex-1" />
+      )}
 
       {/* context menu — fixed to escape overflow clip */}
       {(menuId !== null || projectMenuId !== null) && (
@@ -1748,16 +1815,16 @@ function HomeProjectPicker({ projects, selectedProjectId, onSelectProject, onCre
             </div>
           </div>
         )}
-        <div className="flex h-[40px] w-full items-center overflow-hidden rounded-b-[16px] bg-[#f7f7f7] py-[4px] pl-[8px] pr-[4px]">
+        <div className="flex h-[40px] w-full items-center overflow-hidden rounded-t-[16px] bg-[#f7f7f7] py-[4px] pl-[8px] pr-[4px]">
           <button
             type="button"
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen(open => !open)}
-            className="flex min-w-0 cursor-pointer items-center gap-[8px] rounded-full px-[8px] py-[4px] hover:bg-[#f2f2f2]"
+            className={`flex min-w-0 cursor-pointer items-center gap-[8px] rounded-full px-[8px] py-[4px] transition-colors ${menuOpen ? "bg-[#e6e6e6]" : "hover:bg-[#e6e6e6]"}`}
           >
-            <img src="/assets/6bcaa.svg" alt="" className="shrink-0" />
-            <span className={`truncate text-[14px] font-normal leading-[22px] tracking-[0.014px] ${selectedProject ? "text-[rgba(0,0,0,0.88)]" : "text-[rgba(0,0,0,0.6)]"}`}>
+            <img src={selectedProject ? "/assets/6bcaa.svg" : "/assets/658f1.svg"} alt="" className="shrink-0" />
+            <span className={`truncate font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] ${selectedProject ? "text-[rgba(0,0,0,0.88)]" : "text-[rgba(0,0,0,0.6)]"}`}>
               {selectedProject?.name ?? "选择项目"}
             </span>
           </button>
@@ -1861,6 +1928,12 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
             </div>
           </div>
           <div className="shrink-0 w-full">
+            <HomeProjectPicker
+              projects={projects}
+              selectedProjectId={selectedProjectId}
+              onSelectProject={onSelectProject}
+              onCreateProject={onCreateProject}
+            />
             <ChatInput
               value={input}
               onChange={onInputChange}
@@ -1871,12 +1944,6 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
               onPptModeChange={onPptModeChange}
               pptPages={pptPages}
               onPptPagesChange={onPptPagesChange}
-            />
-            <HomeProjectPicker
-              projects={projects}
-              selectedProjectId={selectedProjectId}
-              onSelectProject={onSelectProject}
-              onCreateProject={onCreateProject}
             />
           </div>
         </div>
