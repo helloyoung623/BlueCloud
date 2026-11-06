@@ -903,14 +903,16 @@ function CreateProjectDialog({ open, onOpenChange, onCreate }: {
   );
 }
 
-function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewChat, onNewProjectTask, activeId, activeProjectId, onSelect, onSelectProject }: {
+function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewChat, onOpenProjects, onNewProjectTask, projectListOpen, activeId, activeProjectId, onSelect, onSelectProject }: {
   history: HistoryItem[];
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>;
   projects: ProjectItem[];
   setProjects: React.Dispatch<React.SetStateAction<ProjectItem[]>>;
   onClose: () => void;
   onNewChat: () => void;
+  onOpenProjects: () => void;
   onNewProjectTask: (projectId: number) => void;
+  projectListOpen: boolean;
   activeId: number | null;
   activeProjectId: number | null;
   onSelect: (id: number) => void;
@@ -994,7 +996,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
           type="button"
           onClick={onNewChat}
           className={`absolute left-[12px] top-[84px] flex h-[40px] w-[216px] cursor-pointer items-center gap-[8px] overflow-clip rounded-[8px] py-[8px] pl-[12px] pr-[4px] transition-colors ${
-            activeId === null && activeProjectId === null ? "bg-[#f7f7f7]" : "hover:bg-[#f2f2f2]"
+            !projectListOpen && activeId === null && activeProjectId === null ? "bg-[#f7f7f7]" : "hover:bg-[#f2f2f2]"
           }`}
         >
           <span className="relative size-[16px] shrink-0">
@@ -1002,7 +1004,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
           </span>
           <span
             className={`min-w-px flex-1 truncate text-left text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${
-              activeId === null && activeProjectId === null ? "font-['PingFang_SC:Medium'] font-medium" : "font-['PingFang_SC:Regular'] font-normal"
+              !projectListOpen && activeId === null && activeProjectId === null ? "font-['PingFang_SC:Medium'] font-medium" : "font-['PingFang_SC:Regular'] font-normal"
             }`}
           >
             新任务
@@ -1011,22 +1013,15 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
         {/* 项目 */}
         <button
           type="button"
-          onClick={() => {
-            if (projects.length === 0) {
-              setCreateProjectOpen(true);
-            } else {
-              setProjectsExpanded(true);
-              onSelectProject(activeProjectId ?? projects[0].id);
-            }
-          }}
+          onClick={onOpenProjects}
           className={`absolute left-[12px] top-[124px] flex h-[40px] w-[216px] cursor-pointer items-center gap-[8px] overflow-clip rounded-[8px] py-[8px] pl-[12px] pr-[4px] transition-colors ${
-            activeProjectId !== null && activeId === null ? "bg-[#f7f7f7]" : "hover:bg-[#f2f2f2]"
+            projectListOpen ? "bg-[#f7f7f7]" : "hover:bg-[#f2f2f2]"
           }`}
         >
           <span className="relative size-[16px] shrink-0">
             <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/6bcaa.svg" />
           </span>
-          <span className="min-w-px flex-1 truncate text-left font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+          <span className={`min-w-px flex-1 truncate text-left text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${projectListOpen ? "font-['PingFang_SC:Medium'] font-medium" : "font-['PingFang_SC:Regular'] font-normal"}`}>
             项目
           </span>
         </button>
@@ -1057,7 +1052,6 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
       </div>
 
       {/* projects */}
-      {projects.length > 0 && (
       <div className="shrink-0 w-[216px] pb-[16px] flex flex-col items-start">
         <div className="group relative m-0 flex w-full items-center p-0">
           <button
@@ -1258,10 +1252,8 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
           </div>
         )}
       </div>
-      )}
 
       {/* tasks */}
-      {standaloneHistory.length > 0 ? (
       <div className="flex min-h-0 w-[216px] flex-1 flex-col items-start">
         <div className="group relative flex w-full shrink-0 items-center p-0">
           <button
@@ -1283,7 +1275,9 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
         </div>
 
         {tasksExpanded && <div className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto">
-          {standaloneHistory.map(item => {
+          {standaloneHistory.length === 0 ? (
+            <p className="p-[12px] font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.26)]">暂无任务</p>
+          ) : standaloneHistory.map(item => {
               const isActive = activeId === item.id;
               const isHover = hoverId === item.id;
               const hasMenu = menuId === item.id;
@@ -1332,9 +1326,6 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
             })}
         </div>}
       </div>
-      ) : (
-        <div className="flex-1" />
-      )}
 
       {/* context menu — fixed to escape overflow clip */}
       {(menuId !== null || projectMenuId !== null) && (
@@ -2016,6 +2007,79 @@ function ProjectChatInput({ projectName, value, onChange, onSend }: {
   );
 }
 
+function ProjectListView({ projects, onCreateProject, onSelectProject }: {
+  projects: ProjectItem[];
+  onCreateProject: (project: Omit<ProjectItem, "id">) => void;
+  onSelectProject: (id: number) => void;
+}) {
+  const [createProjectOpen, setCreateProjectOpen] = useState(false);
+
+  return (
+    <>
+      <main className="relative min-h-0 flex-1 overflow-y-auto bg-white px-[24px]">
+        <div className="mx-auto flex min-h-full w-full max-w-[960px] flex-col">
+          <header className="flex shrink-0 items-center gap-[12px] pb-[16px]">
+            <h1 className="min-w-0 flex-1 font-['PingFang_SC:Medium'] text-[20px] font-medium leading-[28px] tracking-[0.02px] text-[rgba(0,0,0,0.88)]">
+              项目
+            </h1>
+            <button
+              type="button"
+              onClick={() => setCreateProjectOpen(true)}
+              className="flex shrink-0 cursor-pointer items-center justify-center gap-[8px] overflow-hidden rounded-[4px] bg-[#1e63f5] px-[16px] py-[5px] hover:bg-[#1554d1]"
+            >
+              <img src="/assets/c136c.svg" alt="" className="shrink-0" />
+              <span className="whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(255,255,255,0.98)]">
+                新建项目
+              </span>
+            </button>
+          </header>
+
+          {projects.length === 0 ? (
+            <div className="flex flex-1 items-center justify-center pb-[260px]">
+              <div className="flex w-[320px] flex-col items-center justify-end">
+                <div className="mb-[-80px] size-[320px] shrink-0 overflow-hidden">
+                  <img src="/assets/8dc56.png" alt="" className="size-[320px] max-w-none object-cover" />
+                </div>
+                <div className="flex w-full flex-col items-center justify-center gap-[4px] pb-[32px]">
+                  <p className="whitespace-nowrap font-['PingFang_SC:Medium'] text-[14px] font-medium leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">
+                    暂无项目
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-[16px] pb-[24px] max-[900px]:grid-cols-2 max-[620px]:grid-cols-1">
+              {projects.map(project => (
+                <button
+                  key={project.id}
+                  type="button"
+                  onClick={() => onSelectProject(project.id)}
+                  className="flex min-h-[112px] cursor-pointer flex-col items-start gap-[8px] rounded-[12px] border border-[#e6e6e6] bg-white p-[16px] text-left transition-colors hover:bg-[#f7f7f7]"
+                >
+                  <div className="flex w-full items-center gap-[8px]">
+                    <img src="/assets/6bcaa.svg" alt="" className="shrink-0" />
+                    <span className="min-w-0 flex-1 truncate font-['PingFang_SC:Medium'] text-[16px] font-medium leading-[24px] tracking-[0.016px] text-[rgba(0,0,0,0.88)]">
+                      {project.name}
+                    </span>
+                  </div>
+                  <span className="line-clamp-2 font-['PingFang_SC:Regular'] text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">
+                    {project.instruction || "设定项目背景与规范，让 AI 与你高效协作"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+      <CreateProjectDialog
+        open={createProjectOpen}
+        onOpenChange={setCreateProjectOpen}
+        onCreate={onCreateProject}
+      />
+    </>
+  );
+}
+
 function ProjectHomeView({ project, input, onInputChange, onSend }: {
   project: ProjectItem;
   input: string;
@@ -2413,6 +2477,7 @@ export default function App() {
   const [pptPages, setPptPages] = useState<PptPageCount>("智能匹配");
   const [stage, setStage] = useState<PptStage>("idle");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [projectListOpen, setProjectListOpen] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState<number | null>(null);
   const [activeProjectId, setActiveProjectId] = useState<number | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
@@ -2448,6 +2513,7 @@ export default function App() {
     const item = history.find(i => i.id === id);
     if (!item) return;
     setStage("idle");
+    setProjectListOpen(false);
     setInput("");
     setActiveHistoryId(id);
     setActiveProjectId(item.projectId ?? null);
@@ -2461,6 +2527,7 @@ export default function App() {
     setInput("");
     setPptGeneration(false);
     setStage("idle");
+    setProjectListOpen(false);
     setActiveHistoryId(null);
     setActiveProjectId(id);
     setSelectedProjectId(null);
@@ -2552,7 +2619,18 @@ export default function App() {
     setMessages(prev => prev.map(message => message.role === "process" && message.thinking ? { ...message, thinking: false } : message));
   };
 
-  const handleNewChat = () => { activeRunId.current += 1; setMessages([]); setInput(""); setPptGeneration(false); setPptMode("PowerPoint"); setPptPages("智能匹配"); setStage("idle"); setActiveHistoryId(null); setActiveProjectId(null); setSelectedProjectId(null); };
+  const handleNewChat = () => { activeRunId.current += 1; setMessages([]); setInput(""); setPptGeneration(false); setPptMode("PowerPoint"); setPptPages("智能匹配"); setStage("idle"); setProjectListOpen(false); setActiveHistoryId(null); setActiveProjectId(null); setSelectedProjectId(null); };
+  const handleOpenProjects = () => {
+    activeRunId.current += 1;
+    setMessages([]);
+    setInput("");
+    setPptGeneration(false);
+    setStage("idle");
+    setProjectListOpen(true);
+    setActiveHistoryId(null);
+    setActiveProjectId(null);
+    setSelectedProjectId(null);
+  };
   const handleNewProjectTask = (projectId: number) => {
     handleNewChat();
     setSelectedProjectId(projectId);
@@ -2574,7 +2652,9 @@ export default function App() {
           setProjects={setProjects}
           onClose={() => setSidebarOpen(false)}
           onNewChat={handleNewChat}
+          onOpenProjects={handleOpenProjects}
           onNewProjectTask={handleNewProjectTask}
+          projectListOpen={projectListOpen}
           activeId={activeHistoryId}
           activeProjectId={activeProjectId}
           onSelect={handleSelectHistory}
@@ -2590,7 +2670,16 @@ export default function App() {
           onSidebarToggle={() => setSidebarOpen(o => !o)}
           onNewChat={messages.length > 0 || activeProject !== null ? handleNewChat : undefined}
         />
-        {messages.length > 0
+        {projectListOpen
+          ? <ProjectListView
+              projects={projects}
+              onSelectProject={handleSelectProject}
+              onCreateProject={project => {
+                const id = Date.now();
+                setProjects(current => [...current, { ...project, id }]);
+              }}
+            />
+          : messages.length > 0
             ? <ChatView
               conversationId={activeHistoryId}
               projectName={activeProject?.name}
