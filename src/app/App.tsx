@@ -1489,7 +1489,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
 
 // ── chat input ────────────────────────────────────────────────────────────────
 
-function PptGenerationToggle({ selected, onChange }: { selected: boolean; onChange: (selected: boolean) => void }) {
+function PptGenerationToggle({ selected, onChange, borderless = false }: { selected: boolean; onChange: (selected: boolean) => void; borderless?: boolean }) {
   const [hovered, setHovered] = useState(false);
   const showClose = selected && hovered;
 
@@ -1501,10 +1501,10 @@ function PptGenerationToggle({ selected, onChange }: { selected: boolean; onChan
       onClick={() => onChange(!selected)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`shrink-0 box-border flex items-center gap-[4px] rounded-full border px-[8px] py-[4px] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#1e63f5] focus-visible:ring-offset-2 ${
+      className={`shrink-0 box-border flex items-center gap-[4px] rounded-full px-[8px] py-[4px] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#1e63f5] focus-visible:ring-offset-2 ${borderless ? "border-0" : "border"} ${
         selected
-          ? "border-transparent bg-[#ebf4ff] text-[#1e63f5]"
-          : "border-[#f2f2f2] text-[rgba(0,0,0,0.88)] hover:bg-[#f2f2f2]"
+          ? `${borderless ? "" : "border-transparent"} bg-[#ebf4ff] text-[#1e63f5]`
+          : `${borderless ? "" : "border-[#f2f2f2]"} text-[rgba(0,0,0,0.88)] hover:bg-[#f2f2f2]`
       }`}
     >
       <span className="relative size-[16px] shrink-0 overflow-hidden" aria-hidden>
@@ -1664,7 +1664,7 @@ function SendButton({ hasText, agentRunning = false, onSend, onStop }: {
   );
 }
 
-function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChange, pptMode, onPptModeChange, pptPages, onPptPagesChange, agentRunning = false, onStop }: {
+function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChange, pptMode, onPptModeChange, pptPages, onPptPagesChange, agentRunning = false, onStop, homeAppearance = false }: {
   value: string;
   onChange: (v: string) => void;
   onSend: () => void;
@@ -1676,6 +1676,7 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
   onPptPagesChange: (pages: PptPageCount) => void;
   agentRunning?: boolean;
   onStop?: () => void;
+  homeAppearance?: boolean;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
@@ -1717,7 +1718,7 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
   };
 
   return (
-    <div className="relative w-full max-h-[328px] rounded-[20px] bg-white" style={{ boxShadow: "0 0 12px rgba(0,0,0,0.08)", border: "1px solid #e6e6e6" }}>
+    <div className="relative w-full max-h-[328px] rounded-[20px] bg-white" style={{ boxShadow: homeAppearance ? "none" : "0 0 12px rgba(0,0,0,0.08)", border: "1px solid #e6e6e6" }}>
       <div className="px-[12px] pt-[12px] pb-[12px]" onPointerDown={() => textareaRef.current?.focus()}>
         <textarea ref={textareaRef} value={value} onChange={e => onChange(e.target.value)} onKeyDown={handleKeyDown}
           placeholder="有问题，尽管问；/调用技能" rows={1} style={{ minHeight: 22, maxHeight: 228 }}
@@ -1736,7 +1737,7 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
               setAddMenuOpen(open => !open);
               setUploadMenuOpen(false);
             }}
-            className={`flex size-[30px] cursor-pointer items-center justify-center rounded-full border border-[#f2f2f2] ${addMenuOpen ? "bg-[#f2f2f2]" : "hover:bg-[#f7f7f7]"}`}
+            className={`flex size-[30px] cursor-pointer items-center justify-center rounded-full ${homeAppearance ? "border-0" : "border border-[#f2f2f2]"} ${addMenuOpen ? "bg-[#f2f2f2]" : "hover:bg-[#f7f7f7]"}`}
           >
             <img src="/assets/afee9.svg" alt="" />
           </button>
@@ -1814,7 +1815,7 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
             </div>
           )}
         </div>
-        <PptGenerationToggle selected={pptGeneration} onChange={onPptGenerationChange} />
+        <PptGenerationToggle selected={pptGeneration} onChange={onPptGenerationChange} borderless={homeAppearance} />
         {pptGeneration && (
           <>
             <PptSettingPicker kind="mode" value={pptMode} onChange={onPptModeChange} />
@@ -2024,6 +2025,7 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
               value={input}
               onChange={onInputChange}
               onSend={onSend}
+              homeAppearance
               pptGeneration={pptGeneration}
               onPptGenerationChange={onPptGenerationChange}
               pptMode={pptMode}
