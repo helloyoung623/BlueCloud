@@ -1354,7 +1354,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
         </div>}
       </div>
       )}
-      {projects.length === 0 && standaloneHistory.length === 0 && <div className="flex-1" />}
+      {standaloneHistory.length === 0 && <div className="flex-1" />}
 
       {/* context menu — fixed to escape overflow clip */}
       {projectMenuId !== null && (
