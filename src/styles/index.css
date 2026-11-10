@@ -1,3 +1,45 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+.chat-layout {
+  container: chat-layout / inline-size;
+}
+
+.conversation-gutter {
+  padding-inline: 16px;
+}
+
+.conversation-content {
+  max-width: 900px;
+}
+
+.conversation-messages {
+  padding-inline: 0;
+}
+
+.user-message {
+  max-width: 85%;
+}
+
+.artifact-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@container chat-layout (width > 560px) {
+  .conversation-gutter {
+    padding-inline: 24px;
+  }
+
+  .conversation-messages {
+    padding-inline: 16px;
+  }
+
+  .user-message {
+    max-width: calc((100% + 32px) * 0.85);
+  }
+
+  .artifact-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

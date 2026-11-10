@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { Fragment, forwardRef, useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
 import svgPaths from "@/imports/默认首页-1/svg-4ly00k0kqz";
 import svgPanel from "@/imports/需求确认-1/svg-1yxmq1shfb";
@@ -13,13 +13,38 @@ import imgStyle1 from "@/imports/需求确认-1/29d4a489057188d7298a9a9f8b923d2d
 import imgStyle2 from "@/imports/需求确认-1/f49f63a62b02589f759f36fc0961c6709a8e1bdf.png";
 import imgStyle3 from "@/imports/需求确认-1/9b2936619dc23e46dde47ce229cadb09c1b911ab.png";
 import { PptPanel, PptResultMessage } from "./components/ppt-result";
+import { ArtifactFileCard, TaskArtifactsButton } from "./components/task-artifacts";
+import type { LocatedTaskArtifact, TaskArtifact } from "./components/task-artifacts";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "./components/ui/dialog";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "./components/ui/sheet";
+import { useIsMobile } from "./components/ui/use-mobile";
+import { OperationMenu } from "./components/operation-menu";
+import { ProjectInstructionDialog, ProjectMembersDialog, ProjectMemberTag } from "./components/project-settings-dialogs";
+import type { ProjectMember } from "./components/project-settings-dialogs";
+import { getAvatarInitial } from "./components/avatar-initial";
+import { AttachmentTray, MAX_ATTACHMENTS, formatFileSize, getAttachmentExtension, getAttachmentIcon, getAttachmentValidationError } from "./components/attachment-tray";
+import type { ChatAttachment } from "./components/attachment-tray";
+import { AttachmentPicker } from "./components/attachment-picker";
+import type { AttachmentSource } from "./components/attachment-picker";
+import { DEMO_PROJECT_FILES, ProjectFilesPanel } from "./components/project-files";
+import type { ProjectFiles } from "./components/project-files";
+import { Popover, PopoverAnchor } from "./components/ui/popover";
+import { toast } from "sonner";
+import { Toaster } from "./components/ui/sonner";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
 type ProcessVariant = "requirement" | "outline" | "ppt";
 type ProcessPreset = { goal: string; running: string; actions: { label: string; icon: ToolKind }[] };
-type Message = { role: "user" | "ai" | "process" | "result"; text: string; thinking?: boolean; variant?: ProcessVariant; preset?: ProcessPreset };
+type Message = {
+  role: "user" | "ai" | "process" | "result";
+  text: string;
+  attachments?: ChatAttachment[];
+  thinking?: boolean;
+  variant?: ProcessVariant;
+  preset?: ProcessPreset;
+  artifacts?: TaskArtifact[];
+};
 type PptStage = "idle" | "requirement" | "outline_generating" | "outline" | "ppt_generating" | "preview";
 type PptMode = "标准" | "PowerPoint";
 type PptPageCount = "智能匹配" | "5～8页" | "8～12页" | "12～18页";
@@ -33,6 +58,19 @@ type OutlinePage = { id: number; pageLabel: string; title: string; content: Outl
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 const isPPTIntent = (t: string) => /ppt|演示|幻灯|slide/i.test(t) || t.includes("PPT");
+
+// mock files produced by the AI for requests that ask for a document-like output
+const buildTaskArtifacts = (text: string): TaskArtifact[] => {
+  const extension: TaskArtifact["extension"] | null = /表格|excel|xlsx/i.test(text) ? "xlsx"
+    : /word|docx/i.test(text) ? "docx"
+      : /代码|网页|html/i.test(text) ? "html"
+        : /文档|文件|报告|整理|导出|pdf/i.test(text) ? "pdf"
+          : null;
+  if (!extension) return [];
+  const baseName = text.replace(/[\\/:*?"<>|\s，。！？、；：]/g, "").slice(0, 24) || "整理结果";
+  return [{ id: `${Date.now()}-${extension}`, name: `${baseName}.${extension === "html" ? "html" : extension}`, extension, size: "36M" }];
+};
+const PPT_ARTIFACT_NAME = "信息的分析报告.pptx";
 
 // build an execution process whose copy reflects the user's actual request
 const buildQueryProcess = (query: string): ProcessPreset => {
@@ -235,6 +273,7 @@ function RequirementPanel({ visible, onClose, onConfirm, pptMode, onPptModeChang
   const [pages, setPages] = useState(initialPages === "智能匹配" ? "8～12页" : initialPages);
   const [moreStylesOpen, setMoreStylesOpen] = useState(false);
   const closeMoreStylesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const moreStylesTriggerRef = useRef<HTMLButtonElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -285,6 +324,7 @@ function RequirementPanel({ visible, onClose, onConfirm, pptMode, onPptModeChang
             >
               <button
                 type="button"
+                ref={moreStylesTriggerRef}
                 onClick={openMoreStyles}
                 className={`relative flex w-full items-center justify-between rounded-[8px] px-[12px] py-[8px] text-left cursor-pointer ${moreStylesOpen ? "bg-[#f7f7f7]" : "bg-white"}`}
               >
@@ -293,8 +333,8 @@ function RequirementPanel({ visible, onClose, onConfirm, pptMode, onPptModeChang
                 <span aria-hidden className="absolute inset-0 rounded-[8px] border border-[#e6e6e6] pointer-events-none" />
               </button>
               {moreStylesOpen && (
-                <div
-                  className="absolute left-0 top-[calc(100%+8px)] z-40 w-[192px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+                <OperationMenu anchor={moreStylesTriggerRef.current}
+                  className="w-[192px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
                   onMouseEnter={openMoreStyles}
                   onMouseLeave={deferCloseMoreStyles}
                 >
@@ -310,7 +350,7 @@ function RequirementPanel({ visible, onClose, onConfirm, pptMode, onPptModeChang
                       {style === option && <span aria-hidden className="text-[16px] leading-[16px] text-[#1e63f5]">✓</span>}
                     </button>
                   ))}
-                </div>
+                </OperationMenu>
               )}
             </div>
           </div>
@@ -365,10 +405,15 @@ function RequirementPanel({ visible, onClose, onConfirm, pptMode, onPptModeChang
 
 type PresentationMode = "smart" | "visual";
 
-function VisualizationSubmenu({ onSelect }: { onSelect: (style: string) => void }) {
+function VisualizationSubmenu({ onSelect, anchor, onMouseEnter, onMouseLeave }: {
+  onSelect: (style: string) => void;
+  anchor: HTMLElement | null;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+}) {
   const styles = ["智能匹配", "折线图", "柱状图", "饼图"];
   return (
-    <div className="absolute right-[calc(100%+8px)] top-0 z-30 w-[168px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
+    <OperationMenu submenu anchor={anchor} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} className="w-[168px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
       {styles.map((style, index) => (
         <button
           key={style}
@@ -380,18 +425,32 @@ function VisualizationSubmenu({ onSelect }: { onSelect: (style: string) => void 
           {index === 0 && <span className="text-[#1e63f5]">✓</span>}
         </button>
       ))}
-    </div>
+    </OperationMenu>
   );
 }
 
-function PresentationMenu({ mode, onChange, onClose }: {
+function PresentationMenu({ mode, onChange, onClose, anchor }: {
+  anchor: HTMLElement | null;
   mode: PresentationMode;
   onChange: (mode: PresentationMode) => void;
   onClose: () => void;
 }) {
   const [visualHovered, setVisualHovered] = useState(false);
+  const visualRef = useRef<HTMLDivElement>(null);
+  const closeVisualTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openVisualMenu = () => {
+    if (closeVisualTimer.current) clearTimeout(closeVisualTimer.current);
+    setVisualHovered(true);
+  };
+  const deferCloseVisualMenu = () => {
+    if (closeVisualTimer.current) clearTimeout(closeVisualTimer.current);
+    closeVisualTimer.current = setTimeout(() => setVisualHovered(false), 140);
+  };
+  useEffect(() => () => {
+    if (closeVisualTimer.current) clearTimeout(closeVisualTimer.current);
+  }, []);
   return (
-    <div className="absolute right-0 top-[30px] z-20 w-[304px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
+    <OperationMenu anchor={anchor} className="w-[304px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
       <button
         type="button"
         onClick={event => { event.stopPropagation(); onChange("smart"); onClose(); }}
@@ -405,7 +464,7 @@ function PresentationMenu({ mode, onChange, onClose }: {
           <span className="block text-[14px] leading-[22px] text-[rgba(0,0,0,0.6)] font-normal">AI 综合内容，自动匹配最佳呈现方式</span>
         </span>
       </button>
-      <div className="relative" onMouseEnter={() => setVisualHovered(true)} onMouseLeave={() => setVisualHovered(false)}>
+      <div ref={visualRef} className="relative" onMouseEnter={openVisualMenu} onMouseLeave={deferCloseVisualMenu}>
         <button
           type="button"
           onClick={event => { event.stopPropagation(); onChange("visual"); onClose(); }}
@@ -420,9 +479,9 @@ function PresentationMenu({ mode, onChange, onClose }: {
           </span>
           <span className="mt-[5px] text-[rgba(0,0,0,0.26)]">›</span>
         </button>
-        {visualHovered && <VisualizationSubmenu onSelect={() => { onChange("visual"); onClose(); }} />}
+        {visualHovered && <VisualizationSubmenu anchor={visualRef.current?.querySelector("button") ?? null} onMouseEnter={openVisualMenu} onMouseLeave={deferCloseVisualMenu} onSelect={() => { onChange("visual"); onClose(); }} />}
       </div>
-    </div>
+    </OperationMenu>
   );
 }
 
@@ -433,6 +492,7 @@ function OutlinePageCard({ page, presentation, onPresentationChange }: {
 }) {
   const [hovered, setHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const presentationTriggerRef = useRef<HTMLButtonElement>(null);
   const showControl = hovered || menuOpen || presentation === "visual";
   const label = presentation === "visual" ? "呈现形式：可视化呈现" : "呈现形式：智能呈现";
 
@@ -448,6 +508,7 @@ function OutlinePageCard({ page, presentation, onPresentationChange }: {
           {showControl && (
             <div className="absolute right-0 top-0 z-10">
               <button
+                ref={presentationTriggerRef}
                 type="button"
                 onClick={event => { event.stopPropagation(); setMenuOpen(value => !value); }}
                 className={`flex items-center gap-[8px] rounded-[4px] bg-white px-[8px] py-px text-[14px] leading-[22px] tracking-[0.014px] transition-colors ${presentation === "visual" ? "text-[#1e63f5]" : "text-[rgba(0,0,0,0.88)]"}`}
@@ -458,7 +519,7 @@ function OutlinePageCard({ page, presentation, onPresentationChange }: {
                   <path d={svgPresentation.p35e26b00} fill={presentation === "visual" ? "#1E63F5" : "black"} fillOpacity={presentation === "visual" ? "1" : "0.88"} />
                 </svg>
               </button>
-              {menuOpen && <PresentationMenu mode={presentation} onChange={onPresentationChange} onClose={() => setMenuOpen(false)} />}
+              {menuOpen && <PresentationMenu anchor={presentationTriggerRef.current} mode={presentation} onChange={onPresentationChange} onClose={() => setMenuOpen(false)} />}
             </div>
           )}
         </div>
@@ -788,8 +849,141 @@ function MemoryModal({ onClose }: { onClose: () => void }) {
 
 // ── sidebar ───────────────────────────────────────────────────────────────────
 
-type HistoryItem = { id: number; title: string; pinned?: boolean; messages: Message[]; projectId?: number };
-type ProjectItem = { id: number; name: string; instruction: string; pinned?: boolean };
+type HistoryItem = { id: number; title: string; pinned?: boolean; messages: Message[]; projectId?: number; createdAt?: number };
+type ProjectItem = { id: number; name: string; instruction: string; pinned?: boolean; members?: ProjectMember[]; files?: ProjectFiles; owner?: string };
+
+function TaskProjectMoveMenu({ projects, projectId, onMove, onCreate }: {
+  projects: ProjectItem[];
+  projectId?: number;
+  onMove: (projectId: number | undefined) => void;
+  onCreate: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const targets = projects.filter(project => project.id !== projectId);
+  const openMenu = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpen(true);
+  };
+  const deferClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpen(false), 140);
+  };
+
+  useEffect(() => () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  }, []);
+
+  return (
+    <div className="relative" onMouseEnter={openMenu} onMouseLeave={deferClose}>
+      <button ref={triggerRef} type="button" role="menuitem" aria-haspopup="menu" aria-expanded={open} onClick={openMenu} onKeyDown={event => {
+        if (event.key === "ArrowRight" || event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openMenu();
+        }
+      }} className={`flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left text-[14px] font-normal leading-[22px] tracking-[0.014px] ${open ? "bg-[#f2f2f2]" : "hover:bg-[#f7f7f7]"}`}>
+        <img src="/assets/1d8f2.svg" alt="" className="shrink-0" />
+        <span className="min-w-0 flex-1">移动到项目</span>
+        <img src="/assets/fb6a4.svg" alt="" className="shrink-0" />
+      </button>
+      {open && (
+        <OperationMenu submenu anchor={triggerRef.current} role="menu" aria-label="移动到项目" onMouseEnter={openMenu} onMouseLeave={deferClose} onPointerDown={event => event.stopPropagation()} onKeyDown={event => {
+          if (event.key === "Escape" || event.key === "ArrowLeft") {
+            event.stopPropagation();
+            setOpen(false);
+            triggerRef.current?.focus();
+          }
+        }} className="w-[232px] overflow-hidden rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
+          <div className="flex max-h-[480px] flex-col overflow-y-auto py-[4px]">
+            {targets.length === 0 ? (
+              <div className="px-[8px] py-[11px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">暂无项目</div>
+            ) : targets.map(project => (
+              <button key={project.id} type="button" role="menuitem" onClick={() => onMove(project.id)} className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left text-[14px] font-normal leading-[22px] tracking-[0.014px] hover:bg-[#f7f7f7]">
+                <img src="/assets/d95df.svg" alt="" className="shrink-0" />
+                <span className="min-w-0 flex-1 truncate">{project.name}</span>
+              </button>
+            ))}
+            <div className="relative h-px w-full"><img src="/assets/4b9c6.svg" alt="" className="absolute left-0 top-0" /></div>
+            <button type="button" role="menuitem" onClick={onCreate} className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left text-[14px] font-normal leading-[22px] tracking-[0.014px] hover:bg-[#f7f7f7]">
+              <img src="/assets/eede2.svg" alt="" className="shrink-0" />新建项目
+            </button>
+            {projectId !== undefined && (
+              <button type="button" role="menuitem" onClick={() => onMove(undefined)} className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left text-[14px] font-normal leading-[22px] tracking-[0.014px] hover:bg-[#f7f7f7]">
+                <img src="/assets/6ec2b.svg" alt="" className="shrink-0" />从项目中移出
+              </button>
+            )}
+          </div>
+        </OperationMenu>
+      )}
+    </div>
+  );
+}
+
+const TaskOperationsMenu = forwardRef<HTMLDivElement, {
+  anchor: HTMLElement | null;
+  task: HistoryItem;
+  projects: ProjectItem[];
+  align?: "start" | "end";
+  gap?: number;
+  onTogglePin: () => void;
+  onRename: (title: string) => void;
+  onMove: (projectId: number | undefined) => void;
+  onCreateProject: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}>(({ anchor, task, projects, align, gap, onTogglePin, onRename, onMove, onCreateProject, onDelete, onClose }, ref) => {
+  const itemClassName = "flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]";
+  const labelClassName = "whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]";
+  return (
+    <OperationMenu
+      anchor={anchor}
+      ref={ref}
+      align={align}
+      gap={gap}
+      role="menu"
+      aria-label="任务操作"
+      onKeyDown={event => {
+        if (event.key !== "Escape") return;
+        onClose();
+        anchor?.focus();
+      }}
+      className="w-[192px] overflow-visible rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+    >
+      <div className="flex flex-col py-[4px]">
+        <button type="button" role="menuitem" onClick={() => { onTogglePin(); onClose(); }} className={itemClassName}>
+          <img src={task.pinned ? "/assets/67fe6.svg" : "/assets/4363a.svg"} alt="" className="shrink-0" />
+          <span className={labelClassName}>{task.pinned ? "取消置顶" : "置顶此对话"}</span>
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            const name = window.prompt("请输入新的任务名称", task.title)?.trim();
+            if (name) onRename(name);
+            onClose();
+          }}
+          className={itemClassName}
+        >
+          <img src="/assets/e2b81.svg" alt="" className="shrink-0" />
+          <span className={labelClassName}>重命名</span>
+        </button>
+        <TaskProjectMoveMenu
+          key={task.id}
+          projects={projects}
+          projectId={task.projectId}
+          onMove={projectId => { onMove(projectId); onClose(); }}
+          onCreate={() => { onClose(); onCreateProject(); }}
+        />
+        <button type="button" role="menuitem" onClick={() => { onDelete(); onClose(); }} className={itemClassName}>
+          <img src="/assets/5ff6b.svg" alt="" className="shrink-0" />
+          <span className={labelClassName}>删除</span>
+        </button>
+      </div>
+    </OperationMenu>
+  );
+});
+TaskOperationsMenu.displayName = "TaskOperationsMenu";
 
 function CreateProjectDialog({ open, onOpenChange, onCreate }: {
   open: boolean;
@@ -902,7 +1096,8 @@ function CreateProjectDialog({ open, onOpenChange, onCreate }: {
   );
 }
 
-function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewChat, onOpenProjects, onNewProjectTask, projectListOpen, activeId, activeProjectId, onSelect, onSelectProject }: {
+function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewChat, onOpenProjects, onNewProjectTask, projectListOpen, activeId, activeProjectId, onSelect, onSelectProject, mobile = false }: {
+  mobile?: boolean;
   history: HistoryItem[];
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>;
   projects: ProjectItem[];
@@ -921,7 +1116,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
   const [menuId, setMenuId] = useState<number | null>(null);
   const [hoverProjectId, setHoverProjectId] = useState<number | null>(null);
   const [projectMenuId, setProjectMenuId] = useState<number | null>(null);
-  const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [profileHovered, setProfileHovered] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
@@ -929,9 +1124,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
   const [tasksExpanded, setTasksExpanded] = useState(true);
   const [expandedProjectIds, setExpandedProjectIds] = useState<Set<number>>(() => new Set());
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
-  const [moveMenuOpen, setMoveMenuOpen] = useState(false);
   const [pendingTaskMoveId, setPendingTaskMoveId] = useState<number | null>(null);
-  const closeMoveMenuTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const profileTriggerRef = useRef<HTMLButtonElement>(null);
@@ -942,7 +1135,6 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuId(null);
         setProjectMenuId(null);
-        setMoveMenuOpen(false);
       }
       if (
         profileMenuOpen &&
@@ -967,24 +1159,13 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
   }, [activeId, history]);
 
   const menuTask = menuId === null ? null : history.find(item => item.id === menuId) ?? null;
-  const moveTargets = menuTask?.projectId === undefined
-    ? projects
-    : projects.filter(project => project.id !== menuTask.projectId);
-  const openMoveMenu = () => {
-    if (closeMoveMenuTimer.current) clearTimeout(closeMoveMenuTimer.current);
-    setMoveMenuOpen(true);
-  };
-  const deferCloseMoveMenu = () => {
-    closeMoveMenuTimer.current = setTimeout(() => setMoveMenuOpen(false), 140);
-  };
   const closeContextMenu = () => {
     setMenuId(null);
     setProjectMenuId(null);
-    setMoveMenuOpen(false);
   };
 
   return (
-    <div className="relative w-[240px] shrink-0 self-stretch border-r border-[#f2f2f2] bg-white p-0 flex flex-col items-center">
+    <div className={`relative w-[240px] shrink-0 self-stretch border-r border-[#f2f2f2] bg-white p-0 flex flex-col items-center${mobile ? " h-full min-h-0" : ""}`}>
       {/* head */}
       <div className="relative h-[256px] w-full shrink-0 bg-white">
         <div className="absolute left-[calc(50%-15.8px)] top-[52px] h-[16px] w-[160.403px] -translate-x-1/2">
@@ -998,7 +1179,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
           className="absolute left-[20px] top-[12px] flex size-[24px] cursor-pointer items-start rounded-[4px] p-[4px] hover:bg-[#f7f7f7]"
         >
           <span className="relative h-full min-w-px flex-1">
-            <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/0c886.svg" />
+            <img alt="" className="absolute inset-0 block size-full max-w-none" src={mobile ? "/assets/a8ef3.svg" : "/assets/0c886.svg"} />
           </span>
         </button>
         {/* search button */}
@@ -1184,8 +1365,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
                               setProjectMenuId(null);
                               return;
                             }
-                            const rect = event.currentTarget.getBoundingClientRect();
-                            setMenuPos({ x: rect.right + 4, y: rect.top });
+                            setMenuAnchor(event.currentTarget);
                             setMenuId(null);
                             setProjectMenuId(project.id);
                             setHoverProjectId(project.id);
@@ -1253,11 +1433,9 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
                                 setMenuId(null);
                                 return;
                               }
-                              const rect = event.currentTarget.getBoundingClientRect();
-                              setMenuPos({ x: rect.right + 4, y: rect.top + 32 });
+                              setMenuAnchor(event.currentTarget);
                               setProjectMenuId(null);
                               setMenuId(task.id);
-                              setMoveMenuOpen(false);
                               setHoverId(task.id);
                             }}
                             className="flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] hover:bg-[rgba(0,0,0,0.06)]"
@@ -1333,11 +1511,9 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
                         onClick={e => {
                           e.stopPropagation();
                           if (hasMenu) { setMenuId(null); return; }
-                          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                          setMenuPos({ x: rect.right + 4, y: rect.top + 32 });
+                          setMenuAnchor(e.currentTarget);
                           setProjectMenuId(null);
                           setMenuId(item.id);
-                          setMoveMenuOpen(false);
                           setHoverId(item.id);
                         }}
                         className="shrink-0 w-[24px] h-[24px] flex items-center justify-center rounded-[4px] hover:bg-[rgba(0,0,0,0.06)] cursor-pointer"
@@ -1358,8 +1534,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
 
       {/* context menu — fixed to escape overflow clip */}
       {projectMenuId !== null && (
-        <div ref={menuRef} className="fixed z-[200] w-[192px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
-          style={{ left: menuPos.x, top: menuPos.y }}>
+        <OperationMenu anchor={menuAnchor} ref={menuRef} className="w-[192px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
           <div className="flex flex-col py-[4px]">
             {[
               {
@@ -1386,132 +1561,36 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
               </button>
             ))}
           </div>
-        </div>
+        </OperationMenu>
       )}
 
       {menuTask && (
-        <div ref={menuRef} className="fixed z-[200] w-[192px] overflow-visible rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
-          style={{ left: menuPos.x, top: menuPos.y }}>
-          <div className="flex flex-col py-[4px]">
-            <button
-              type="button"
-              onClick={() => {
-                setHistory(items => items.map(item => item.id === menuTask.id ? { ...item, pinned: !item.pinned } : item));
-                closeContextMenu();
-              }}
-              className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
-            >
-              <img src={menuTask.pinned ? "/assets/67fe6.svg" : "/assets/4363a.svg"} alt="" className="shrink-0" />
-              <span className="whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
-                {menuTask.pinned ? "取消置顶" : "置顶此对话"}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const name = window.prompt("请输入新的任务名称", menuTask.title)?.trim();
-                if (name) setHistory(items => items.map(item => item.id === menuTask.id ? { ...item, title: name } : item));
-                closeContextMenu();
-              }}
-              className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
-            >
-              <img src="/assets/e2b81.svg" alt="" className="shrink-0" />
-              <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">重命名</span>
-            </button>
-            <div className="relative" onMouseEnter={openMoveMenu} onMouseLeave={deferCloseMoveMenu}>
-              <button
-                type="button"
-                aria-haspopup="menu"
-                aria-expanded={moveMenuOpen}
-                className={`flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left ${moveMenuOpen ? "bg-[#f2f2f2]" : "hover:bg-[#f7f7f7]"}`}
-              >
-                <img src="/assets/1d8f2.svg" alt="" className="shrink-0" />
-                <span className="min-w-0 flex-1 font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">移动到项目</span>
-                <img src="/assets/fb6a4.svg" alt="" className="shrink-0" />
-              </button>
-              {moveMenuOpen && (
-                <div
-                  role="menu"
-                  onMouseEnter={openMoveMenu}
-                  onMouseLeave={deferCloseMoveMenu}
-                  className="absolute left-[calc(100%+16px)] top-0 z-[210] w-[232px] overflow-hidden rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
-                >
-                  <div className="flex max-h-[480px] flex-col overflow-y-auto py-[4px]">
-                    {moveTargets.length === 0 ? (
-                      <div className="flex items-center px-[8px] py-[11px]">
-                        <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">暂无项目</span>
-                      </div>
-                    ) : moveTargets.map(project => (
-                      <button
-                        key={project.id}
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          setHistory(items => items.map(item => item.id === menuTask.id ? { ...item, projectId: project.id } : item));
-                          setExpandedProjectIds(current => new Set(current).add(project.id));
-                          closeContextMenu();
-                        }}
-                        className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
-                      >
-                        <img src="/assets/d95df.svg" alt="" className="shrink-0" />
-                        <span className="min-w-0 flex-1 truncate font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">{project.name}</span>
-                      </button>
-                    ))}
-                    <div className="relative h-px w-full">
-                      <img src="/assets/4b9c6.svg" alt="" className="absolute left-0 top-0" />
-                    </div>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setPendingTaskMoveId(menuTask.id);
-                        closeContextMenu();
-                        setCreateProjectOpen(true);
-                      }}
-                      className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
-                    >
-                      <img src="/assets/eede2.svg" alt="" className="shrink-0" />
-                      <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">新建项目</span>
-                    </button>
-                    {menuTask.projectId !== undefined && (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          setHistory(items => items.map(item => item.id === menuTask.id ? { ...item, projectId: undefined } : item));
-                          closeContextMenu();
-                        }}
-                        className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
-                      >
-                        <img src="/assets/6ec2b.svg" alt="" className="shrink-0" />
-                        <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">从项目中移出</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setHistory(items => items.filter(item => item.id !== menuTask.id));
-                closeContextMenu();
-              }}
-              className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
-            >
-              <img src="/assets/5ff6b.svg" alt="" className="shrink-0" />
-              <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">删除</span>
-            </button>
-          </div>
-        </div>
+        <TaskOperationsMenu
+          ref={menuRef}
+          anchor={menuAnchor}
+          task={menuTask}
+          projects={projects}
+          onTogglePin={() => setHistory(items => items.map(item => item.id === menuTask.id ? { ...item, pinned: !item.pinned } : item))}
+          onRename={title => setHistory(items => items.map(item => item.id === menuTask.id ? { ...item, title } : item))}
+          onMove={projectId => {
+            setHistory(items => items.map(item => item.id === menuTask.id ? { ...item, projectId } : item));
+            if (projectId !== undefined) setExpandedProjectIds(current => new Set(current).add(projectId));
+          }}
+          onCreateProject={() => {
+            setPendingTaskMoveId(menuTask.id);
+            setCreateProjectOpen(true);
+          }}
+          onDelete={() => setHistory(items => items.filter(item => item.id !== menuTask.id))}
+          onClose={closeContextMenu}
+        />
       )}
 
       {profileMenuOpen && (
-        <div
+        <OperationMenu anchor={profileTriggerRef.current}
           ref={profileMenuRef}
           role="menu"
           aria-label="用户菜单"
-          className="absolute bottom-[48px] left-[24px] z-[200] w-[192px] overflow-hidden rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+          className="w-[192px] overflow-hidden rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
         >
           <div className="flex w-full flex-col py-[4px]">
             <button
@@ -1561,7 +1640,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
               <span className="whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">退出登录</span>
             </button>
           </div>
-        </div>
+        </OperationMenu>
       )}
 
       {/* bottom — user info */}
@@ -1685,7 +1764,7 @@ function PptSettingPicker(props: PptSettingPickerProps) {
   return (
     <div ref={pickerRef} className="relative shrink-0">
       {open && (
-        <div className={`absolute bottom-[calc(100%+8px)] z-50 overflow-hidden rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)] ${isMode ? "left-0 w-[232px]" : "left-0 w-[192px]"}`}>
+        <OperationMenu anchor={pickerRef.current?.querySelector(":scope > button") ?? null} className={`overflow-hidden rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)] ${isMode ? "w-[232px]" : "w-[192px]"}`}>
           <div className="flex max-h-[480px] w-full flex-col overflow-y-auto py-[4px]">
             {!isMode && (
               <p className="px-[8px] text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">
@@ -1722,7 +1801,7 @@ function PptSettingPicker(props: PptSettingPickerProps) {
               );
             })}
           </div>
-        </div>
+        </OperationMenu>
       )}
       <button
         type="button"
@@ -1741,8 +1820,8 @@ function PptSettingPicker(props: PptSettingPickerProps) {
   );
 }
 
-function SendButton({ hasText, agentRunning = false, onSend, onStop }: {
-  hasText: boolean;
+function SendButton({ canSend, agentRunning = false, onSend, onStop }: {
+  canSend: boolean;
   agentRunning?: boolean;
   onSend: () => void;
   onStop?: () => void;
@@ -1758,44 +1837,47 @@ function SendButton({ hasText, agentRunning = false, onSend, onStop }: {
       onStop?.();
       return;
     }
-    if (!hasText || loading) return;
+    if (!canSend || loading) return;
     setLoading(true);
     onSend();
     window.setTimeout(() => setLoading(false), 560);
   };
 
   return (
-    <div
-      role="button"
-      tabIndex={agentRunning || hasText ? 0 : -1}
+    <button
+      type="button"
       aria-label={agentRunning ? "暂停生成" : "发送消息"}
-      aria-disabled={!agentRunning && !hasText}
+      aria-disabled={!agentRunning && !canSend}
+      disabled={!agentRunning && !canSend}
       onClick={handleClick}
-      onKeyDown={event => {
-        if ((event.key === "Enter" || event.key === " ") && (agentRunning || hasText)) {
-          event.preventDefault();
-          handleClick();
-        }
-      }}
-      className={`ml-auto shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#1e63f5] focus-visible:ring-offset-2 ${agentRunning || hasText ? "cursor-pointer" : "cursor-default"}`}
+      className={`group ml-auto shrink-0 rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-[#1e63f5] focus-visible:ring-offset-2 ${agentRunning || canSend ? "cursor-pointer" : "cursor-default"}`}
     >
-      {agentRunning || loading ? (
+      {agentRunning ? (
+        <div className="flex size-[30px] items-center justify-center rounded-full bg-[#ebf4ff] group-active:bg-[#99c3ff]">
+          <span className="block size-[12px] rounded-[2px] bg-[#1e63f5]" />
+        </div>
+      ) : loading ? (
         <div className="flex size-[30px] items-center justify-center rounded-full bg-[#1e63f5]">
-          <span className={`block size-[10px] ${loading ? "animate-spin rounded-full border-2 border-white border-t-transparent" : "rounded-[2px] bg-white"}`} />
+          <span className="block size-[10px] animate-spin rounded-full border-2 border-white border-t-transparent" />
         </div>
       ) : (
-        <div className={`flex size-[30px] items-center justify-center overflow-hidden rounded-full ${hasText ? "bg-[#1e63f5]" : "bg-[#f2f2f2]"}`}>
-          <img src="/assets/9b290.svg" alt="" className={hasText ? "brightness-0 invert" : ""} />
+        <div className={`flex size-[30px] items-center justify-center overflow-hidden rounded-full ${canSend ? "bg-[#1e63f5] group-hover:bg-[#4788ff] group-active:bg-[#0e45cf]" : "bg-[#f2f2f2]"}`}>
+          <img src={canSend ? "/assets/051ee.svg" : "/assets/9b290.svg"} alt="" />
         </div>
       )}
-    </div>
+    </button>
   );
 }
 
-function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChange, pptMode, onPptModeChange, pptPages, onPptPagesChange, agentRunning = false, onStop, homeAppearance = false }: {
+function ChatInput({ value, onChange, onSend, attachments, onAddFiles, onRemoveAttachment, hasProject = false, projectFiles, pptGeneration, onPptGenerationChange, pptMode, onPptModeChange, pptPages, onPptPagesChange, agentRunning = false, onStop, placeholder = "有问题，尽管问；/调用技能" }: {
   value: string;
   onChange: (v: string) => void;
-  onSend: () => void;
+  onSend: (text?: string, attachments?: ChatAttachment[]) => void;
+  attachments: ChatAttachment[];
+  onAddFiles: (files: File[]) => void;
+  onRemoveAttachment: (id: string) => void;
+  hasProject?: boolean;
+  projectFiles?: ProjectFiles;
   pptGeneration: boolean;
   onPptGenerationChange: (selected: boolean) => void;
   pptMode: PptMode;
@@ -1804,57 +1886,118 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
   onPptPagesChange: (pages: PptPageCount) => void;
   agentRunning?: boolean;
   onStop?: () => void;
-  homeAppearance?: boolean;
+  placeholder?: string;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const closeUploadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const pptToggleRef = useRef<HTMLDivElement>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const [uploadMenuOpen, setUploadMenuOpen] = useState(false);
+  const [attachmentSource, setAttachmentSource] = useState<AttachmentSource | null>(null);
+  const [settingsCollapsed, setSettingsCollapsed] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const hasText = value.trim().length > 0;
+  const canSend = (hasText || attachments.length > 0) && attachments.every(attachment => attachment.status === "ready");
+
+  useEffect(() => {
+    if (!hasProject && attachmentSource === "项目资料") setAttachmentSource(null);
+  }, [hasProject, attachmentSource]);
 
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 160) + "px";
-  }, [value]);
+    const resize = () => {
+      const maxHeight = Math.min(228, 328 - 24 - (attachments.length ? 64 : 0) - 36 - (toolbarRef.current?.offsetHeight ?? 38) - 2);
+      el.style.height = "auto";
+      el.style.maxHeight = maxHeight + "px";
+      el.style.height = Math.min(el.scrollHeight, maxHeight) + "px";
+    };
+    resize();
+    let width = el.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (el.clientWidth !== width) {
+        width = el.clientWidth;
+        resize();
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [value, attachments.length, pptGeneration, settingsCollapsed]);
+
+  useEffect(() => {
+    const toolbar = toolbarRef.current;
+    const toggle = pptToggleRef.current;
+    const settings = settingsRef.current;
+    if (!toolbar || !toggle || !settings) return;
+    const update = () => {
+      const available = toolbar.clientWidth - 16 - 30 - 32;
+      const required = 30 + 8 + toggle.offsetWidth + (pptGeneration ? 8 + settings.offsetWidth : 0);
+      const collapsed = pptGeneration && required > available;
+      setSettingsCollapsed(collapsed);
+      if (!collapsed) setMoreOpen(false);
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(toolbar);
+    observer.observe(toggle);
+    observer.observe(settings);
+    return () => observer.disconnect();
+  }, [pptGeneration, pptMode, pptPages]);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const close = (event: MouseEvent) => {
+      if (!moreTriggerRef.current?.contains(event.target as Node)) setMoreOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [moreOpen]);
 
   useEffect(() => {
     if (!addMenuOpen) return;
     const closeOnOutsideClick = (event: MouseEvent) => {
       if (!addMenuRef.current?.contains(event.target as Node)) {
         setAddMenuOpen(false);
-        setUploadMenuOpen(false);
       }
     };
     document.addEventListener("mousedown", closeOnOutsideClick);
     return () => document.removeEventListener("mousedown", closeOnOutsideClick);
   }, [addMenuOpen]);
 
-  const openUploadMenu = () => {
-    if (closeUploadTimer.current) clearTimeout(closeUploadTimer.current);
-    setUploadMenuOpen(true);
-  };
-  const deferCloseUploadMenu = () => {
-    closeUploadTimer.current = setTimeout(() => setUploadMenuOpen(false), 140);
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (hasText) onSend(); }
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (canSend) onSend(value, attachments);
+    }
   };
 
   return (
-    <div className="relative w-full max-h-[328px] rounded-[20px] bg-white" style={{ boxShadow: homeAppearance ? "none" : "0 0 12px rgba(0,0,0,0.08)", border: "1px solid #e6e6e6" }}>
+    <Popover open={attachmentSource !== null} onOpenChange={open => {
+      if (!open) setAttachmentSource(null);
+    }}>
+    <PopoverAnchor asChild>
+    <div className="relative w-full max-h-[328px] rounded-[20px] border border-[#e6e6e6] bg-white shadow-none">
       <div className="px-[12px] pt-[12px] pb-[12px]" onPointerDown={() => textareaRef.current?.focus()}>
+        <AttachmentTray attachments={attachments} onRemove={onRemoveAttachment} />
         <textarea ref={textareaRef} value={value} onChange={e => onChange(e.target.value)} onKeyDown={handleKeyDown}
-          placeholder="有问题，尽管问；/调用技能" rows={1} style={{ minHeight: 22, maxHeight: 228 }}
+          onPaste={event => {
+            const files = Array.from(event.clipboardData.items)
+              .filter(item => item.kind === "file")
+              .map(item => item.getAsFile())
+              .filter((file): file is File => file !== null);
+            if (files.length) onAddFiles(files);
+          }}
+          placeholder={placeholder} rows={1} style={{ minHeight: 22, maxHeight: 228 }}
           className="relative z-10 block w-full resize-none bg-transparent text-[14px] font-normal leading-[22px] text-[rgba(0,0,0,0.88)] tracking-[0.014px] placeholder:text-[rgba(0,0,0,0.26)] outline-none overflow-y-auto"
         />
         <div className="h-[36px]" />
       </div>
-      <div className="px-[8px] pb-[8px] flex items-center gap-[8px]">
+      <div ref={toolbarRef} className="px-[8px] pb-[8px] flex items-center gap-[32px]">
+        <div className="relative flex min-w-0 items-center gap-[8px]">
         <div ref={addMenuRef} className="relative shrink-0">
           <button
             type="button"
@@ -1863,9 +2006,10 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
             aria-expanded={addMenuOpen}
             onClick={() => {
               setAddMenuOpen(open => !open);
-              setUploadMenuOpen(false);
+              setAttachmentSource(null);
             }}
-            className={`flex size-[30px] cursor-pointer items-center justify-center rounded-full ${homeAppearance ? "border-0" : "border border-[#f2f2f2]"} ${addMenuOpen ? "bg-[#f2f2f2]" : "hover:bg-[#f7f7f7]"}`}
+            className={`flex size-[30px] cursor-pointer items-center justify-center rounded-full border-0 ${addMenuOpen ? "bg-[#f2f2f2]" : "hover:bg-[#f7f7f7]"}`}
+            title="添加内容"
           >
             <img src="/assets/afee9.svg" alt="" />
           </button>
@@ -1873,86 +2017,119 @@ function ChatInput({ value, onChange, onSend, pptGeneration, onPptGenerationChan
             ref={fileInputRef}
             type="file"
             className="hidden"
-            onChange={() => {
+            accept=".png,.jpg,.jpeg,.pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.html,.eml,.msg"
+            multiple
+            onChange={event => {
+              const files = Array.from(event.currentTarget.files ?? []);
+              if (files.length) onAddFiles(files);
+              event.currentTarget.value = "";
               setAddMenuOpen(false);
-              setUploadMenuOpen(false);
             }}
           />
           {addMenuOpen && (
-            <div
+            <OperationMenu anchor={addMenuRef.current?.querySelector(":scope > button") ?? null}
+              gap={8}
               role="menu"
-              className="absolute bottom-[calc(100%+8px)] left-[-2px] z-50 w-[240px] overflow-visible rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+              aria-label="添加内容"
+              onKeyDown={event => {
+                if (event.key === "Escape") {
+                  setAddMenuOpen(false);
+                  addMenuRef.current?.querySelector("button")?.focus();
+                }
+              }}
+              className="w-[192px] overflow-hidden rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
             >
               <div className="flex w-full flex-col py-[4px]">
-                <div className="relative" onMouseEnter={openUploadMenu} onMouseLeave={deferCloseUploadMenu}>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    aria-haspopup="menu"
-                    aria-expanded={uploadMenuOpen}
-                    className={`flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left ${uploadMenuOpen ? "bg-[#f2f2f2]" : "hover:bg-[#f7f7f7]"}`}
-                  >
-                    <img src="/assets/affa0.svg" alt="" className="shrink-0" />
-                    <span className="min-w-0 flex-1 font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">上传文件</span>
-                    <img src="/assets/fb6a4.svg" alt="" className="shrink-0" />
-                  </button>
-                  {uploadMenuOpen && (
-                    <div
-                      role="menu"
-                      onMouseEnter={openUploadMenu}
-                      onMouseLeave={deferCloseUploadMenu}
-                      className="absolute left-[calc(100%+16px)] top-[-52px] z-[60] w-[192px] overflow-hidden rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
-                    >
-                      <div className="flex w-full flex-col py-[4px]">
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
-                        >
-                          <img src="/assets/f811e.svg" alt="" className="shrink-0" />
-                          <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">上传本地文件</span>
-                        </button>
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => {
-                            setAddMenuOpen(false);
-                            setUploadMenuOpen(false);
-                          }}
-                          className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
-                        >
-                          <img src="/assets/7a712.svg" alt="" className="shrink-0" />
-                          <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">添加工作内容</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
                 <button
                   type="button"
                   role="menuitem"
-                  onClick={() => setAddMenuOpen(false)}
-                  className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+                  onClick={() => {
+                    fileInputRef.current?.click();
+                    setAddMenuOpen(false);
+                  }}
+                  className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left font-normal hover:bg-[#f2f2f2] focus-visible:bg-[#f2f2f2]"
                 >
-                  <img src="/assets/29219.svg" alt="" className="shrink-0" />
-                  <span className="min-w-0 flex-1 font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">来源</span>
-                  <img src="/assets/fb6a4.svg" alt="" className="shrink-0" />
+                  <img src="/assets/f811e.svg" alt="" className="shrink-0" />
+                  <span className="min-w-0 flex-1 truncate text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">上传本地文件</span>
                 </button>
+                {([
+                  { label: "从 OneDrive 中添加", icon: "d70fd", source: "OneDrive" },
+                  { label: "从 Outlook 中添加", icon: "cc7e9", message: "Outlook 文件添加暂未接入" },
+                  { label: "从产物中添加", icon: "ec778", source: "产物" },
+                  { label: "从项目资料中添加", icon: "1d8f2", source: "项目资料" },
+                  { label: "来源", icon: "29219", message: "来源功能暂未接入" },
+                ] satisfies ({ label: string; icon: string } & ({ source: AttachmentSource } | { message: string }))[])
+                  .filter(item => item.source !== "项目资料" || hasProject).map(item => (
+                  <Fragment key={item.label}>
+                    {item.label === "来源" && (
+                      <div role="separator" className="relative h-0 w-full">
+                        <img src="/assets/11020.svg" alt="" className="absolute -top-[0.5px] left-0 max-w-none" />
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setAddMenuOpen(false);
+                        if ("source" in item && item.source) {
+                          setAttachmentSource(item.source);
+                        } else {
+                          toast.info(item.message);
+                        }
+                      }}
+                      className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left font-normal hover:bg-[#f2f2f2] focus-visible:bg-[#f2f2f2]"
+                    >
+                      <img src={`/assets/${item.icon}.svg`} alt="" className="shrink-0" />
+                      <span className="min-w-0 flex-1 truncate text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">{item.label}</span>
+                      {item.label === "来源" && <img src="/assets/fb6a4.svg" alt="" className="shrink-0" />}
+                    </button>
+                  </Fragment>
+                ))}
               </div>
-            </div>
+            </OperationMenu>
           )}
         </div>
-        <PptGenerationToggle selected={pptGeneration} onChange={onPptGenerationChange} borderless={homeAppearance} />
-        {pptGeneration && (
-          <>
+        <div ref={pptToggleRef} className="shrink-0">
+          <PptGenerationToggle selected={pptGeneration} onChange={onPptGenerationChange} borderless />
+        </div>
+        <div ref={settingsRef} aria-hidden={!pptGeneration || settingsCollapsed} className={`flex w-max shrink-0 items-center gap-[8px] ${!pptGeneration || settingsCollapsed ? "invisible pointer-events-none absolute left-0 top-0" : ""}`}>
             <PptSettingPicker kind="mode" value={pptMode} onChange={onPptModeChange} />
             <PptSettingPicker kind="pages" value={pptPages} onChange={onPptPagesChange} />
-          </>
+        </div>
+        {settingsCollapsed && (
+          <button ref={moreTriggerRef} type="button" aria-label="更多设置" aria-haspopup="menu" aria-expanded={moreOpen} onClick={() => setMoreOpen(open => !open)} className="flex size-[30px] shrink-0 items-center justify-center rounded-full hover:bg-[#f7f7f7]">
+            <img src="/assets/bbe3b.svg" alt="" />
+          </button>
         )}
-        <SendButton hasText={hasText} agentRunning={agentRunning} onSend={onSend} onStop={onStop} />
+        {moreOpen && settingsCollapsed && (
+          <OperationMenu anchor={moreTriggerRef.current} className="flex flex-col items-start gap-[8px] rounded-[12px] border border-[#f2f2f2] bg-white p-[8px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
+            <PptSettingPicker kind="mode" value={pptMode} onChange={onPptModeChange} />
+            <PptSettingPicker kind="pages" value={pptPages} onChange={onPptPagesChange} />
+          </OperationMenu>
+        )}
+        </div>
+        <SendButton
+          canSend={canSend}
+          agentRunning={agentRunning}
+          onSend={() => onSend(value, attachments)}
+          onStop={onStop}
+        />
       </div>
     </div>
+    </PopoverAnchor>
+    {attachmentSource && (
+      <AttachmentPicker
+        source={attachmentSource}
+        hasProject={hasProject}
+        projectFiles={projectFiles}
+        onSourceChange={setAttachmentSource}
+        attachments={attachments}
+        onAddFiles={onAddFiles}
+        onRemove={onRemoveAttachment}
+        onClose={() => textareaRef.current?.focus()}
+      />
+    )}
+    </Popover>
   );
 }
 
@@ -1980,19 +2157,26 @@ function HomeProjectPicker({ projects, selectedProjectId, onSelectProject, onCre
     <>
       <div ref={pickerRef} className="relative w-full px-[16px]">
         {menuOpen && (
-          <div className="absolute bottom-[48px] left-[16px] z-50 flex max-h-[480px] w-[232px] flex-col overflow-y-auto rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
-            <div className="flex w-full flex-col py-[4px]">
+          <OperationMenu role="menu" anchor={pickerRef.current?.querySelector("button") ?? null} className="flex w-[232px] flex-col overflow-y-auto rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
+            <div className="flex max-h-[470px] w-full shrink-0 flex-col overflow-x-hidden overflow-y-auto py-[4px]">
+              {projects.length === 0 && (
+                <div className="shrink-0 rounded-[8px] px-[8px] py-[11px] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">
+                  暂无项目
+                </div>
+              )}
               {projects.map(project => {
                 const isSelected = selectedProjectId === project.id;
                 return (
                   <button
                     key={project.id}
                     type="button"
+                    role="menuitemradio"
+                    aria-checked={isSelected}
                     onClick={() => {
                       onSelectProject(project.id);
                       setMenuOpen(false);
                     }}
-                    className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+                    className="flex w-full shrink-0 cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
                   >
                     <img src="/assets/d95df.svg" alt="" className="shrink-0" />
                     <span className={`min-w-0 flex-1 truncate text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${isSelected ? "font-medium" : "font-normal"}`}>
@@ -2002,33 +2186,35 @@ function HomeProjectPicker({ projects, selectedProjectId, onSelectProject, onCre
                   </button>
                 );
               })}
-              <div className="relative h-px w-full">
-                <img src="/assets/4b9c6.svg" alt="" className="absolute left-0 top-0" />
+              <div className="relative h-0 w-full shrink-0">
+                <img src="/assets/4b9c6.svg" alt="" className="absolute left-0 top-[-0.5px] max-w-none" />
               </div>
               <button
                 type="button"
+                role="menuitem"
                 onClick={() => {
                   setMenuOpen(false);
                   setCreateProjectOpen(true);
                 }}
-                className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+                className="flex w-full shrink-0 cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
               >
                 <img src="/assets/eede2.svg" alt="" className="shrink-0" />
                 <span className="text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">新建项目</span>
               </button>
-              <button
+              {selectedProject && <button
                 type="button"
+                role="menuitem"
                 onClick={() => {
                   onSelectProject(null);
                   setMenuOpen(false);
                 }}
-                className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+                className="flex w-full shrink-0 cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
               >
                 <img src="/assets/92b7f.svg" alt="" className="shrink-0" />
                 <span className="text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">不选择项目</span>
-              </button>
+              </button>}
             </div>
-          </div>
+          </OperationMenu>
         )}
         <div className="flex h-[40px] w-full items-center overflow-hidden rounded-t-[16px] bg-[#f7f7f7] py-[4px] pl-[8px] pr-[4px]">
           <button
@@ -2056,40 +2242,56 @@ function HomeProjectPicker({ projects, selectedProjectId, onSelectProject, onCre
 
 // ── header ────────────────────────────────────────────────────────────────────
 
-function ChatHeader({ title, projectBreadcrumb, sidebarOpen, onSidebarToggle, onNewChat }: {
+function ChatHeader({ title, projectBreadcrumb, projectOverview, actions, sidebarOpen, onSidebarToggle, onNewChat, mobile = false }: {
+  mobile?: boolean;
   title?: string;
-  projectBreadcrumb?: { projectName: string; taskName: string };
+  projectBreadcrumb?: { projectName: string; taskName: string; onSelectProject: () => void };
+  projectOverview?: { name: string; onOpenProjects: () => void };
+  actions?: React.ReactNode;
   sidebarOpen?: boolean;
   onSidebarToggle?: () => void;
   onNewChat?: () => void;
 }) {
   return (
     <div className="relative z-30 flex h-[48px] min-h-[48px] w-full shrink-0 items-center gap-[8px] bg-white px-[16px] py-0">
-      {!sidebarOpen && (
+      {mobile ? (
         <>
-          <button className="relative z-10 shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer" onClick={onSidebarToggle} aria-label="展开侧边栏">
-            <span aria-hidden className="relative size-[20px] overflow-hidden">
-              <svg className="absolute inset-[6.25%] size-[87.5%]" viewBox="0 0 17.5 17.5" fill="none" preserveAspectRatio="none">
-                <path d={svgPaths.p2861a580} fill="black" fillOpacity="0.6" />
-              </svg>
+          <SheetTrigger asChild>
+            <button type="button" aria-label="展开导航" className="relative z-10 flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] p-[4px] hover:bg-[#f7f7f7]">
+              <img alt="" src="/assets/81b0c.svg" />
+            </button>
+          </SheetTrigger>
+          <button type="button" onClick={onNewChat} aria-label="新建对话" className="relative z-10 flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] p-[4px] hover:bg-[#f7f7f7]">
+            <img alt="" src="/assets/200cc.svg" />
+          </button>
+        </>
+      ) : !sidebarOpen && (
+        <>
+          <button className="relative z-10 flex size-[24px] shrink-0 cursor-pointer items-start rounded-[4px] p-[4px] hover:bg-[#f7f7f7]" onClick={onSidebarToggle} aria-label="展开侧边栏">
+            <span aria-hidden className="relative size-[16px] shrink-0">
+              <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/0c886.svg" />
             </span>
           </button>
-          <button className="relative z-10 shrink-0 w-[32px] h-[32px] flex items-center justify-center rounded-[4px] hover:bg-[#f7f7f7] cursor-pointer" onClick={onNewChat} aria-label="新建对话">
-            <span aria-hidden className="relative size-[20px] overflow-hidden">
-              <svg className="absolute left-[8.33%] top-0 h-[93.75%] w-[91.67%]" viewBox="0 0 18.3333 18.75" fill="none" preserveAspectRatio="none">
-                <path d={svgPaths.pad1cb00} fill="black" fillOpacity="0.6" />
-              </svg>
+          <button className="relative z-10 flex size-[24px] shrink-0 cursor-pointer items-start rounded-[4px] p-[4px] hover:bg-[#f7f7f7]" onClick={onNewChat} aria-label="新建对话">
+            <span aria-hidden className="relative size-[16px] shrink-0">
+              <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/a4798.svg" />
             </span>
           </button>
         </>
       )}
-      {projectBreadcrumb ? (
-        <div className={`absolute top-1/2 flex -translate-y-1/2 items-center gap-[8px] overflow-hidden ${sidebarOpen ? "left-[16px]" : "left-[96px]"}`}>
-          <span className="max-w-[240px] truncate font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">
+      {projectOverview ? (
+        <div className={`absolute top-1/2 right-[88px] flex -translate-y-1/2 items-center gap-[8px] overflow-hidden ${sidebarOpen ? "left-[16px]" : "left-[96px]"}`}>
+          <button type="button" onClick={projectOverview.onOpenProjects} className="shrink-0 cursor-pointer bg-transparent p-0 text-[14px] font-normal leading-[22px] text-[rgba(0,0,0,0.38)] hover:text-[rgba(0,0,0,0.88)]">项目</button>
+          <span className="text-[12px] text-[rgba(0,0,0,0.26)]">/</span>
+          <span className="truncate text-[14px] font-normal leading-[22px]">{projectOverview.name}</span>
+        </div>
+      ) : projectBreadcrumb ? (
+        <div className={`absolute top-1/2 right-[88px] flex -translate-y-1/2 items-center gap-[8px] overflow-hidden ${sidebarOpen ? "left-[16px]" : "left-[96px]"}`}>
+          <button type="button" onClick={projectBreadcrumb.onSelectProject} className="max-w-[240px] min-w-0 shrink cursor-pointer truncate rounded-[4px] font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)] hover:text-[rgba(0,0,0,0.88)] focus-visible:outline-2 focus-visible:outline-[#1e63f5]">
             {projectBreadcrumb.projectName}
-          </span>
-          <span className="font-['PingFang_SC:Regular'] text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.26)]">/</span>
-          <span className="max-w-[320px] truncate font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+          </button>
+          <span className="shrink-0 font-['PingFang_SC:Regular'] text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.26)]">/</span>
+          <span className="max-w-[320px] min-w-0 shrink truncate font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
             {projectBreadcrumb.taskName}
           </span>
         </div>
@@ -2097,6 +2299,83 @@ function ChatHeader({ title, projectBreadcrumb, sidebarOpen, onSidebarToggle, on
         <p className="pointer-events-none absolute left-0 right-0 truncate px-[80px] text-center text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.88)]">{title}</p>
       ) : null}
       <div className="flex-1" />
+      {actions}
+    </div>
+  );
+}
+
+function TaskHeaderActions({ task, projects, artifacts, setHistory, setProjects, onLocateArtifact }: {
+  task: HistoryItem;
+  projects: ProjectItem[];
+  artifacts: LocatedTaskArtifact[];
+  setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>;
+  setProjects: React.Dispatch<React.SetStateAction<ProjectItem[]>>;
+  onLocateArtifact: (artifact: LocatedTaskArtifact) => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [createProjectOpen, setCreateProjectOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!(event.target instanceof Node)) return;
+      if (triggerRef.current?.contains(event.target) || menuRef.current?.contains(event.target)) return;
+      if (event.target instanceof Element && event.target.closest("[data-operation-menu]")) return;
+      setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [menuOpen]);
+
+  const updateTask = (updates: Partial<HistoryItem>) => setHistory(items => items.map(item => item.id === task.id ? { ...item, ...updates } : item));
+
+  return (
+    <div className="relative z-10 flex shrink-0 items-center gap-[8px]">
+      <TaskArtifactsButton
+        artifacts={artifacts}
+        onLocate={onLocateArtifact}
+        onDownload={artifact => toast.success(`本地示例：开始下载${artifact.name}`)}
+      />
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-label="任务操作"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        onClick={() => setMenuOpen(open => !open)}
+        className={`flex size-[24px] shrink-0 cursor-pointer items-start rounded-[4px] p-[4px] hover:bg-[#f7f7f7] ${menuOpen ? "bg-[#f7f7f7]" : ""}`}
+      >
+        <span aria-hidden className="relative size-[16px] shrink-0">
+          <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/bbe3b.svg" />
+        </span>
+      </button>
+      {menuOpen && (
+        <TaskOperationsMenu
+          ref={menuRef}
+          anchor={triggerRef.current}
+          align="end"
+          gap={4}
+          task={task}
+          projects={projects}
+          onTogglePin={() => updateTask({ pinned: !task.pinned })}
+          onRename={title => updateTask({ title })}
+          onMove={projectId => updateTask({ projectId })}
+          onCreateProject={() => setCreateProjectOpen(true)}
+          onDelete={() => setHistory(items => items.filter(item => item.id !== task.id))}
+          onClose={() => setMenuOpen(false)}
+        />
+      )}
+      <CreateProjectDialog
+        open={createProjectOpen}
+        onOpenChange={setCreateProjectOpen}
+        onCreate={project => {
+          const id = Date.now();
+          setProjects(current => [...current, { ...project, id }]);
+          updateTask({ projectId: id });
+        }}
+      />
     </div>
   );
 }
@@ -2105,8 +2384,13 @@ function ChatHeader({ title, projectBreadcrumb, sidebarOpen, onSidebarToggle, on
 
 const SUGGESTIONS = ["找出近一周的邮件", "请帮我起草一封给团队的邮件", "总结下智能助手项目邮件"];
 
-function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGenerationChange, pptMode, onPptModeChange, pptPages, onPptPagesChange, projects, selectedProjectId, onSelectProject, onCreateProject }: {
-  input: string; onInputChange: (v: string) => void; onSend: (text?: string) => void;
+function HomeView({ input, onInputChange, onSend, attachments, onAddFiles, onRemoveAttachment, pptGeneration, onPptGenerationChange, pptMode, onPptModeChange, pptPages, onPptPagesChange, projects, selectedProjectId, onSelectProject, onCreateProject }: {
+  input: string;
+  onInputChange: (v: string) => void;
+  onSend: (text?: string, attachments?: ChatAttachment[]) => void;
+  attachments: ChatAttachment[];
+  onAddFiles: (files: File[]) => void;
+  onRemoveAttachment: (id: string) => void;
   pptGeneration: boolean; onPptGenerationChange: (selected: boolean) => void;
   pptMode: PptMode; onPptModeChange: (mode: PptMode) => void;
   pptPages: PptPageCount; onPptPagesChange: (pages: PptPageCount) => void;
@@ -2115,14 +2399,15 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
   onSelectProject: (id: number | null) => void;
   onCreateProject: (project: Omit<ProjectItem, "id">) => void;
 }) {
+  const selectedProject = projects.find(project => project.id === selectedProjectId);
   return (
     <div className="flex-1 min-h-0 bg-white flex flex-col overflow-hidden">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-      <div className="relative flex-1 min-h-0 px-[24px] max-[560px]:px-0">
+      <div className="conversation-gutter relative flex-1 min-h-0">
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
           <div className="w-[756px] h-[400px] rounded bg-gradient-to-r from-[#a3ffff] to-[#1e63f5] opacity-10 blur-[100px]" />
         </div>
-        <div className="relative mx-auto flex h-full w-full max-w-[800px] flex-col items-center pt-[160px]">
+        <div className="conversation-content relative mx-auto flex h-full w-full flex-col items-center pt-[160px]">
           <div className="shrink-0 flex items-baseline gap-[8px] pb-[16px]">
             <span className="text-[46px] font-semibold leading-[56px] text-[rgba(0,0,0,0.88)] tracking-[0.046px]">Hi，xxxx</span>
             <span className="w-[16px] h-[4px] bg-[rgba(0,0,0,0.88)] self-end mb-[10px]" style={{ animation: "blink 1s step-end infinite" }} />
@@ -2151,9 +2436,13 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
             />
             <ChatInput
               value={input}
+              hasProject={Boolean(selectedProject)}
+              projectFiles={selectedProject ? selectedProject.files ?? DEMO_PROJECT_FILES : undefined}
               onChange={onInputChange}
               onSend={onSend}
-              homeAppearance
+              attachments={attachments}
+              onAddFiles={onAddFiles}
+              onRemoveAttachment={onRemoveAttachment}
               pptGeneration={pptGeneration}
               onPptGenerationChange={onPptGenerationChange}
               pptMode={pptMode}
@@ -2171,84 +2460,30 @@ function HomeView({ input, onInputChange, onSend, pptGeneration, onPptGeneration
   );
 }
 
-function ProjectChatInput({ projectName, value, onChange, onSend }: {
-  projectName: string;
-  value: string;
-  onChange: (value: string) => void;
-  onSend: () => void;
-}) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const hasText = value.trim().length > 0;
-
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    textarea.style.height = "auto";
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
-  }, [value]);
-
-  return (
-    <div className="relative max-h-[328px] w-full rounded-[20px] border border-[#e6e6e6] bg-white shadow-[0_0_12px_rgba(0,0,0,0.08)]">
-      <div className="px-[12px] pb-[12px] pt-[12px]" onPointerDown={() => textareaRef.current?.focus()}>
-        <textarea
-          ref={textareaRef}
-          value={value}
-          rows={1}
-          placeholder={`在“${projectName}”中开始对话`}
-          onChange={event => onChange(event.target.value)}
-          onKeyDown={event => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              if (hasText) onSend();
-            }
-          }}
-          className="relative z-10 block max-h-[228px] min-h-[22px] w-full resize-none overflow-y-auto bg-transparent text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] outline-none placeholder:text-[rgba(0,0,0,0.26)]"
-        />
-        <div className="h-[36px]" />
-      </div>
-      <div className="flex items-center gap-[8px] px-[8px] pb-[8px]">
-        <button type="button" aria-label="添加内容" className="flex size-[30px] shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#f2f2f2] hover:bg-[#f7f7f7]">
-          <img src="/assets/0b1e3.svg" alt="" />
-        </button>
-        <button type="button" className="flex shrink-0 cursor-pointer items-center gap-[4px] rounded-full border border-[#f2f2f2] px-[8px] py-[4px] hover:bg-[#f7f7f7]">
-          <img src="/assets/33252.svg" alt="" className="shrink-0" />
-          <span className="whitespace-nowrap text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">来源</span>
-        </button>
-        <button type="button" className="flex shrink-0 cursor-pointer items-center gap-[4px] rounded-full border border-[#f2f2f2] px-[8px] py-[4px] hover:bg-[#f7f7f7]">
-          <img src="/assets/031c9.svg" alt="" className="shrink-0" />
-          <span className="whitespace-nowrap text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">技能</span>
-        </button>
-        <button
-          type="button"
-          aria-label="发送"
-          disabled={!hasText}
-          onClick={() => onSend()}
-          className={`ml-auto flex size-[30px] shrink-0 items-center justify-center overflow-hidden rounded-full ${hasText ? "cursor-pointer bg-[#1e63f5]" : "cursor-default bg-[#f2f2f2]"}`}
-        >
-          <img src={hasText ? "/assets/3b7df.svg" : "/assets/7f4a7.svg"} alt="" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
 const TRANSFER_MEMBERS = ["吴易奚", "吴易奚", "吴易奚", "吴易奚", "孙雨薇"];
 
-function ProjectCard({ project, onOpen, onRename, onArchive, onDelete }: {
+function ProjectCard({ project, onOpen, onRename, onArchive, onDelete, onTransfer, menuOnly = false }: {
   project: ProjectItem;
   onOpen: () => void;
   onRename: () => void;
   onArchive: () => void;
   onDelete: () => void;
+  onTransfer?: (member: string) => void;
+  menuOnly?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
-  const [transferOpensLeft, setTransferOpensLeft] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [memberSearch, setMemberSearch] = useState("");
   const cardRef = useRef<HTMLDivElement>(null);
   const closeTransferTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const transferTriggerRef = useRef<HTMLButtonElement>(null);
   const members = TRANSFER_MEMBERS.filter(member => member.includes(memberSearch.trim()));
+
+  useEffect(() => () => {
+    if (closeTransferTimer.current) clearTimeout(closeTransferTimer.current);
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -2282,7 +2517,15 @@ function ProjectCard({ project, onOpen, onRename, onArchive, onDelete }: {
 
   return (
     <div ref={cardRef} className="relative min-w-0">
-      <div
+      {menuOnly ? (
+        <button type="button" aria-label="项目操作" aria-haspopup="menu" aria-expanded={menuOpen} onClick={event => {
+          setMenuAnchor(event.currentTarget);
+          setMenuOpen(open => !open);
+          setTransferOpen(false);
+        }} className="flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
+          <img src="/assets/f8bb9.svg" alt="" />
+        </button>
+      ) : <div
         role="button"
         tabIndex={0}
         onClick={onOpen}
@@ -2317,8 +2560,7 @@ function ProjectCard({ project, onOpen, onRename, onArchive, onDelete }: {
             aria-expanded={menuOpen}
             onClick={event => {
               event.stopPropagation();
-              const rect = cardRef.current?.getBoundingClientRect();
-              if (rect) setTransferOpensLeft(rect.right + 424 > window.innerWidth);
+              setMenuAnchor(event.currentTarget);
               setMenuOpen(open => !open);
               setTransferOpen(false);
             }}
@@ -2327,12 +2569,17 @@ function ProjectCard({ project, onOpen, onRename, onArchive, onDelete }: {
             <img src="/assets/bbe3b.svg" alt="" className="shrink-0" />
           </button>
         )}
-      </div>
+      </div>}
 
       {menuOpen && (
-        <div
+        <OperationMenu anchor={menuAnchor}
           role="menu"
-          className="absolute right-0 top-[56px] z-40 w-[192px] overflow-visible rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+          aria-label="项目操作"
+          gap={menuOnly ? 8 : 0}
+          onKeyDown={event => {
+            if (event.key === "Escape") { closeMenus(); menuAnchor?.focus(); }
+          }}
+          className="w-[192px] overflow-visible rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
         >
           <div className="flex w-full flex-col py-[4px]">
             <button
@@ -2350,6 +2597,8 @@ function ProjectCard({ project, onOpen, onRename, onArchive, onDelete }: {
                 role="menuitem"
                 aria-haspopup="menu"
                 aria-expanded={transferOpen}
+                ref={transferTriggerRef}
+                onClick={openTransfer}
                 className={`flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left ${transferOpen ? "bg-[#f7f7f7]" : "hover:bg-[#f7f7f7]"}`}
               >
                 <img src="/assets/65325.svg" alt="" className="shrink-0" />
@@ -2357,13 +2606,11 @@ function ProjectCard({ project, onOpen, onRename, onArchive, onDelete }: {
                 <img src="/assets/fb6a4.svg" alt="" className="shrink-0" />
               </button>
               {transferOpen && (
-                <div
+                <OperationMenu submenu anchor={transferTriggerRef.current}
                   role="menu"
                   onMouseEnter={openTransfer}
                   onMouseLeave={deferCloseTransfer}
-                  className={`absolute top-[-44px] z-50 w-[224px] overflow-hidden rounded-[8px] bg-white shadow-[0_0_12px_rgba(0,0,0,0.08)] ${
-                    transferOpensLeft ? "right-[calc(100%+8px)]" : "left-[calc(100%+8px)]"
-                  }`}
+                  className="w-[224px] overflow-hidden rounded-[8px] bg-white shadow-[0_0_12px_rgba(0,0,0,0.08)]"
                 >
                   <div className="bg-white px-[16px] py-[4px]">
                     <label className="flex h-[32px] items-center gap-[8px] border-b border-[#1e63f5]">
@@ -2383,12 +2630,12 @@ function ProjectCard({ project, onOpen, onRename, onArchive, onDelete }: {
                         key={`${member}-${index}`}
                         type="button"
                         role="menuitem"
-                        onClick={closeMenus}
+                        onClick={() => { onTransfer?.(member); closeMenus(); }}
                         className="flex w-[192px] cursor-pointer items-center rounded-[8px] px-[8px] py-[10px] hover:bg-[#f7f7f7]"
                       >
                         <span className="flex h-[24px] max-w-[144px] items-center gap-[4px] rounded-[16px] bg-[#f7f7f7] pl-[2px] pr-[8px]">
                           <span className="flex size-[20px] shrink-0 items-center justify-center rounded-full bg-[#1e63f5] font-['PingFang_SC:Regular'] text-[12px] leading-[20px] tracking-[0.012px] text-[rgba(255,255,255,0.98)]">
-                            {member.slice(0, 1)}
+                            {getAvatarInitial(member)}
                           </span>
                           <span className="truncate font-['PingFang_SC:Regular'] text-[12px] leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.6)]">
                             {member}
@@ -2396,8 +2643,9 @@ function ProjectCard({ project, onOpen, onRename, onArchive, onDelete }: {
                         </span>
                       </button>
                     ))}
+                    {members.length === 0 && <p className="px-[8px] py-[10px] text-[14px] text-[rgba(0,0,0,0.38)]">没有匹配的成员</p>}
                   </div>
-                </div>
+                </OperationMenu>
               )}
             </div>
             {menuItems.slice(1).map(item => (
@@ -2413,8 +2661,43 @@ function ProjectCard({ project, onOpen, onRename, onArchive, onDelete }: {
               </button>
             ))}
           </div>
-        </div>
+        </OperationMenu>
       )}
+    </div>
+  );
+}
+
+function ProjectHeaderActions({ project, onRename, onTransfer, onArchive, onDelete, panelOpen, onTogglePanel }: {
+  project: ProjectItem;
+  onRename: (name: string) => void;
+  onTransfer: (member: string) => void;
+  onArchive: () => void;
+  onDelete: () => void;
+  panelOpen: boolean;
+  onTogglePanel: () => void;
+}) {
+  const [name, setName] = useState<string | null>(null);
+  return (
+    <div className="relative flex shrink-0 items-center gap-[8px]">
+      <ProjectCard project={project} menuOnly onOpen={() => {}} onRename={() => setName(project.name)} onTransfer={onTransfer} onArchive={onArchive} onDelete={onDelete} />
+      <button type="button" aria-label={panelOpen ? "收起右侧边栏" : "展开右侧边栏"} aria-expanded={panelOpen} aria-controls="project-configuration" onClick={onTogglePanel} className="flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
+        <img src="/assets/a8ef3.svg" alt="" />
+      </button>
+      <Dialog open={name !== null} onOpenChange={open => { if (!open) setName(null); }}>
+        <DialogContent aria-describedby={undefined} className="w-[400px] max-w-[calc(100vw-32px)] rounded-[16px] p-[24px]">
+          <DialogTitle>重命名项目</DialogTitle>
+          <form onSubmit={event => { event.preventDefault(); if (name?.trim()) { onRename(name.trim()); setName(null); } }} className="flex flex-col gap-[16px]">
+            <label className="flex flex-col gap-[8px] text-[14px] font-normal">
+              项目名称
+              <input autoFocus maxLength={15} value={name ?? ""} onChange={event => setName(event.target.value)} className="h-[40px] rounded-[8px] border border-[#e6e6e6] px-[12px] outline-none focus:border-[#1e63f5]" />
+            </label>
+            <div className="flex justify-end gap-[8px]">
+              <button type="button" onClick={() => setName(null)} className="cursor-pointer rounded-[8px] border border-[#e6e6e6] px-[16px] py-[8px] text-[14px] font-normal">取消</button>
+              <button type="submit" disabled={!name?.trim()} className="cursor-pointer rounded-[8px] bg-[#1e63f5] px-[16px] py-[8px] text-[14px] font-normal text-white disabled:opacity-40">确定</button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -2490,79 +2773,190 @@ function ProjectListView({ projects, onCreateProject, onSelectProject, onRenameP
   );
 }
 
-function ProjectHomeView({ project, input, onInputChange, onSend }: {
+function ProjectHomeView({ project, projects, tasks, onSelectTask, onUpdateTask, onDeleteTask, onCreateProject, inputProps, onUpdateProject, configurationOpen }: {
   project: ProjectItem;
-  input: string;
-  onInputChange: (value: string) => void;
-  onSend: () => void;
+  configurationOpen: boolean;
+  projects: ProjectItem[];
+  tasks: HistoryItem[];
+  onSelectTask: (id: number) => void;
+  onUpdateTask: (id: number, updates: Partial<Pick<HistoryItem, "title" | "pinned" | "projectId">>) => void;
+  onDeleteTask: (id: number) => void;
+  onCreateProject: (project: Omit<ProjectItem, "id">) => number;
+  inputProps: React.ComponentProps<typeof ChatInput>;
+  onUpdateProject: (updates: Pick<ProjectItem, "instruction"> | Pick<ProjectItem, "members"> | Pick<ProjectItem, "files">) => void;
 }) {
+  const [instructionOpen, setInstructionOpen] = useState(false);
+  const [membersOpen, setMembersOpen] = useState(false);
+  const [tab, setTab] = useState<"任务" | "来源" | "产物">("任务");
+  const [taskMenu, setTaskMenu] = useState<{ id: number; anchor: HTMLButtonElement } | null>(null);
+  const [renamingTask, setRenamingTask] = useState<{ id: number; title: string } | null>(null);
+  const [pendingTaskMoveId, setPendingTaskMoveId] = useState<number | null>(null);
+  const taskMenuRef = useRef<HTMLDivElement>(null);
+  const menuTask = tasks.find(task => task.id === taskMenu?.id);
+  const orderedTasks = [...tasks].sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || (b.createdAt ?? b.id) - (a.createdAt ?? a.id));
+
+  useEffect(() => {
+    if (!taskMenu) return;
+    const close = (event: PointerEvent) => {
+      if (event.target instanceof Node && !taskMenu.anchor.contains(event.target) && !taskMenuRef.current?.contains(event.target)) setTaskMenu(null);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [taskMenu]);
+
   return (
     <div className="flex min-h-0 flex-1 items-start gap-[16px] bg-white px-[16px]">
       <div className="flex h-full min-w-0 flex-1 flex-col items-center">
-        <div className="relative min-h-0 w-full max-w-[800px] flex-1">
-          <div className="absolute left-0 top-0 flex max-w-full items-center gap-[8px] overflow-hidden rounded-[4px]">
-            <img src="/assets/0fc4d.svg" alt="" className="shrink-0" />
-            <p className="min-w-0 truncate font-['PingFang_SC:Medium'] text-[20px] font-semibold leading-[28px] tracking-[0.02px] text-[rgba(0,0,0,0.88)]">
-              {project.name}
-            </p>
-            <button type="button" aria-label="项目操作" className="flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
-              <img src="/assets/bfc6f.svg" alt="" />
-            </button>
+        <div className="relative flex min-h-0 w-full flex-1 flex-col">
+          <div className="flex h-[48px] shrink-0 items-center gap-[12px]">
+            <div className="flex size-[48px] shrink-0 items-center justify-center rounded-[8px] bg-[#f7f7f7]">
+              <img src="/assets/e5ea3.svg" alt="" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[16px] font-bold leading-[24px] tracking-[0.016px] text-[rgba(0,0,0,0.88)]">{project.name}</p>
+              <p className="truncate text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">描述</p>
+            </div>
           </div>
-
-          <div className="absolute left-0 top-[28px] flex h-[48px] w-full items-end gap-[24px] border-b border-[#e6e6e6]">
-            <button type="button" className="flex h-[48px] cursor-pointer items-center border-b-2 border-[#1e63f5] font-['PingFang_SC:Medium'] text-[16px] font-medium leading-[24px] tracking-[0.016px] text-[#1e63f5]">
-              任务
-            </button>
-            <button type="button" className="flex h-[48px] cursor-pointer items-center font-['PingFang_SC:Regular'] text-[16px] font-normal leading-[24px] tracking-[0.016px] text-[rgba(0,0,0,0.6)]">
-              来源
-            </button>
+          <div role="tablist" aria-label="项目内容" className="flex h-[48px] shrink-0 items-end gap-[24px] border-b border-[#e6e6e6]">
+            {(["任务", "来源", "产物"] as const).map(item => (
+              <button key={item} type="button" role="tab" aria-selected={tab === item} onClick={() => { setTab(item); setTaskMenu(null); }} className={`flex h-[48px] cursor-pointer items-center border-b-2 text-[16px] leading-[24px] tracking-[0.016px] ${tab === item ? "border-[#1e63f5] font-medium text-[#1e63f5]" : "border-transparent font-normal text-[rgba(0,0,0,0.6)]"}`}>{item}</button>
+            ))}
           </div>
-
-          <div className="absolute left-1/2 top-[calc(50%-167px)] size-[240px] -translate-x-1/2 -translate-y-1/2">
-            <img src="/assets/b7105.png" alt="" className="pointer-events-none absolute inset-0 size-[240px] object-cover" />
-            <p className="absolute left-1/2 top-[186px] -translate-x-1/2 whitespace-nowrap font-['PingFang_SC:Medium'] text-[14px] font-medium leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">
-              暂无项目任务
-            </p>
-            <p className="absolute left-1/2 top-[210px] -translate-x-1/2 whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">
-              快去输入问题发起新的咨询
-            </p>
+          <div role="tabpanel" aria-label={tab} className={`min-h-0 flex-1 ${tab === "任务" ? "-mx-[8px] overflow-y-auto pt-[12px]" : "flex flex-col"}`}>
+            {tab !== "任务" ? (
+              <ProjectFilesPanel key={tab} kind={tab === "来源" ? "sources" : "artifacts"} files={project.files ?? DEMO_PROJECT_FILES} onChange={files => onUpdateProject({ files })} />
+            ) : orderedTasks.length > 0 ? (
+              <div className="flex flex-col gap-[8px]">
+                {orderedTasks.map(task => (
+                  <div key={task.id} data-project-task={task.id} className={`group flex min-h-[40px] shrink-0 items-center gap-[12px] rounded-[8px] px-[8px] py-[8px] hover:bg-[#f2f2f2] focus-within:bg-[#f2f2f2] ${taskMenu?.id === task.id ? "bg-[#f2f2f2]" : ""}`}>
+                    <button type="button" onClick={() => onSelectTask(task.id)} className="flex min-w-0 flex-1 cursor-pointer items-center gap-[12px] bg-transparent p-0 text-left text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
+                      <span className="truncate">{task.title}</span>
+                      {task.pinned && <img src="/assets/896b2.svg" alt="已置顶" className="shrink-0" />}
+                    </button>
+                    <div className="relative flex h-[24px] min-w-[24px] shrink-0 items-center justify-end">
+                      <time className={`text-[14px] font-normal leading-[22px] text-[rgba(0,0,0,0.26)] group-hover:invisible group-focus-within:invisible max-sm:hidden ${taskMenu?.id === task.id ? "invisible" : ""}`}>
+                        {task.createdAt ? new Date(task.createdAt).toLocaleString("sv-SE", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}
+                      </time>
+                      <button type="button" aria-label={`任务操作 ${task.title}`} aria-haspopup="menu" aria-expanded={taskMenu?.id === task.id} onClick={event => setTaskMenu(taskMenu?.id === task.id ? null : { id: task.id, anchor: event.currentTarget })} className={`absolute right-0 flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#e6e6e6] group-hover:visible group-focus-within:visible [@media(hover:none)]:visible ${taskMenu?.id === task.id ? "visible" : "invisible"}`}>
+                        <img src="/assets/bfc6f.svg" alt="" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex min-h-[240px] flex-col items-center justify-center py-[24px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">
+                <img src="/assets/b7105.png" alt="" className="size-[180px] object-cover" />
+                <p className="font-medium">暂无项目任务</p>
+                <p>快去输入问题发起新的咨询</p>
+              </div>
+            )}
           </div>
-
-          <div className="absolute bottom-0 left-0 w-full">
-            <ProjectChatInput projectName={project.name} value={input} onChange={onInputChange} onSend={onSend} />
-          </div>
+          {tab === "任务" && <div className="mx-auto w-full max-w-[800px] shrink-0 px-[16px] pt-[16px] max-sm:px-0">
+            <ChatInput {...inputProps} placeholder={`在“${project.name}”中开始对话`} />
+          </div>}
         </div>
         <div className="h-[20px] shrink-0 p-[4px] opacity-0">
           <span className="text-[10px] text-[rgba(0,0,0,0.26)]">内容由AI生成，仅供参考</span>
         </div>
       </div>
 
-      <div className="w-[320px] shrink-0 overflow-hidden rounded-[12px] border border-[#e6e6e6] max-[1000px]:hidden">
-        <div className="relative flex flex-col gap-[4px] border-b border-[#e6e6e6] p-[16px]">
-          <p className="font-['PingFang_SC:Medium'] text-[14px] font-medium leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">指令</p>
-          <button type="button" aria-label="添加指令" className="absolute right-[16px] top-[16px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
+      {configurationOpen && <div id="project-configuration" className="w-[320px] shrink-0 overflow-hidden rounded-[12px] border border-[#e6e6e6] max-[1000px]:hidden">
+        <div className="relative flex flex-col gap-[8px] border-b border-[#e6e6e6] p-[16px]">
+          <p className="text-[14px] font-bold leading-[24px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">指令</p>
+          <button type="button" aria-label="编辑指令" onClick={() => setInstructionOpen(true)} className="absolute right-[16px] top-[16px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
             <img src="/assets/49891.svg" alt="" />
           </button>
-          <p className="truncate font-['PingFang_SC:Regular'] text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">
+          <p className="break-words whitespace-pre-wrap text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.88)]">
             {project.instruction || "设定项目背景与规范，让 AI 与你高效协作"}
           </p>
         </div>
-        <div className="relative flex flex-col gap-[4px] p-[16px]">
-          <p className="font-['PingFang_SC:Medium'] text-[14px] font-medium leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">成员</p>
-          <button type="button" aria-label="添加成员" className="absolute right-[16px] top-[16px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
+        <div className="relative flex flex-col gap-[8px] p-[16px]">
+          <p className="text-[14px] font-bold leading-[24px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">成员</p>
+          <button type="button" aria-label="添加成员" onClick={() => setMembersOpen(true)} className="absolute right-[16px] top-[16px] flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
             <img src="/assets/49891.svg" alt="" />
           </button>
-          <p className="font-['PingFang_SC:Regular'] text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">协作者</p>
+          {project.members?.length ? (
+            <div className="flex items-center py-[4px]">
+              {project.members.slice(0, 8).map(member => (
+                <span key={member.id} title={member.name} className="-mr-[8px] flex size-[24px] shrink-0 items-center justify-center rounded-full border border-white text-[12px] font-normal text-white" style={{ backgroundColor: member.color }}>{getAvatarInitial(member.name)}</span>
+              ))}
+              {project.members.length > 8 && <span className="ml-[8px] rounded-full border border-[#ebf4ff] px-[4px] text-[12px] text-[#1e63f5]">+{project.members.length - 8}</span>}
+            </div>
+          ) : <p className="font-['PingFang_SC:Regular'] text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">协作者</p>}
         </div>
-      </div>
+      </div>}
+        {menuTask && taskMenu && (
+          <OperationMenu ref={taskMenuRef} anchor={taskMenu.anchor} gap={4} role="menu" aria-label="项目任务操作" onKeyDown={event => {
+            if (event.key === "Escape") { taskMenu.anchor.focus(); setTaskMenu(null); }
+          }} className="w-[192px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
+            <div className="flex flex-col py-[4px]">
+            {[
+              { label: menuTask.pinned ? "取消置顶" : "置顶此对话", icon: menuTask.pinned ? "67fe6" : "4363a", action: () => onUpdateTask(menuTask.id, { pinned: !menuTask.pinned }) },
+              { label: "重命名", icon: "e2b81", action: () => setRenamingTask({ id: menuTask.id, title: menuTask.title }) },
+            ].map(item => (
+              <button key={item.label} type="button" role="menuitem" onClick={() => { item.action(); setTaskMenu(null); }} className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left text-[14px] font-normal leading-[22px] hover:bg-[#f7f7f7]">
+                <img src={`/assets/${item.icon}.svg`} alt="" className="shrink-0" />{item.label}
+              </button>
+            ))}
+            <TaskProjectMoveMenu
+              key={menuTask.id}
+              projects={projects}
+              projectId={menuTask.projectId}
+              onMove={projectId => {
+                onUpdateTask(menuTask.id, { projectId });
+                setTaskMenu(null);
+              }}
+              onCreate={() => {
+                setPendingTaskMoveId(menuTask.id);
+                setTaskMenu(null);
+              }}
+            />
+            <button type="button" role="menuitem" onClick={() => { onDeleteTask(menuTask.id); setTaskMenu(null); }} className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left text-[14px] font-normal leading-[22px] hover:bg-[#f7f7f7]">
+              <img src="/assets/5ff6b.svg" alt="" className="shrink-0" />删除
+            </button>
+            </div>
+          </OperationMenu>
+        )}
+        <CreateProjectDialog
+          open={pendingTaskMoveId !== null}
+          onOpenChange={open => { if (!open) setPendingTaskMoveId(null); }}
+          onCreate={newProject => {
+            const projectId = onCreateProject(newProject);
+            if (pendingTaskMoveId !== null) onUpdateTask(pendingTaskMoveId, { projectId });
+            setPendingTaskMoveId(null);
+          }}
+        />
+        <Dialog open={renamingTask !== null} onOpenChange={open => { if (!open) setRenamingTask(null); }}>
+          <DialogContent aria-describedby={undefined} className="w-[400px] max-w-[calc(100vw-32px)] rounded-[16px] p-[24px]">
+            <DialogTitle>重命名任务</DialogTitle>
+            <form onSubmit={event => {
+              event.preventDefault();
+              if (!renamingTask?.title.trim()) return;
+              onUpdateTask(renamingTask.id, { title: renamingTask.title.trim() });
+              setRenamingTask(null);
+            }} className="flex flex-col gap-[16px]">
+              <label className="flex flex-col gap-[8px] text-[14px] font-normal">
+                任务名称
+                <input autoFocus value={renamingTask?.title ?? ""} onChange={event => setRenamingTask(current => current ? { ...current, title: event.target.value } : null)} className="h-[40px] rounded-[8px] border border-[#e6e6e6] px-[12px] outline-none focus:border-[#1e63f5]" />
+              </label>
+              <div className="flex justify-end gap-[8px]">
+                <button type="button" onClick={() => setRenamingTask(null)} className="cursor-pointer rounded-[8px] border border-[#e6e6e6] px-[16px] py-[8px] text-[14px] font-normal">取消</button>
+                <button type="submit" disabled={!renamingTask?.title.trim()} className="cursor-pointer rounded-[8px] bg-[#1e63f5] px-[16px] py-[8px] text-[14px] font-normal text-white disabled:cursor-not-allowed disabled:opacity-40">确定</button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+        {instructionOpen && <ProjectInstructionDialog instruction={project.instruction} onClose={() => setInstructionOpen(false)} onSave={instruction => { onUpdateProject({ instruction }); setInstructionOpen(false); }} />}
+        {membersOpen && <ProjectMembersDialog members={project.members ?? []} onClose={() => setMembersOpen(false)} onSave={members => { onUpdateProject({ members }); setMembersOpen(false); }} />}
     </div>
   );
 }
 
-function ChatMessageRow({ msg, index, advance, onOpenPpt, onRegeneratePpt }: {
+function ChatMessageRow({ msg, index, advance, onOpenPpt, onRegeneratePpt, onDownloadArtifact }: {
   msg: Message; index: number; advance: (i: number) => void;
   onOpenPpt?: () => void; onRegeneratePpt?: () => void;
+  onDownloadArtifact: (artifact: TaskArtifact) => void;
 }) {
   // messages without a running typewriter advance the reveal pointer on mount;
   // process messages advance via onGoalDone once their goal finishes typing
@@ -2571,8 +2965,31 @@ function ChatMessageRow({ msg, index, advance, onOpenPpt, onRegeneratePpt }: {
 
   if (msg.role === "user") return (
     <div className="flex justify-end">
-      <div className="max-w-[85%] bg-[#f7f7f7] px-[12px] py-[8px] rounded-tl-[8px] rounded-br-[8px] rounded-bl-[8px]">
-        <p className="text-[16px] leading-[26px] text-[rgba(0,0,0,0.88)] whitespace-pre-wrap break-words">{msg.text}</p>
+      <div className="user-message min-w-0 bg-[#f7f7f7] px-[12px] py-[8px] rounded-tl-[8px] rounded-br-[8px] rounded-bl-[8px]">
+        {msg.text && <p className="text-[16px] leading-[26px] text-[rgba(0,0,0,0.88)] whitespace-pre-wrap break-words">{msg.text}</p>}
+        {msg.attachments && msg.attachments.length > 0 && (
+          <div className={`flex flex-wrap gap-[8px] ${msg.text ? "mt-[8px]" : ""}`}>
+            {msg.attachments.map(attachment => (
+              attachment.image ? (
+                <img
+                  key={attachment.id}
+                  src={attachment.previewUrl}
+                  alt={attachment.name}
+                  title={attachment.name}
+                  className="size-[56px] rounded-[8px] object-cover"
+                />
+              ) : (
+                <div key={attachment.id} className="flex h-[56px] w-[200px] min-w-0 items-center gap-[8px] rounded-[8px] bg-white px-[8px]">
+                  <img src={getAttachmentIcon(attachment.extension)} alt="" width="32" height="32" className="shrink-0" />
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-[14px] leading-[22px]">{attachment.name}</span>
+                    <span className="text-[12px] leading-[20px] text-[rgba(0,0,0,0.38)]">{attachment.extension.toUpperCase()} · {formatFileSize(attachment.size)}</span>
+                  </div>
+                </div>
+              )
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2589,16 +3006,31 @@ function ChatMessageRow({ msg, index, advance, onOpenPpt, onRegeneratePpt }: {
           {[0, 200, 400].map(d => <span key={d} className="w-[6px] h-[6px] rounded-full bg-[rgba(0,0,0,0.26)] inline-block" style={{ animation: `blink 1s ${d}ms step-end infinite` }} />)}
         </div>
       ) : (
-        <p className="text-[16px] leading-[26px] text-[rgba(0,0,0,0.88)] whitespace-pre-wrap"><Typewriter text={msg.text ?? ""} onDone={() => advance(index)} /></p>
+        <div className="flex w-full flex-col gap-[12px]">
+          <p className="text-[16px] leading-[26px] text-[rgba(0,0,0,0.88)] whitespace-pre-wrap"><Typewriter text={msg.text ?? ""} onDone={() => advance(index)} /></p>
+          {msg.artifacts && msg.artifacts.length > 0 && (
+            <div className="artifact-grid grid w-full gap-[12px]">
+              {msg.artifacts.map(artifact => <ArtifactFileCard key={artifact.id} artifact={artifact} onDownload={onDownloadArtifact} />)}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-function ChatView({ conversationId, projectName, messages, input, onInputChange, onSend, showInput = true, onOpenPpt, onRegeneratePpt, pptGeneration, onPptGenerationChange, pptMode, onPptModeChange, pptPages, onPptPagesChange, agentRunning, onStop }: {
+function ChatView({ conversationId, messages, input, onInputChange, onSend, attachments, onAddFiles, onRemoveAttachment, hasProject, projectFiles, showInput = true, onOpenPpt, onRegeneratePpt, pptGeneration, onPptGenerationChange, pptMode, onPptModeChange, pptPages, onPptPagesChange, agentRunning, onStop }: {
   conversationId: number | null;
-  projectName?: string;
-  messages: Message[]; input: string; onInputChange: (v: string) => void; onSend: () => void; showInput?: boolean;
+  messages: Message[];
+  input: string;
+  onInputChange: (v: string) => void;
+  onSend: (text?: string, attachments?: ChatAttachment[]) => void;
+  attachments: ChatAttachment[];
+  onAddFiles: (files: File[]) => void;
+  onRemoveAttachment: (id: string) => void;
+  hasProject: boolean;
+  projectFiles?: ProjectFiles;
+  showInput?: boolean;
   onOpenPpt?: () => void; onRegeneratePpt?: () => void;
   pptGeneration: boolean; onPptGenerationChange: (selected: boolean) => void;
   pptMode: PptMode; onPptModeChange: (mode: PptMode) => void;
@@ -2626,29 +3058,35 @@ function ChatView({ conversationId, projectName, messages, input, onInputChange,
     <div className="flex-1 min-h-0 bg-white flex flex-col">
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
-        <div className="min-h-full px-[24px] pt-[16px] max-[560px]:px-0">
-          <div className="mx-auto w-full max-w-[800px]">
-            <div className="flex flex-col gap-[32px] p-[16px]">
+        <div className="conversation-gutter min-h-full pt-[16px]">
+          <div className="conversation-content mx-auto w-full">
+            <div className="conversation-messages flex flex-col gap-[32px] py-[16px]">
               {messages.map((msg, i) => {
                 if (i > revealed) return null;
                 if (msg.role === "process" && taskComplete) {
                   return i === firstProcessIndex ? <MergedProcess key={i} presets={processPresets} /> : null;
                 }
-                return <ChatMessageRow key={i} msg={msg} index={i} advance={advance} onOpenPpt={onOpenPpt} onRegeneratePpt={onRegeneratePpt} />;
+                return (
+                  <div key={i} data-message-index={i} className="flex w-full flex-col">
+                    <ChatMessageRow msg={msg} index={i} advance={advance} onOpenPpt={onOpenPpt} onRegeneratePpt={onRegeneratePpt} onDownloadArtifact={artifact => toast.success(`本地示例：开始下载${artifact.name}`)} />
+                  </div>
+                );
               })}
             </div>
           </div>
         </div>
       </div>
-      <div aria-hidden={!showInput} className={`shrink-0 px-[24px] max-[560px]:px-0 transition-opacity duration-200 ${showInput ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-        <div className="mx-auto w-full max-w-[800px]">
-          {projectName ? (
-            <ProjectChatInput projectName={projectName} value={input} onChange={onInputChange} onSend={onSend} />
-          ) : (
+      <div aria-hidden={!showInput} className={`conversation-gutter shrink-0 transition-opacity duration-200 ${showInput ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+        <div className="conversation-content mx-auto w-full">
             <ChatInput
               value={input}
+              hasProject={hasProject}
+              projectFiles={projectFiles}
               onChange={onInputChange}
               onSend={onSend}
+              attachments={attachments}
+              onAddFiles={onAddFiles}
+              onRemoveAttachment={onRemoveAttachment}
               pptGeneration={pptGeneration}
               onPptGenerationChange={onPptGenerationChange}
               pptMode={pptMode}
@@ -2658,7 +3096,6 @@ function ChatView({ conversationId, projectName, messages, input, onInputChange,
               agentRunning={agentRunning}
               onStop={onStop}
             />
-          )}
         </div>
       </div>
       <div className="shrink-0 flex items-center justify-center p-[4px]">
@@ -2880,6 +3317,8 @@ function MergedProcess({ presets }: { presets: ProcessPreset[] }) {
 }
 
 export default function App() {
+  const isMobile = useIsMobile(800);
+  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [pptGeneration, setPptGeneration] = useState(false);
@@ -2887,6 +3326,7 @@ export default function App() {
   const [pptPages, setPptPages] = useState<PptPageCount>("智能匹配");
   const [stage, setStage] = useState<PptStage>("idle");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [projectConfigurationOpen, setProjectConfigurationOpen] = useState(true);
   const [projectListOpen, setProjectListOpen] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState<number | null>(null);
   const [activeProjectId, setActiveProjectId] = useState<number | null>(null);
@@ -2895,6 +3335,107 @@ export default function App() {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const nextHistoryId = useRef(1);
   const activeRunId = useRef(0);
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+  const attachmentsRef = useRef<ChatAttachment[]>([]);
+  const uploadTimers = useRef(new Map<string, number>());
+  const [dragActive, setDragActive] = useState(false);
+  const dragDepth = useRef(0);
+
+  const replaceAttachments = useCallback((next: ChatAttachment[]) => {
+    attachmentsRef.current = next;
+    setAttachments(next);
+  }, []);
+
+  const clearDraftAttachments = useCallback((revokePreviews: boolean) => {
+    uploadTimers.current.forEach(timer => window.clearTimeout(timer));
+    uploadTimers.current.clear();
+    if (revokePreviews) {
+      attachmentsRef.current.forEach(attachment => {
+        if (attachment.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
+      });
+    }
+    replaceAttachments([]);
+  }, [replaceAttachments]);
+
+  const handleRemoveAttachment = useCallback((id: string) => {
+    const timer = uploadTimers.current.get(id);
+    if (timer) window.clearTimeout(timer);
+    uploadTimers.current.delete(id);
+    const attachment = attachmentsRef.current.find(item => item.id === id);
+    if (attachment?.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
+    replaceAttachments(attachmentsRef.current.filter(item => item.id !== id));
+  }, [replaceAttachments]);
+
+  const handleAddFiles = useCallback((files: File[]) => {
+    const accepted: File[] = [];
+    let unsupportedCount = 0;
+    let oversizedCount = 0;
+    let emptyCount = 0;
+    let overLimitCount = 0;
+
+    files.forEach(file => {
+      const validationError = getAttachmentValidationError(file);
+      if (validationError === "format") {
+        unsupportedCount += 1;
+      } else if (validationError === "size") {
+        oversizedCount += 1;
+      } else if (validationError === "empty") {
+        emptyCount += 1;
+      } else if (attachmentsRef.current.length + accepted.length >= MAX_ATTACHMENTS) {
+        overLimitCount += 1;
+      } else {
+        accepted.push(file);
+      }
+    });
+
+    if (unsupportedCount) toast.error(`${unsupportedCount} 个文件的格式不支持`);
+    if (oversizedCount) toast.error(`${oversizedCount} 个文件超过大小限制`);
+    if (emptyCount) toast.error(`${emptyCount} 个空文件无法上传`);
+    if (overLimitCount) toast.error(`最多上传 ${MAX_ATTACHMENTS} 个文件`);
+
+    const added = accepted.map((file, index): ChatAttachment => {
+      const extension = getAttachmentExtension(file.name);
+      const image = ["png", "jpg", "jpeg"].includes(extension);
+      return {
+        id: `${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,
+        file,
+        name: file.name,
+        size: file.size,
+        extension,
+        image,
+        ...(image ? { previewUrl: URL.createObjectURL(file) } : {}),
+        status: "uploading",
+      };
+    });
+
+    if (!added.length) return;
+    replaceAttachments([...attachmentsRef.current, ...added]);
+
+    added.forEach(attachment => {
+      const markProcessing = window.setTimeout(() => {
+        uploadTimers.current.delete(attachment.id);
+        replaceAttachments(attachmentsRef.current.map(item => (
+          item.id === attachment.id ? { ...item, status: "processing" } : item
+        )));
+        const markReady = window.setTimeout(() => {
+          uploadTimers.current.delete(attachment.id);
+          replaceAttachments(attachmentsRef.current.map(item => (
+            item.id === attachment.id ? { ...item, status: "ready" } : item
+          )));
+        }, 500);
+        uploadTimers.current.set(attachment.id, markReady);
+      }, 500);
+      uploadTimers.current.set(attachment.id, markProcessing);
+    });
+  }, [replaceAttachments]);
+
+  useEffect(() => () => {
+    uploadTimers.current.forEach(timer => window.clearTimeout(timer));
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) setMobileNavigationOpen(false);
+  }, [isMobile]);
 
   const resetPptFlow = useCallback(() => setStage("idle"), []);
 
@@ -2919,11 +3460,19 @@ export default function App() {
     }
   }, [projects, selectedProjectId]);
 
+  const activeTaskProjectId = history.find(item => item.id === activeHistoryId)?.projectId;
+  useEffect(() => {
+    if (activeHistoryId === null || !history.some(item => item.id === activeHistoryId)) return;
+    setActiveProjectId(activeTaskProjectId ?? null);
+  }, [activeHistoryId, activeTaskProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSelectHistory = (id: number) => {
     const item = history.find(i => i.id === id);
     if (!item) return;
+    setMobileNavigationOpen(false);
     setStage("idle");
     setProjectListOpen(false);
+    clearDraftAttachments(true);
     setInput("");
     setActiveHistoryId(id);
     setActiveProjectId(item.projectId ?? null);
@@ -2932,8 +3481,10 @@ export default function App() {
   };
 
   const handleSelectProject = (id: number) => {
+    setMobileNavigationOpen(false);
     activeRunId.current += 1;
     setMessages([]);
+    clearDraftAttachments(true);
     setInput("");
     setPptGeneration(false);
     setStage("idle");
@@ -2943,26 +3494,30 @@ export default function App() {
     setSelectedProjectId(null);
   };
 
-  const handleSend = (suggestion?: string) => {
+  const handleSend = (suggestion?: string, sentAttachments: ChatAttachment[] = []) => {
     const text = (suggestion ?? input).trim();
-    if (!text) return;
+    if (!text && !sentAttachments.length) return;
+    if (sentAttachments.some(attachment => attachment.status !== "ready")) return;
     const targetProjectId = activeProjectId ?? selectedProjectId;
     const shouldGeneratePpt = pptGeneration || isPPTIntent(text);
     const runId = ++activeRunId.current;
     setInput("");
+    clearDraftAttachments(false);
     setPptGeneration(false);
+    const historyTitle = text || sentAttachments[0]?.name || "附件会话";
     // create a history entry when starting a brand-new conversation
     if (activeHistoryId === null) {
       const id = nextHistoryId.current++;
-      setHistory(h => [{ id, title: text.slice(0, 20), messages: [], ...(targetProjectId !== null ? { projectId: targetProjectId } : {}) }, ...h]);
+      setHistory(h => [{ id, title: historyTitle.slice(0, 20), createdAt: Date.now(), messages: [], ...(targetProjectId !== null ? { projectId: targetProjectId } : {}) }, ...h]);
       setActiveHistoryId(id);
       setActiveProjectId(targetProjectId);
     }
     setSelectedProjectId(null);
+    const processText = text || "处理上传的文件";
     const initialProcess: Message = shouldGeneratePpt
       ? { role: "process", text: "", thinking: true, variant: "requirement" }
-      : { role: "process", text: "", thinking: true, variant: "requirement", preset: buildQueryProcess(text) };
-    setMessages(prev => [...prev, { role: "user", text }, initialProcess]);
+      : { role: "process", text: "", thinking: true, variant: "requirement", preset: buildQueryProcess(processText) };
+    setMessages(prev => [...prev, { role: "user", text, attachments: sentAttachments }, initialProcess]);
 
     // AI returns summary first
     setTimeout(() => {
@@ -2982,7 +3537,8 @@ export default function App() {
           const next = [...prev];
           const idx = next.findLastIndex(m => m.role === "process" && m.thinking);
           if (idx !== -1) next[idx] = { ...next[idx], thinking: false };
-          next.push({ role: "ai", text: "好的，我来帮您处理这个请求。" });
+          const artifacts = buildTaskArtifacts(processText);
+          next.push(artifacts.length ? { role: "ai", text: "帮您整理好了", artifacts } : { role: "ai", text: "好的，我来帮您处理这个请求。" });
           return next;
         });
       }
@@ -3016,7 +3572,7 @@ export default function App() {
         const next = [...prev];
         const idx = next.findLastIndex(m => m.role === "process" && m.thinking);
         if (idx !== -1) next[idx] = { ...next[idx], thinking: false };
-        next.push({ role: "result", text: "" });
+        next.push({ role: "result", text: "", artifacts: [{ id: `${Date.now()}-pptx`, name: PPT_ARTIFACT_NAME, extension: "pptx", size: "12.6M" }] });
         return next;
       });
       setTimeout(() => { if (activeRunId.current === runId) setStage("preview"); }, 400);
@@ -3029,10 +3585,26 @@ export default function App() {
     setMessages(prev => prev.map(message => message.role === "process" && message.thinking ? { ...message, thinking: false } : message));
   };
 
-  const handleNewChat = () => { activeRunId.current += 1; setMessages([]); setInput(""); setPptGeneration(false); setPptMode("PowerPoint"); setPptPages("智能匹配"); setStage("idle"); setProjectListOpen(false); setActiveHistoryId(null); setActiveProjectId(null); setSelectedProjectId(null); };
-  const handleOpenProjects = () => {
+  const handleNewChat = () => {
+    setMobileNavigationOpen(false);
     activeRunId.current += 1;
     setMessages([]);
+    clearDraftAttachments(true);
+    setInput("");
+    setPptGeneration(false);
+    setPptMode("PowerPoint");
+    setPptPages("智能匹配");
+    setStage("idle");
+    setProjectListOpen(false);
+    setActiveHistoryId(null);
+    setActiveProjectId(null);
+    setSelectedProjectId(null);
+  };
+  const handleOpenProjects = () => {
+    setMobileNavigationOpen(false);
+    activeRunId.current += 1;
+    setMessages([]);
+    clearDraftAttachments(true);
     setInput("");
     setPptGeneration(false);
     setStage("idle");
@@ -3045,22 +3617,42 @@ export default function App() {
     handleNewChat();
     setSelectedProjectId(projectId);
   };
+  const firstMessageTitle = messages[0]?.text || messages[0]?.attachments?.[0]?.name || "新对话";
   const chatTitle = messages.length > 0
-    ? messages[0].text.slice(0, 20) + (messages[0].text.length > 20 ? "…" : "")
+    ? firstMessageTitle.slice(0, 20) + (firstMessageTitle.length > 20 ? "…" : "")
     : undefined;
   const activeProject = projects.find(project => project.id === activeProjectId) ?? null;
   const activeTask = history.find(item => item.id === activeHistoryId) ?? null;
+  const activeTaskProject = projects.find(project => project.id === activeTask?.projectId);
+  const activeTaskArtifacts: LocatedTaskArtifact[] = messages.flatMap((message, messageIndex) => (
+    (message.artifacts ?? []).map(artifact => ({ ...artifact, messageIndex }))
+  ));
+  const handleLocateArtifact = (artifact: LocatedTaskArtifact) => {
+    const row = document.querySelector<HTMLElement>(`[data-message-index="${artifact.messageIndex}"]`);
+    const target = row?.querySelector<HTMLElement>(`[data-artifact-id="${artifact.id}"]`) ?? row;
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    target.animate([{ boxShadow: "0 0 0 2px #1e63f5" }, { boxShadow: "0 0 0 2px rgba(30,99,245,0)" }], { duration: 1600, easing: "ease-out" });
+  };
+  const isFileDrag = (event: React.DragEvent) => Array.from(event.dataTransfer.types).includes("Files");
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    if (!isFileDrag(event)) return;
+    event.preventDefault();
+    dragDepth.current = 0;
+    setDragActive(false);
+    const files = Array.from(event.dataTransfer.files);
+    if (files.length) handleAddFiles(files);
+    else toast.error("暂不支持上传文件夹");
+  };
 
-  return (
-    <div className="w-screen h-screen flex flex-row overflow-hidden">
-      {/* sidebar */}
-      {sidebarOpen && (
+  const sidebar = (
         <Sidebar
           history={history}
           setHistory={setHistory}
           projects={projects}
           setProjects={setProjects}
-          onClose={() => setSidebarOpen(false)}
+          mobile={isMobile}
+          onClose={() => isMobile ? setMobileNavigationOpen(false) : setSidebarOpen(false)}
           onNewChat={handleNewChat}
           onOpenProjects={handleOpenProjects}
           onNewProjectTask={handleNewProjectTask}
@@ -3070,13 +3662,78 @@ export default function App() {
           onSelect={handleSelectHistory}
           onSelectProject={handleSelectProject}
         />
+  );
+
+  return (
+    <Sheet open={isMobile && mobileNavigationOpen} onOpenChange={setMobileNavigationOpen}>
+    <div className="w-screen h-screen flex flex-row overflow-hidden">
+      {!isMobile && sidebarOpen && sidebar}
+      {isMobile && (
+        <SheetContent side="left" aria-describedby={undefined} className="w-[240px] max-w-full gap-0 border-0 p-0 shadow-none sm:max-w-[240px] [&>button]:hidden">
+          <SheetTitle className="sr-only">导航</SheetTitle>
+          {sidebar}
+        </SheetContent>
       )}
       {/* main content: header always at App level so sidebar can never affect it */}
-      <div className="relative z-20 flex min-h-0 min-w-0 flex-1 flex-col bg-white p-0">
+      <div
+        className="chat-layout relative z-20 flex min-h-0 min-w-[320px] flex-1 flex-col bg-white p-0"
+        onDragEnter={event => {
+          if (!isFileDrag(event)) return;
+          event.preventDefault();
+          dragDepth.current += 1;
+          setDragActive(true);
+        }}
+        onDragOver={event => {
+          if (!isFileDrag(event)) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+        }}
+        onDragLeave={event => {
+          if (!isFileDrag(event)) return;
+          dragDepth.current = Math.max(0, dragDepth.current - 1);
+          if (!dragDepth.current) setDragActive(false);
+        }}
+        onDrop={handleDrop}
+      >
         <ChatHeader
           title={chatTitle}
-          projectBreadcrumb={activeProject && activeTask ? { projectName: activeProject.name, taskName: activeTask.title } : undefined}
-          sidebarOpen={sidebarOpen}
+          projectOverview={activeProject && !activeTask && !projectListOpen ? { name: activeProject.name, onOpenProjects: handleOpenProjects } : undefined}
+          actions={activeProject && !activeTask && !projectListOpen ? (
+            <ProjectHeaderActions
+              key={activeProject.id}
+              project={activeProject}
+              panelOpen={projectConfigurationOpen}
+              onTogglePanel={() => setProjectConfigurationOpen(open => !open)}
+              onRename={name => setProjects(current => current.map(project => project.id === activeProject.id ? { ...project, name } : project))}
+              onTransfer={owner => {
+                setProjects(current => current.map(project => project.id === activeProject.id ? { ...project, owner } : project));
+                toast.success(`本地示例：项目已移交给${owner}`);
+              }}
+              onArchive={() => {
+                setProjects(current => current.filter(project => project.id !== activeProject.id));
+                setHistory(current => current.filter(task => task.projectId !== activeProject.id));
+                handleOpenProjects();
+              }}
+              onDelete={() => {
+                setProjects(current => current.filter(project => project.id !== activeProject.id));
+                setHistory(current => current.filter(task => task.projectId !== activeProject.id));
+                handleOpenProjects();
+              }}
+            />
+          ) : activeTask && messages.length > 0 ? (
+            <TaskHeaderActions
+              key={activeTask.id}
+              task={activeTask}
+              projects={projects}
+              artifacts={activeTaskArtifacts}
+              setHistory={setHistory}
+              setProjects={setProjects}
+              onLocateArtifact={handleLocateArtifact}
+            />
+          ) : undefined}
+          projectBreadcrumb={activeProject && activeTask ? { projectName: activeProject.name, taskName: activeTask.title, onSelectProject: () => handleSelectProject(activeProject.id) } : undefined}
+          mobile={isMobile}
+          sidebarOpen={!isMobile && sidebarOpen}
           onSidebarToggle={() => setSidebarOpen(o => !o)}
           onNewChat={messages.length > 0 || activeProject !== null ? handleNewChat : undefined}
         />
@@ -3087,6 +3744,7 @@ export default function App() {
               onCreateProject={project => {
                 const id = Date.now();
                 setProjects(current => [...current, { ...project, id }]);
+                handleSelectProject(id);
               }}
               onRenameProject={(id, name) => {
                 setProjects(current => current.map(project => project.id === id ? { ...project, name } : project));
@@ -3103,12 +3761,16 @@ export default function App() {
           : messages.length > 0
             ? <ChatView
               conversationId={activeHistoryId}
-              projectName={activeProject?.name}
               messages={messages}
               input={input}
               onInputChange={setInput}
               onSend={handleSend}
+              attachments={attachments}
+              onAddFiles={handleAddFiles}
+              onRemoveAttachment={handleRemoveAttachment}
               showInput={stage !== "requirement" && stage !== "outline"}
+              hasProject={Boolean(activeTaskProject)}
+              projectFiles={activeTaskProject ? activeTaskProject.files ?? DEMO_PROJECT_FILES : undefined}
               onOpenPpt={() => setStage("preview")}
               onRegeneratePpt={handleOutlineConfirm}
               pptGeneration={pptGeneration}
@@ -3122,15 +3784,44 @@ export default function App() {
             />
           : activeProject
             ? <ProjectHomeView
+                key={activeProject.id}
                 project={activeProject}
-                input={input}
-                onInputChange={setInput}
-                onSend={handleSend}
+                configurationOpen={projectConfigurationOpen}
+                projects={projects}
+                onCreateProject={project => {
+                  const id = Date.now();
+                  setProjects(current => [...current, { ...project, id }]);
+                  return id;
+                }}
+                tasks={history.filter(task => task.projectId === activeProject.id)}
+                onSelectTask={handleSelectHistory}
+                onUpdateTask={(id, updates) => setHistory(current => current.map(task => task.id === id ? { ...task, ...updates } : task))}
+                onDeleteTask={id => setHistory(current => current.filter(task => task.id !== id))}
+                onUpdateProject={updates => setProjects(current => current.map(project => project.id === activeProject.id ? { ...project, ...updates } : project))}
+                inputProps={{
+                  hasProject: true,
+                  projectFiles: activeProject.files ?? DEMO_PROJECT_FILES,
+                  value: input,
+                  onChange: setInput,
+                  onSend: handleSend,
+                  attachments,
+                  onAddFiles: handleAddFiles,
+                  onRemoveAttachment: handleRemoveAttachment,
+                  pptGeneration,
+                  onPptGenerationChange: setPptGeneration,
+                  pptMode,
+                  onPptModeChange: setPptMode,
+                  pptPages,
+                  onPptPagesChange: setPptPages,
+                }}
               />
           : <HomeView
               input={input}
               onInputChange={setInput}
               onSend={handleSend}
+              attachments={attachments}
+              onAddFiles={handleAddFiles}
+              onRemoveAttachment={handleRemoveAttachment}
               pptGeneration={pptGeneration}
               onPptGenerationChange={setPptGeneration}
               pptMode={pptMode}
@@ -3147,6 +3838,15 @@ export default function App() {
               }}
             />
         }
+        {dragActive && (
+          <div className="pointer-events-none absolute inset-0 z-[100] flex items-center justify-center bg-white/80 backdrop-blur-[1px]">
+            <div className="flex flex-col items-center gap-[8px] rounded-[16px] border-2 border-dashed border-[#1e63f5] px-[40px] py-[32px] text-center text-[16px] text-[rgba(0,0,0,0.88)]">
+              <span className="text-[28px] leading-none text-[#1e63f5]">+</span>
+              <span>文件拖放到此处即可上传</span>
+              <span className="text-[12px] text-[rgba(0,0,0,0.38)]">支持图片、PDF、Office 文档及常见文本文件</span>
+            </div>
+          </div>
+        )}
       </div>
       {/* right-hand PPT viewer, shares the row with the chat column */}
       {stage === "preview" && <PptPanel onClose={() => setStage("idle")} />}
@@ -3160,14 +3860,16 @@ export default function App() {
         pptMode={pptMode}
         onPptModeChange={setPptMode}
         initialPages={pptPages}
-        mainOffset={sidebarOpen ? 120 : 0}
+        mainOffset={!isMobile && sidebarOpen ? 120 : 0}
       />
       <OutlinePanel
         visible={stage === "outline"}
         onClose={resetPptFlow}
         onConfirm={handleOutlineConfirm}
-        mainOffset={sidebarOpen ? 120 : 0}
+        mainOffset={!isMobile && sidebarOpen ? 120 : 0}
       />
     </div>
+    <Toaster position="top-center" />
+    </Sheet>
   );
 }

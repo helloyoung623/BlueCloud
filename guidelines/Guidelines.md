@@ -59,3 +59,71 @@ or initiating processes. They communicate interactivity and should have clear, a
   * Visual Style : Text-only with no border, using primary color
   * Usage : For actions that should be available but not emphasized
 -->
+
+## Operation menus
+
+Use `src/app/components/operation-menu.tsx` for operation-menu positioning.
+
+* Primary menus align with the trigger's bottom-left corner and open above the
+  trigger when there is not enough room below.
+* Secondary menus use `submenu` and try right, left, above, then below, in that
+  order. Horizontal placement has a 4px gap from the parent menu and aligns with
+  the triggering row's top edge. Vertical placement has a 4px gap from the row.
+* Keep menus within the viewport with 8px edge padding and scrolling when needed.
+  Hover-triggered submenus must stay open while the pointer crosses the gap.
+
+## Send button
+
+Home, conversations, and project tasks share `ChatInput` with the same unshadowed
+container and borderless add/PPT controls. Keep source selection inside the add
+menu, not as a separate toolbar button.
+
+Conversation layout uses the main content width, not the browser width, for its
+560px breakpoint. Minimum main width is 320px; centered conversation width is
+capped at 900px. Outer gutters are 24px above 560px and 16px otherwise; message
+inner padding is 16px above 560px and zero otherwise. User messages are capped
+at 85% of the conversation width and AI messages at 768px. Reserve at least
+32px between toolbar actions and send; move overflowing PPT settings into More.
+The input grows with text up to 328px, then scrolls.
+
+The home project picker shows a non-interactive "暂无项目" row when empty, followed
+by the separator and Create Project. Show "不选择项目" only when a valid project is
+selected, and mark that project's row with the check icon. Picker rows are 44px;
+the menu scrolls above 480px.
+
+Project instruction/member dialogs are 720px wide, constrained to the viewport
+with 16px margins. Instruction drafts have a 1000-character limit and are saved
+only on confirmation. Member selection currently uses explicit example data;
+roles are frontend metadata, not authorization. Both dialogs save to the
+project's in-memory state; cancel and dismissal discard drafts.
+
+In project tasks, the project breadcrumb is an interactive button that uses the
+same project-detail navigation handler as the sidebar. Preserve the task history
+when returning to the project.
+
+## Task header actions
+
+Active conversations show the 24px Artifacts (`2e4bf.svg`, tooltip "产物") and
+More (`bbe3b.svg`) buttons at the header's right edge with an 8px gap. The More
+menu uses the shared `TaskOperationsMenu`, so its pin, rename, move-to-project,
+and delete actions stay identical to the sidebar task menu. Header menus and the
+Artifacts panel align their right edge with the trigger.
+
+The Artifacts panel is 256px wide with 12px padding and a 2px trigger gap. It
+lists files produced by AI messages (`Message.artifacts`) in 56px rows; hovering
+a row reveals Locate and Download. Locate closes the panel, scrolls to the
+message's file card, and briefly highlights it. With no files, show the 200px
+empty illustration and "暂无文件". Artifact data and downloads are local mocks.
+
+AI file cards are 50px tall in a three-column grid above 560px and one column
+otherwise. Small tooltips use the dark `#181818` bubble and the
+`453fe.svg` arrow.
+
+The active send button is 30px with the centered 16px white arrow asset
+`public/assets/051ee.svg`. Its default, hover, and pressed backgrounds are
+`#1e63f5`, `#4788ff`, and `#0e45cf`. Do not recolor the disabled arrow with CSS
+filters to create the active icon.
+
+The pause button is 30px with a centered 12px blue (`#1e63f5`) square and 2px
+corner radius. Default and hover backgrounds are `#ebf4ff`; the pressed
+background is `#99c3ff`.
