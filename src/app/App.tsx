@@ -933,8 +933,8 @@ const TaskOperationsMenu = forwardRef<HTMLDivElement, {
   onDelete: () => void;
   onClose: () => void;
 }>(({ anchor, task, projects, align, gap, onTogglePin, onRename, onMove, onCreateProject, onDelete, onClose }, ref) => {
-  const itemClassName = "flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]";
-  const labelClassName = "whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]";
+  const itemClassName = "flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left text-[14px] font-normal leading-[22px] tracking-[0.014px] hover:bg-[#f7f7f7]";
+  const labelClassName = "whitespace-nowrap font-['PingFang_SC:Regular'] font-normal text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]";
   return (
     <OperationMenu
       anchor={anchor}
@@ -1120,6 +1120,8 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
   const [profileHovered, setProfileHovered] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
+  const [memoryEnabled, setMemoryEnabled] = useState(true);
+  const [memoryPanelOpen, setMemoryPanelOpen] = useState(false);
   const [projectsExpanded, setProjectsExpanded] = useState(true);
   const [tasksExpanded, setTasksExpanded] = useState(true);
   const [expandedProjectIds, setExpandedProjectIds] = useState<Set<number>>(() => new Set());
@@ -1128,7 +1130,26 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
   const menuRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const profileTriggerRef = useRef<HTMLButtonElement>(null);
+  const memoryRowRef = useRef<HTMLButtonElement>(null);
+  const memoryPanelRef = useRef<HTMLDivElement>(null);
+  const memoryPanelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const standaloneHistory = history.filter(item => item.projectId === undefined);
+  const openMemoryPanel = () => {
+    if (memoryPanelTimer.current) clearTimeout(memoryPanelTimer.current);
+    setMemoryPanelOpen(true);
+  };
+  const deferCloseMemoryPanel = () => {
+    if (memoryPanelTimer.current) clearTimeout(memoryPanelTimer.current);
+    memoryPanelTimer.current = setTimeout(() => setMemoryPanelOpen(false), 140);
+  };
+
+  useEffect(() => () => {
+    if (memoryPanelTimer.current) clearTimeout(memoryPanelTimer.current);
+  }, []);
+
+  useEffect(() => {
+    if (!profileMenuOpen) setMemoryPanelOpen(false);
+  }, [profileMenuOpen]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -1139,6 +1160,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
       if (
         profileMenuOpen &&
         !profileMenuRef.current?.contains(e.target as Node) &&
+        !memoryPanelRef.current?.contains(e.target as Node) &&
         !profileTriggerRef.current?.contains(e.target as Node)
       ) {
         setProfileMenuOpen(false);
@@ -1597,48 +1619,96 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
               type="button"
               role="menuitem"
               onClick={() => setProfileMenuOpen(false)}
-              className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+              className="flex h-[44px] w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] text-left text-[14px] font-normal leading-[22px] tracking-[0.014px] hover:bg-[#f7f7f7]"
             >
-              <img src="/assets/d0cd0.svg" alt="" className="shrink-0" />
-              <span className="flex-1 whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">
-                剩余用量
+              <img src="/assets/d0cd0.svg" alt="" className="size-[16px] shrink-0" />
+              <span className="flex min-w-0 flex-1 items-center gap-[4px]">
+                <span className="whitespace-nowrap font-['PingFang_SC:Regular'] font-normal text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">剩余用量</span>
+                <span className="font-['TCloudNumber:Regular'] font-normal text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">90%</span>
               </span>
-              <span className="font-['TCloudNumber:Regular'] text-[14px] leading-[22px] text-[rgba(0,0,0,0.88)]">90%</span>
-              <img src="/assets/c29c9.svg" alt="" className="shrink-0" />
+              <img src="/assets/c29c9.svg" alt="" className="size-[16px] shrink-0" />
+            </button>
+            <button
+              ref={memoryRowRef}
+              type="button"
+              role="menuitem"
+              aria-haspopup="dialog"
+              aria-expanded={memoryPanelOpen}
+              onMouseEnter={openMemoryPanel}
+              onMouseLeave={deferCloseMemoryPanel}
+              onFocus={openMemoryPanel}
+              onClick={openMemoryPanel}
+              className={`flex h-[44px] w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] text-left text-[14px] font-normal leading-[22px] tracking-[0.014px] ${memoryPanelOpen ? "bg-[#f2f2f2]" : "hover:bg-[#f2f2f2]"}`}
+            >
+              <img src="/assets/7ba18.svg" alt="" className="size-[16px] shrink-0" />
+              <span className="min-w-0 flex-1 whitespace-nowrap font-['PingFang_SC:Regular'] font-normal text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">记忆</span>
+              <span className="flex shrink-0 items-center gap-[4px]">
+                <span className="whitespace-nowrap font-['PingFang_SC:Regular'] font-normal text-[12px] leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.6)]">{memoryEnabled ? "已开启" : "已关闭"}</span>
+                <img src="/assets/c29c9.svg" alt="" className="size-[16px] shrink-0" />
+              </span>
             </button>
             <button
               type="button"
               role="menuitem"
-              onClick={() => {
-                setProfileMenuOpen(false);
-                setMemoryOpen(true);
-              }}
-              className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+              onClick={() => setProfileMenuOpen(false)}
+              className="flex h-[44px] w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] text-left text-[14px] font-normal leading-[22px] tracking-[0.014px] hover:bg-[#f7f7f7]"
             >
-              <img src="/assets/7ba18.svg" alt="" className="shrink-0" />
-              <span className="whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">记忆</span>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0" aria-hidden>
+                <path d="M13.333 13.333V4.667L12 2H1.333L0 4.669V13.333C0 13.702.298 14 .667 14H12.667C13.035 14 13.333 13.702 13.333 13.333ZM1.333 6H12V12.667H1.333V6ZM2.157 3.333H11.176L11.843 4.667H1.491L2.157 3.333ZM8.667 7.333H4.667V8.667H8.667V7.333Z" transform="translate(1 2)" fill="black" fillOpacity="0.26" />
+              </svg>
+              <span className="whitespace-nowrap font-['PingFang_SC:Regular'] font-normal text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">归档数据</span>
             </button>
             <button
               type="button"
               role="menuitem"
               onClick={() => setProfileMenuOpen(false)}
-              className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+              className="flex h-[44px] w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] text-left text-[14px] font-normal leading-[22px] tracking-[0.014px] hover:bg-[#f7f7f7]"
             >
-              <img src="/assets/89936.svg" alt="" className="shrink-0" />
-              <span className="whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">问题反馈</span>
+              <img src="/assets/89936.svg" alt="" className="size-[16px] shrink-0" />
+              <span className="whitespace-nowrap font-['PingFang_SC:Regular'] font-normal text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">问题反馈</span>
             </button>
-            <div className="relative h-px w-full">
-              <img src="/assets/11020.svg" alt="" className="absolute left-[-1px] top-0" />
-            </div>
+            <div className="mx-[8px] h-px bg-[#f2f2f2]" />
             <button
               type="button"
               role="menuitem"
               onClick={() => setProfileMenuOpen(false)}
-              className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
+              className="flex h-[44px] w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] text-left text-[14px] font-normal leading-[22px] tracking-[0.014px] hover:bg-[#f7f7f7]"
             >
-              <img src="/assets/9a53a.svg" alt="" className="shrink-0" />
-              <span className="whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">退出登录</span>
+              <img src="/assets/9a53a.svg" alt="" className="size-[16px] shrink-0" />
+              <span className="whitespace-nowrap font-['PingFang_SC:Regular'] font-normal text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">退出登录</span>
             </button>
+          </div>
+        </OperationMenu>
+      )}
+      {profileMenuOpen && memoryPanelOpen && (
+        <OperationMenu
+          ref={memoryPanelRef}
+          submenu
+          anchor={memoryRowRef.current}
+          role="dialog"
+          aria-label="记忆"
+          onMouseEnter={openMemoryPanel}
+          onMouseLeave={deferCloseMemoryPanel}
+          className="w-[192px] rounded-[12px] bg-white p-[16px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+        >
+          <div className="flex h-[24px] items-center justify-between">
+            <img src="/assets/7ba18.svg" alt="" className="size-[24px] shrink-0" />
+            <button
+              type="button"
+              role="switch"
+              aria-checked={memoryEnabled}
+              aria-label="允许记忆"
+              onClick={() => setMemoryEnabled(value => !value)}
+              className="flex h-[20px] w-[40px] shrink-0 cursor-pointer items-center"
+            >
+              <img src={memoryEnabled ? "/assets/07533.svg" : "/assets/29026.svg"} alt="" className="h-[20px] w-[40px]" />
+            </button>
+          </div>
+          <div className="mt-[12px] w-[160px]">
+            <p className="font-['PingFang_SC:Medium'] text-[16px] font-semibold leading-[24px] tracking-[0.016px] text-[rgba(0,0,0,0.88)]">允许记忆</p>
+            <p className="mt-[4px] font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.6)]">
+              允许 AI从对话中提取并记住相关上下文，以便在未来对话中提供更连贯、个性化的回应。
+            </p>
           </div>
         </OperationMenu>
       )}
