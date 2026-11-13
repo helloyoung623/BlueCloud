@@ -3043,7 +3043,9 @@ function ListPageSearch({ value, onValueChange, placeholder, ariaLabel, narrowPl
   );
 }
 
-// Tag-2 组件 Size=L：Selected → #F7F7F7/r8；Default → 透明/r4；Hover → #F2F2F2/r8
+// Tag-2 组件 Size=L：Selected → #F7F7F7/r8 + 文字 0.88；Default → 透明/r4 + 文字 0.6；Hover → #F2F2F2/r8
+// Figma 9625:52202 文字填充变量：选中 11548:25 (opacity 0.88)、默认 11548:26 (opacity 0.6)，
+// 与项目详情页「任务/来源/产物」Tag-2 一致（历史已按设计稿校准）
 // 项目页「全部/我创建的/我参与的」与自动化任务页「已启用/已暂停/已结束」共用
 function TagTabs<T extends string>({ items, active, onChange }: {
   items: readonly T[];
@@ -3058,7 +3060,7 @@ function TagTabs<T extends string>({ items, active, onChange }: {
           type="button"
           onClick={() => onChange(item)}
           aria-pressed={active === item}
-          className={`flex h-[36px] shrink-0 cursor-pointer items-center px-[16px] font-normal text-[16px] leading-[24px] tracking-[0.016px] text-[rgba(0,0,0,0.88)] ${active === item ? "rounded-[8px] bg-[#f7f7f7]" : "rounded-[4px] bg-transparent hover:rounded-[8px] hover:bg-[#f2f2f2]"}`}
+          className={`flex h-[36px] shrink-0 cursor-pointer items-center px-[16px] font-normal text-[16px] leading-[24px] tracking-[0.016px] transition-colors ${active === item ? "rounded-[8px] bg-[#f7f7f7] text-[rgba(0,0,0,0.88)]" : "rounded-[4px] bg-transparent text-[rgba(0,0,0,0.6)] hover:rounded-[8px] hover:bg-[#f2f2f2]"}`}
         >
           {item}
         </button>
