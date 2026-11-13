@@ -26,7 +26,7 @@ import { AttachmentTray, MAX_ATTACHMENTS, formatFileSize, getAttachmentExtension
 import type { ChatAttachment } from "./components/attachment-tray";
 import { AttachmentPicker } from "./components/attachment-picker";
 import type { AttachmentSource } from "./components/attachment-picker";
-import { DEMO_PROJECT_FILES, ProjectFilesPanel } from "./components/project-files";
+import { DEMO_PROJECT_FILES, ProjectFilesPanel, pickSourceFiles } from "./components/project-files";
 import type { ProjectFiles } from "./components/project-files";
 import { Popover, PopoverAnchor } from "./components/ui/popover";
 import { toast } from "sonner";
@@ -849,8 +849,8 @@ function MemoryModal({ onClose }: { onClose: () => void }) {
 
 // ── sidebar ───────────────────────────────────────────────────────────────────
 
-type HistoryItem = { id: number; title: string; pinned?: boolean; messages: Message[]; projectId?: number; createdAt?: number };
-type ProjectItem = { id: number; name: string; instruction: string; pinned?: boolean; members?: ProjectMember[]; files?: ProjectFiles; owner?: string };
+type HistoryItem = { id: number; title: string; pinned?: boolean; messages: Message[]; projectId?: number; createdAt?: number; archived?: boolean };
+type ProjectItem = { id: number; name: string; description?: string; instruction: string; pinned?: boolean; members?: ProjectMember[]; files?: ProjectFiles; owner?: string; archived?: boolean };
 
 function TaskProjectMoveMenu({ projects, projectId, onMove, onCreate }: {
   projects: ProjectItem[];
@@ -930,9 +930,10 @@ const TaskOperationsMenu = forwardRef<HTMLDivElement, {
   onRename: (title: string) => void;
   onMove: (projectId: number | undefined) => void;
   onCreateProject: () => void;
+  onArchive: () => void;
   onDelete: () => void;
   onClose: () => void;
-}>(({ anchor, task, projects, align, gap, onTogglePin, onRename, onMove, onCreateProject, onDelete, onClose }, ref) => {
+}>(({ anchor, task, projects, align, gap, onTogglePin, onRename, onMove, onCreateProject, onArchive, onDelete, onClose }, ref) => {
   const itemClassName = "flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left text-[14px] font-normal leading-[22px] tracking-[0.014px] hover:bg-[#f7f7f7]";
   const labelClassName = "whitespace-nowrap font-['PingFang_SC:Regular'] font-normal text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]";
   return (
@@ -975,6 +976,10 @@ const TaskOperationsMenu = forwardRef<HTMLDivElement, {
           onMove={projectId => { onMove(projectId); onClose(); }}
           onCreate={() => { onClose(); onCreateProject(); }}
         />
+        <button type="button" role="menuitem" onClick={() => { onArchive(); onClose(); }} className={itemClassName}>
+          <img src="/assets/ae0d0.svg" alt="" className="shrink-0" />
+          <span className={labelClassName}>归档</span>
+        </button>
         <button type="button" role="menuitem" onClick={() => { onDelete(); onClose(); }} className={itemClassName}>
           <img src="/assets/5ff6b.svg" alt="" className="shrink-0" />
           <span className={labelClassName}>删除</span>
@@ -985,19 +990,31 @@ const TaskOperationsMenu = forwardRef<HTMLDivElement, {
 });
 TaskOperationsMenu.displayName = "TaskOperationsMenu";
 
-function CreateProjectDialog({ open, onOpenChange, onCreate }: {
+function CreateProjectDialog({ open, onOpenChange, onCreate, editProject, onEdit }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreate: (project: Omit<ProjectItem, "id">) => void;
+  editProject?: ProjectItem | null;
+  onEdit?: (updates: { name: string; description: string }) => void;
 }) {
+  const editing = Boolean(editProject);
   const [name, setName] = useState("");
-  const [instruction, setInstruction] = useState("");
+  const [description, setDescription] = useState("");
+
+  // 打开时按编辑模式预填现有项目信息
+  useEffect(() => {
+    if (open) {
+      setName(editProject?.name ?? "");
+      setDescription(editProject?.description ?? "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handleOpenChange = (nextOpen: boolean) => {
     onOpenChange(nextOpen);
     if (!nextOpen) {
       setName("");
-      setInstruction("");
+      setDescription("");
     }
   };
 
@@ -1005,7 +1022,8 @@ function CreateProjectDialog({ open, onOpenChange, onCreate }: {
     event.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) return;
-    onCreate({ name: trimmedName, instruction: instruction.trim() });
+    if (editing && onEdit) onEdit({ name: trimmedName, description: description.trim() });
+    else onCreate({ name: trimmedName, description: description.trim(), instruction: "" });
     handleOpenChange(false);
   };
 
@@ -1013,18 +1031,18 @@ function CreateProjectDialog({ open, onOpenChange, onCreate }: {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         aria-describedby={undefined}
-        className="w-[720px] max-w-[calc(100%-32px)] gap-0 overflow-hidden rounded-[12px] border-0 bg-white p-0 shadow-[0_0_12px_rgba(0,0,0,0.08)] [&>button]:hidden"
+        className="w-[720px] max-w-[calc(100%-32px)] gap-0 overflow-hidden rounded-[12px] border-0 bg-white p-0 shadow-[0_0_12px_rgba(0,0,0,0.08)] sm:max-w-[calc(100%-32px)] [&>button]:hidden"
       >
         <form onSubmit={handleSubmit}>
           <div className="flex w-full flex-col gap-[4px] px-[24px] py-[16px]">
             <div className="relative h-[24px] w-full">
               <DialogTitle className="font-['PingFang_SC:Medium'] text-[16px] font-medium leading-[24px] tracking-[0.016px] text-[rgba(0,0,0,0.88)]">
-                新建项目
+                {editing ? "编辑项目信息" : "新建项目"}
               </DialogTitle>
               <DialogClose asChild>
                 <button
                   type="button"
-                  aria-label="关闭新建项目弹窗"
+                  aria-label={editing ? "关闭编辑项目信息弹窗" : "关闭新建项目弹窗"}
                   className="absolute right-0 top-0 flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]"
                 >
                   <img src="/assets/f802d.svg" alt="" />
@@ -1043,14 +1061,14 @@ function CreateProjectDialog({ open, onOpenChange, onCreate }: {
                   <input
                     autoFocus
                     required
-                    maxLength={15}
+                    maxLength={30}
                     value={name}
                     onChange={event => setName(event.target.value)}
                     placeholder="请输入项目名称"
                     className="min-w-0 flex-1 bg-transparent font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] outline-none placeholder:text-[rgba(0,0,0,0.26)]"
                   />
                   <span className="shrink-0 font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">
-                    {name.length}/15
+                    {name.length}/30
                   </span>
                 </div>
               </div>
@@ -1058,15 +1076,16 @@ function CreateProjectDialog({ open, onOpenChange, onCreate }: {
 
             <label className="flex w-full flex-col gap-[8px] pb-[24px]">
               <span className="pl-[12px] font-['PingFang_SC:Medium'] text-[14px] font-medium leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.6)]">
-                指令
+                简介
               </span>
               <div className="px-[12px]">
                 <div className="relative w-full overflow-hidden rounded-[8px] border border-[#e6e6e6] focus-within:border-[#1e63f5]">
                   <textarea
-                    value={instruction}
-                    onChange={event => setInstruction(event.target.value)}
-                    placeholder="提供当前项目的背景信息和规范，让 AI 的回复更精准、更符合要求。比如：项目目标、团队习惯、风格偏好、输出约束等"
-                    className="block h-[96px] w-full resize-none bg-white p-[12px] pb-[28px] font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] outline-none placeholder:text-[rgba(0,0,0,0.26)]"
+                    value={description}
+                    onChange={event => setDescription(event.target.value)}
+                    maxLength={100}
+                    placeholder="请描述项目简介"
+                    className="block h-[78px] w-full resize-none bg-white p-[12px] pb-[24px] font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] outline-none placeholder:text-[rgba(0,0,0,0.26)]"
                   />
                   <img src="/assets/166cb.svg" alt="" className="pointer-events-none absolute bottom-[4px] right-[4px]" />
                 </div>
@@ -1074,7 +1093,7 @@ function CreateProjectDialog({ open, onOpenChange, onCreate }: {
             </label>
           </div>
 
-          <div className="flex w-full items-center justify-end gap-[24px] border-t border-[#f2f2f2] p-[24px]">
+          <div className="flex h-[80px] w-full items-center justify-end gap-[24px] px-[24px]">
             <DialogClose asChild>
               <button
                 type="button"
@@ -1085,7 +1104,8 @@ function CreateProjectDialog({ open, onOpenChange, onCreate }: {
             </DialogClose>
             <button
               type="submit"
-              className="cursor-pointer rounded-[4px] bg-[#1e63f5] px-[16px] py-[5px] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(255,255,255,0.98)] hover:bg-[#1554d1]"
+              disabled={!name.trim()}
+              className="cursor-pointer rounded-[4px] bg-[#1e63f5] px-[16px] py-[5px] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(255,255,255,0.98)] hover:bg-[#1554d1] disabled:cursor-not-allowed disabled:bg-[#99C3FF] disabled:hover:bg-[#99C3FF]"
             >
               确定
             </button>
@@ -1096,7 +1116,190 @@ function CreateProjectDialog({ open, onOpenChange, onCreate }: {
   );
 }
 
-function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewChat, onOpenProjects, onNewProjectTask, projectListOpen, activeId, activeProjectId, onSelect, onSelectProject, mobile = false }: {
+/* ------------------------------------------------------------------ *
+ * 搜索弹窗 — Figma「AI Chat Component / - Search」(8844:40946)
+ * 弹窗固定 560 高；搜索框激活仅放大镜 icon 变色；
+ * 列表滚动到底部自动加载，每批 10 条，「没有更多了」仅在发生一次加载后出现
+ * ------------------------------------------------------------------ */
+const SEARCH_TIME = "2026-09-12 18:32";
+const SEARCH_PAGE_SIZE = 10;
+const SEARCH_TASKS = [
+  "智能助手对话", "虚拟顾问交流", "自动问答记录", "过去对话摘要示例", "机器学习对话", "AI交互历史",
+  "季度经营复盘", "产品需求评审", "客户访谈纪要", "数据看板搭建",
+  "合同审阅记录", "周报自动生成", "竞品调研汇总", "培训材料整理", "会议待办跟进", "知识库问答",
+];
+const SEARCH_PROJECTS = [
+  "星辰探索计划", "蓝海创新项目", "绿洲环保行动", "项目名称", "未来城市构建", "银河数据分析",
+  "智慧园区升级", "供应链协同", "品牌焕新工程", "海外市场调研",
+  "智能客服建设", "数据中台迁移", "年度预算编制", "安全合规审计", "用户体验优化", "移动端改版",
+];
+
+function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [tab, setTab] = useState<"任务" | "项目">("任务");
+  const [query, setQuery] = useState("");
+  const [focused, setFocused] = useState(false);
+  const [loadedCount, setLoadedCount] = useState(SEARCH_PAGE_SIZE);
+  const [hasLoadedMore, setHasLoadedMore] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    const timer = window.setTimeout(() => inputRef.current?.focus(), 0);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.clearTimeout(timer);
+    };
+  }, [open, onClose]);
+
+  // 切换 Tab 或输入关键词时回到第一页
+  useEffect(() => {
+    setLoadedCount(SEARCH_PAGE_SIZE);
+    setHasLoadedMore(false);
+    loadingRef.current = false;
+    if (listRef.current) listRef.current.scrollTop = 0;
+  }, [tab, query]);
+
+  // 一批数据落地后解锁，允许用户继续下滑加载
+  useEffect(() => {
+    loadingRef.current = false;
+  }, [loadedCount]);
+
+  if (!open) return null;
+
+  const keyword = query.trim();
+  const pool = tab === "任务" ? SEARCH_TASKS : SEARCH_PROJECTS;
+  const filtered = keyword ? pool.filter(item => item.includes(keyword)) : pool;
+  const visible = filtered.slice(0, loadedCount);
+  const hasMore = loadedCount < filtered.length;
+  const isEmpty = filtered.length === 0;
+  // 「没有更多了」只在发生过一次加载、且数据已全部取完后出现
+  const showNoMore = hasLoadedMore && !hasMore && !isEmpty;
+
+  // 下拉滚动到列表底部时自动追加下一批，无需点击
+  const handleScroll = () => {
+    const el = listRef.current;
+    if (!el || !hasMore || loadingRef.current) return;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight <= 24) {
+      loadingRef.current = true;
+      setLoadedCount(count => count + SEARCH_PAGE_SIZE);
+      setHasLoadedMore(true);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50"
+      onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="搜索"
+        onMouseDown={event => {
+          const target = event.target as HTMLElement;
+          if (!target.closest("input, button")) inputRef.current?.blur();
+        }}
+        className="flex h-[560px] w-[800px] max-w-[calc(100vw-32px)] flex-col gap-[8px] overflow-hidden rounded-[12px] bg-white pb-[16px] pt-[16px]"
+      >
+        {/* 标题 / 搜索框 / Tab —— 设计稿 Frame 1182，内容左右各内缩 16px → 768 宽 */}
+        <div className="flex shrink-0 flex-col gap-[12px] px-[16px] pb-[12px]">
+          <div className="flex h-[32px] items-center justify-between">
+            <span className="text-[16px] leading-[24px] tracking-[0.016px] text-[rgba(0,0,0,0.88)]">搜索</span>
+            <button
+              type="button"
+              aria-label="关闭搜索"
+              onClick={onClose}
+              className="flex size-[32px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]"
+            >
+              <img alt="" className="size-[20px]" src="/assets/search-dialog-close.svg" />
+            </button>
+          </div>
+          {/* Search Input：激活仅放大镜 icon 由灰变蓝，圆角 / 背景 / 占位色保持不变 */}
+          <div className="flex h-[32px] items-center gap-[8px] rounded-[8px] bg-[#f7f7f7] px-[8px]">
+            <img
+              alt=""
+              className="size-[16px] shrink-0"
+              src={focused ? "/assets/search-dialog-search.svg" : "/assets/search-dialog-search-default.svg"}
+            />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={event => setQuery(event.target.value)}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              placeholder="搜索"
+              className="h-[22px] min-w-0 flex-1 border-0 bg-transparent p-0 font-normal text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] outline-none placeholder:text-[rgba(0,0,0,0.4)]"
+            />
+            {query && (
+              <button
+                type="button"
+                aria-label="清空搜索"
+                onMouseDown={event => event.preventDefault()}
+                onClick={() => { setQuery(""); inputRef.current?.focus(); }}
+                className="flex size-[16px] shrink-0 cursor-pointer items-center justify-center opacity-30 hover:opacity-60"
+              >
+                <img alt="" className="size-[16px]" src="/assets/search-dialog-close.svg" />
+              </button>
+            )}
+          </div>
+          {/* Tab「Tag-2」Size=M：Hover=true+Selected=false (9436:38023) → #F2F2F2/r4 */}
+          <div className="flex h-[32px] items-center gap-[16px]">
+            {(["任务", "项目"] as const).map(item => (
+              <button
+                key={item}
+                type="button"
+                onMouseDown={event => event.preventDefault()}
+                onClick={() => setTab(item)}
+                className={`flex h-[32px] cursor-pointer items-center rounded-[4px] px-[8px] font-normal text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${tab === item ? "bg-[#f7f7f7]" : "bg-transparent hover:bg-[#f2f2f2]"}`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {isEmpty ? (
+          <div className="flex min-h-0 flex-1 items-center justify-center">
+            <img alt="未找到任何结果" className="size-[240px]" src="/assets/search-dialog-empty.png" />
+          </div>
+        ) : (
+          <div ref={listRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto px-[8px]">
+            <div className="flex flex-col gap-[8px]">
+              {visible.map(title => (
+                <div
+                  key={title}
+                  className="group flex h-[40px] cursor-pointer items-center justify-between rounded-[8px] px-[8px] hover:bg-[#f2f2f2]"
+                >
+                  <span className="min-w-0 flex-1 truncate text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">{title}</span>
+                  <span className="shrink-0 text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.26)] group-hover:hidden">{SEARCH_TIME}</span>
+                  <button
+                    type="button"
+                    aria-label={`更多操作：${title}`}
+                    className="hidden size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] group-hover:flex"
+                  >
+                    <img alt="" className="size-[16px]" src="/assets/search-dialog-more.svg" />
+                  </button>
+                </div>
+              ))}
+              {showNoMore && (
+                <div className="flex h-[32px] items-center justify-center text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.26)]">没有更多了</div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewChat, onOpenProjects, onOpenAutomation, onOpenArchive, onNewProjectTask, projectListOpen, automationOpen, activeId, activeProjectId, onSelect, onSelectProject, onSearch, mobile = false }: {
+  onSearch: () => void;
   mobile?: boolean;
   history: HistoryItem[];
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>;
@@ -1105,8 +1308,11 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
   onClose: () => void;
   onNewChat: () => void;
   onOpenProjects: () => void;
+  onOpenAutomation: () => void;
+  onOpenArchive: () => void;
   onNewProjectTask: (projectId: number) => void;
   projectListOpen: boolean;
+  automationOpen: boolean;
   activeId: number | null;
   activeProjectId: number | null;
   onSelect: (id: number) => void;
@@ -1133,7 +1339,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
   const memoryRowRef = useRef<HTMLButtonElement>(null);
   const memoryPanelRef = useRef<HTMLDivElement>(null);
   const memoryPanelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const standaloneHistory = history.filter(item => item.projectId === undefined);
+  const standaloneHistory = history.filter(item => item.projectId === undefined && !item.archived);
   const openMemoryPanel = () => {
     if (memoryPanelTimer.current) clearTimeout(memoryPanelTimer.current);
     setMemoryPanelOpen(true);
@@ -1188,8 +1394,8 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
 
   return (
     <div className={`relative w-[240px] shrink-0 self-stretch border-r border-[#f2f2f2] bg-white p-0 flex flex-col items-center${mobile ? " h-full min-h-0" : ""}`}>
-      {/* head */}
-      <div className="relative h-[256px] w-full shrink-0 bg-white">
+      {/* head —— Figma 9625:49728 Sidebar/head 240x296（新增「自动化任务」后菜单下移 40px） */}
+      <div className="relative h-[296px] w-full shrink-0 bg-white">
         <div className="absolute left-[calc(50%-15.8px)] top-[52px] h-[16px] w-[160.403px] -translate-x-1/2">
           <img alt="世纪互联办公智能体" className="absolute inset-0 block size-full max-w-none" src="/assets/9d907.svg" />
         </div>
@@ -1208,6 +1414,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
         <button
           type="button"
           aria-label="搜索"
+          onClick={onSearch}
           className="absolute left-[52px] top-[12px] flex size-[24px] cursor-pointer items-start rounded-[4px] p-[4px] hover:bg-[#f7f7f7]"
         >
           <span className="relative h-full min-w-px flex-1">
@@ -1219,7 +1426,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
           type="button"
           onClick={onNewChat}
           className={`absolute left-[12px] top-[84px] flex h-[40px] w-[216px] cursor-pointer items-center gap-[8px] overflow-clip rounded-[8px] py-[8px] pl-[12px] pr-[4px] transition-colors ${
-            !projectListOpen && activeId === null && activeProjectId === null ? "bg-[#f7f7f7]" : "hover:bg-[#f2f2f2]"
+            !projectListOpen && !automationOpen && activeId === null && activeProjectId === null ? "bg-[#f7f7f7]" : "hover:bg-[#f2f2f2]"
           }`}
         >
           <span className="relative size-[16px] shrink-0">
@@ -1227,7 +1434,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
           </span>
           <span
             className={`min-w-px flex-1 truncate text-left text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${
-              !projectListOpen && activeId === null && activeProjectId === null
+              !projectListOpen && !automationOpen && activeId === null && activeProjectId === null
                 ? "font-['PingFang_SC:Medium'] font-semibold"
                 : "font-['PingFang_SC:Regular'] font-normal"
             }`}
@@ -1250,10 +1457,25 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
             项目
           </span>
         </button>
-        {/* 资料库 */}
+        {/* 自动化任务 —— Figma 9625:49728 Sidebar/head：y=164，选中态 #F7F7F7/r8，图标「时间范围-线」9625:49605 */}
         <button
           type="button"
-          className="absolute left-[12px] top-[164px] flex h-[40px] w-[216px] cursor-pointer items-center gap-[8px] overflow-clip rounded-[8px] py-[8px] pl-[12px] pr-[4px] transition-colors hover:bg-[#f2f2f2]"
+          onClick={onOpenAutomation}
+          className={`absolute left-[12px] top-[164px] flex h-[40px] w-[216px] cursor-pointer items-center gap-[8px] overflow-clip rounded-[8px] py-[8px] pl-[12px] pr-[4px] transition-colors ${
+            automationOpen ? "bg-[#f7f7f7]" : "hover:bg-[#f2f2f2]"
+          }`}
+        >
+          <span className="relative size-[16px] shrink-0">
+            <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/automation-nav-clock.svg" />
+          </span>
+          <span className={`min-w-px flex-1 truncate text-left text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${automationOpen ? "font-['PingFang_SC:Medium'] font-semibold" : "font-['PingFang_SC:Regular'] font-normal"}`}>
+            自动化任务
+          </span>
+        </button>
+        {/* 资料库 —— Figma 9625:49728：y=204 */}
+        <button
+          type="button"
+          className="absolute left-[12px] top-[204px] flex h-[40px] w-[216px] cursor-pointer items-center gap-[8px] overflow-clip rounded-[8px] py-[8px] pl-[12px] pr-[4px] transition-colors hover:bg-[#f2f2f2]"
         >
           <span className="relative size-[16px] shrink-0">
             <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/f7258.svg" />
@@ -1262,10 +1484,10 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
             资料库
           </span>
         </button>
-        {/* 会议助手 */}
+        {/* 会议助手 —— Figma 9625:49728：y=244 */}
         <button
           type="button"
-          className="absolute left-[12px] top-[204px] flex h-[40px] w-[216px] cursor-pointer items-center gap-[8px] overflow-clip rounded-[8px] py-[8px] pl-[12px] pr-[4px] transition-colors hover:bg-[#f2f2f2]"
+          className="absolute left-[12px] top-[244px] flex h-[40px] w-[216px] cursor-pointer items-center gap-[8px] overflow-clip rounded-[8px] py-[8px] pl-[12px] pr-[4px] transition-colors hover:bg-[#f2f2f2]"
         >
           <span className="relative size-[16px] shrink-0">
             <img alt="" className="absolute inset-0 block size-full max-w-none" src="/assets/bacdf.svg" />
@@ -1323,7 +1545,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
         {projectsExpanded && projects.length > 0 && (
           <div className="flex w-full flex-col items-start">
             {projects.map(project => {
-              const projectTasks = history.filter(item => item.projectId === project.id);
+              const projectTasks = history.filter(item => item.projectId === project.id && !item.archived);
               const isActiveProjectContext = activeProjectId === project.id;
               const isActiveProjectHome = isActiveProjectContext && activeId === null;
               const isProjectExpanded = expandedProjectIds.has(project.id);
@@ -1602,6 +1824,10 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
             setPendingTaskMoveId(menuTask.id);
             setCreateProjectOpen(true);
           }}
+          onArchive={() => {
+            setHistory(items => items.map(item => item.id === menuTask.id ? { ...item, archived: true } : item));
+            showArchiveToast(() => setHistory(items => items.map(item => item.id === menuTask.id ? { ...item, archived: false } : item)));
+          }}
           onDelete={() => setHistory(items => items.filter(item => item.id !== menuTask.id))}
           onClose={closeContextMenu}
         />
@@ -1650,7 +1876,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
             <button
               type="button"
               role="menuitem"
-              onClick={() => setProfileMenuOpen(false)}
+              onClick={() => { setProfileMenuOpen(false); onOpenArchive(); }}
               className="flex h-[44px] w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] text-left text-[14px] font-normal leading-[22px] tracking-[0.014px] hover:bg-[#f7f7f7]"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0" aria-hidden>
@@ -1734,7 +1960,7 @@ function Sidebar({ history, setHistory, projects, setProjects, onClose, onNewCha
               <img src="/assets/a2c1b.svg" alt="" />
             </div>
           </div>
-          <span className="min-w-0 w-fit grow-0 basis-auto truncate whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">张三李四王麻子</span>
+          <span className="min-w-0 w-fit grow-0 basis-auto truncate whitespace-nowrap text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">张三李四王麻子</span>
           {(profileHovered || profileMenuOpen) && (
             <img src="/assets/05ead.svg" alt="" className="shrink-0" />
           )}
@@ -1962,13 +2188,8 @@ function ChatInput({ value, onChange, onSend, attachments, onAddFiles, onRemoveA
   const addMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
-  const pptToggleRef = useRef<HTMLDivElement>(null);
-  const settingsRef = useRef<HTMLDivElement>(null);
-  const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [attachmentSource, setAttachmentSource] = useState<AttachmentSource | null>(null);
-  const [settingsCollapsed, setSettingsCollapsed] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
   const hasText = value.trim().length > 0;
   const canSend = (hasText || attachments.length > 0) && attachments.every(attachment => attachment.status === "ready");
 
@@ -1996,36 +2217,7 @@ function ChatInput({ value, onChange, onSend, attachments, onAddFiles, onRemoveA
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [value, attachments.length, pptGeneration, settingsCollapsed]);
-
-  useEffect(() => {
-    const toolbar = toolbarRef.current;
-    const toggle = pptToggleRef.current;
-    const settings = settingsRef.current;
-    if (!toolbar || !toggle || !settings) return;
-    const update = () => {
-      const available = toolbar.clientWidth - 16 - 30 - 32;
-      const required = 30 + 8 + toggle.offsetWidth + (pptGeneration ? 8 + settings.offsetWidth : 0);
-      const collapsed = pptGeneration && required > available;
-      setSettingsCollapsed(collapsed);
-      if (!collapsed) setMoreOpen(false);
-    };
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(toolbar);
-    observer.observe(toggle);
-    observer.observe(settings);
-    return () => observer.disconnect();
-  }, [pptGeneration, pptMode, pptPages]);
-
-  useEffect(() => {
-    if (!moreOpen) return;
-    const close = (event: MouseEvent) => {
-      if (!moreTriggerRef.current?.contains(event.target as Node)) setMoreOpen(false);
-    };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, [moreOpen]);
+  }, [value, attachments.length]);
 
   useEffect(() => {
     if (!addMenuOpen) return;
@@ -2124,7 +2316,8 @@ function ChatInput({ value, onChange, onSend, attachments, onAddFiles, onRemoveA
                 </button>
                 {([
                   { label: "从 OneDrive 中添加", icon: "d70fd", source: "OneDrive" },
-                  { label: "从 Outlook 中添加", icon: "cc7e9", message: "Outlook 文件添加暂未接入" },
+                  { label: "从 Outlook 中添加", icon: "cc7e9", source: "Outlook" },
+                  { label: "从 SharePoint 中添加", icon: "9c4f2", source: "SharePoint" },
                   { label: "从产物中添加", icon: "ec778", source: "产物" },
                   { label: "从项目资料中添加", icon: "1d8f2", source: "项目资料" },
                   { label: "来源", icon: "29219", message: "来源功能暂未接入" },
@@ -2159,24 +2352,9 @@ function ChatInput({ value, onChange, onSend, attachments, onAddFiles, onRemoveA
             </OperationMenu>
           )}
         </div>
-        <div ref={pptToggleRef} className="shrink-0">
+        <div className="shrink-0">
           <PptGenerationToggle selected={pptGeneration} onChange={onPptGenerationChange} borderless />
         </div>
-        <div ref={settingsRef} aria-hidden={!pptGeneration || settingsCollapsed} className={`flex w-max shrink-0 items-center gap-[8px] ${!pptGeneration || settingsCollapsed ? "invisible pointer-events-none absolute left-0 top-0" : ""}`}>
-            <PptSettingPicker kind="mode" value={pptMode} onChange={onPptModeChange} />
-            <PptSettingPicker kind="pages" value={pptPages} onChange={onPptPagesChange} />
-        </div>
-        {settingsCollapsed && (
-          <button ref={moreTriggerRef} type="button" aria-label="更多设置" aria-haspopup="menu" aria-expanded={moreOpen} onClick={() => setMoreOpen(open => !open)} className="flex size-[30px] shrink-0 items-center justify-center rounded-full hover:bg-[#f7f7f7]">
-            <img src="/assets/bbe3b.svg" alt="" />
-          </button>
-        )}
-        {moreOpen && settingsCollapsed && (
-          <OperationMenu anchor={moreTriggerRef.current} className="flex flex-col items-start gap-[8px] rounded-[12px] border border-[#f2f2f2] bg-white p-[8px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
-            <PptSettingPicker kind="mode" value={pptMode} onChange={onPptModeChange} />
-            <PptSettingPicker kind="pages" value={pptPages} onChange={onPptPagesChange} />
-          </OperationMenu>
-        )}
         </div>
         <SendButton
           canSend={canSend}
@@ -2227,7 +2405,7 @@ function HomeProjectPicker({ projects, selectedProjectId, onSelectProject, onCre
     <>
       <div ref={pickerRef} className="relative w-full px-[16px]">
         {menuOpen && (
-          <OperationMenu role="menu" anchor={pickerRef.current?.querySelector("button") ?? null} className="flex w-[232px] flex-col overflow-y-auto rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
+          <OperationMenu role="menu" gap={4} anchor={pickerRef.current?.querySelector("button") ?? null} className="flex w-[232px] flex-col overflow-y-auto rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
             <div className="flex max-h-[470px] w-full shrink-0 flex-col overflow-x-hidden overflow-y-auto py-[4px]">
               {projects.length === 0 && (
                 <div className="shrink-0 rounded-[8px] px-[8px] py-[11px] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">
@@ -2433,6 +2611,10 @@ function TaskHeaderActions({ task, projects, artifacts, setHistory, setProjects,
           onRename={title => updateTask({ title })}
           onMove={projectId => updateTask({ projectId })}
           onCreateProject={() => setCreateProjectOpen(true)}
+          onArchive={() => {
+            updateTask({ archived: true });
+            showArchiveToast(() => updateTask({ archived: false }));
+          }}
           onDelete={() => setHistory(items => items.filter(item => item.id !== task.id))}
           onClose={() => setMenuOpen(false)}
         />
@@ -2619,7 +2801,7 @@ function ProjectCard({ project, onOpen, onRename, onArchive, onDelete, onTransfe
             {project.name}
           </p>
           <p className="w-full truncate text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">
-            {project.instruction || "暂无描述"}
+            {project.description || "暂无描述"}
           </p>
         </div>
         {(hovered || menuOpen) && (
@@ -2659,7 +2841,7 @@ function ProjectCard({ project, onOpen, onRename, onArchive, onDelete, onTransfe
               className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]"
             >
               <img src="/assets/e2b81.svg" alt="" className="shrink-0" />
-              <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">重命名</span>
+              <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">编辑项目信息</span>
             </button>
             <div className="relative" onMouseEnter={openTransfer} onMouseLeave={deferCloseTransfer}>
               <button
@@ -2737,72 +2919,241 @@ function ProjectCard({ project, onOpen, onRename, onArchive, onDelete, onTransfe
   );
 }
 
-function ProjectHeaderActions({ project, onRename, onTransfer, onArchive, onDelete, panelOpen, onTogglePanel }: {
+function ProjectHeaderActions({ project, onEdit, onTransfer, onArchive, onDelete, panelOpen, onTogglePanel }: {
   project: ProjectItem;
-  onRename: (name: string) => void;
+  onEdit: (updates: { name: string; description: string }) => void;
   onTransfer: (member: string) => void;
   onArchive: () => void;
   onDelete: () => void;
   panelOpen: boolean;
   onTogglePanel: () => void;
 }) {
-  const [name, setName] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   return (
     <div className="relative flex shrink-0 items-center gap-[8px]">
-      <ProjectCard project={project} menuOnly onOpen={() => {}} onRename={() => setName(project.name)} onTransfer={onTransfer} onArchive={onArchive} onDelete={onDelete} />
+      <ProjectCard project={project} menuOnly onOpen={() => {}} onRename={() => setEditOpen(true)} onTransfer={onTransfer} onArchive={onArchive} onDelete={onDelete} />
       <button type="button" aria-label={panelOpen ? "收起右侧边栏" : "展开右侧边栏"} aria-expanded={panelOpen} aria-controls="project-configuration" onClick={onTogglePanel} className="flex size-[24px] cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f7f7f7]">
         <img src="/assets/a8ef3.svg" alt="" />
       </button>
-      <Dialog open={name !== null} onOpenChange={open => { if (!open) setName(null); }}>
-        <DialogContent aria-describedby={undefined} className="w-[400px] max-w-[calc(100vw-32px)] rounded-[16px] p-[24px]">
-          <DialogTitle>重命名项目</DialogTitle>
-          <form onSubmit={event => { event.preventDefault(); if (name?.trim()) { onRename(name.trim()); setName(null); } }} className="flex flex-col gap-[16px]">
-            <label className="flex flex-col gap-[8px] text-[14px] font-normal">
-              项目名称
-              <input autoFocus maxLength={15} value={name ?? ""} onChange={event => setName(event.target.value)} className="h-[40px] rounded-[8px] border border-[#e6e6e6] px-[12px] outline-none focus:border-[#1e63f5]" />
-            </label>
-            <div className="flex justify-end gap-[8px]">
-              <button type="button" onClick={() => setName(null)} className="cursor-pointer rounded-[8px] border border-[#e6e6e6] px-[16px] py-[8px] text-[14px] font-normal">取消</button>
-              <button type="submit" disabled={!name?.trim()} className="cursor-pointer rounded-[8px] bg-[#1e63f5] px-[16px] py-[8px] text-[14px] font-normal text-white disabled:opacity-40">确定</button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CreateProjectDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onCreate={() => {}}
+        editProject={project}
+        onEdit={updates => { onEdit(updates); toast.success("项目信息已更新"); }}
+      />
     </div>
   );
 }
 
-function ProjectListView({ projects, onCreateProject, onSelectProject, onRenameProject, onArchiveProject, onDeleteProject }: {
+// ============================================================================
+// 列表页共享组件（项目页 / 自动化任务页复用同一套 Figma 组件、响应式规则与交互）
+// Figma 9187:44647 / 9532:10168 / 9598:39360「Search Input」「Icon Button」
+// Figma 9446:46779 / 9625:52202「Tag-2」Size=L
+// ============================================================================
+
+// 响应式搜索组件：
+// ≥800px：256x32 搜索框常驻（放大镜 black 0.26 → #1C61F1 激活态，输入后出清空按钮）
+// <800px：收起为 32x32 搜索按钮（hover #F2F2F2 / pressed #DCDCDC），点击展开输入框；
+//         清空且失焦自动收起，点击 ✕ 清空时阻止 blur 误收起
+function ListPageSearch({ value, onValueChange, placeholder, ariaLabel, narrowPlaceholder = "搜索" }: {
+  value: string;
+  onValueChange: (value: string) => void;
+  placeholder: string;
+  ariaLabel: string;
+  narrowPlaceholder?: string;
+}) {
+  const [focused, setFocused] = useState(false);
+  const [open, setOpen] = useState(false);
+  // 兜底：展开状态下内容被清空且输入框已失焦（如失焦后点击 ✕ 清空，onBlur 已错过）→ 自动收起。
+  // 用 document.activeElement 实时判断，避免 autoFocus 与 focused 状态不同步时误收起
+  const narrowSearchInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (open && !value && document.activeElement !== narrowSearchInputRef.current) {
+      setOpen(false);
+    }
+  }, [open, value]);
+  const searchIcon = focused ? "/assets/search-dialog-search.svg" : "/assets/search-dialog-search-default.svg";
+  return (
+    <>
+      <div className="ml-auto hidden h-[32px] w-[256px] shrink-0 items-center gap-[8px] rounded-[4px] bg-[#f7f7f7] pl-[8px] pr-[16px] min-[800px]:flex">
+        <img src={searchIcon} alt="" className="size-[16px] shrink-0" />
+        <input
+          value={value}
+          onChange={event => onValueChange(event.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder={placeholder}
+          aria-label={ariaLabel}
+          className="min-w-0 flex-1 bg-transparent font-normal text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] outline-none placeholder:text-[rgba(0,0,0,0.26)]"
+        />
+        {value && (
+          <button
+            type="button"
+            aria-label="清空搜索"
+            onClick={() => onValueChange("")}
+            className="flex size-[16px] shrink-0 cursor-pointer items-center justify-center"
+          >
+            <img src="/assets/f802d.svg" alt="" className="size-[12px]" />
+          </button>
+        )}
+      </div>
+      <div className="flex min-w-0 flex-1 items-center justify-end gap-[12px] min-[800px]:hidden">
+        {open ? (
+          <div className="flex h-[32px] min-w-0 flex-1 items-center gap-[8px] rounded-[4px] bg-[#f7f7f7] pl-[8px] pr-[8px]">
+            <img src={searchIcon} alt="" className="size-[16px] shrink-0" />
+            <input
+              ref={narrowSearchInputRef}
+              autoFocus
+              value={value}
+              onChange={event => onValueChange(event.target.value)}
+              onFocus={() => setFocused(true)}
+              onBlur={() => {
+                setFocused(false);
+                if (!value) setOpen(false);
+              }}
+              placeholder={narrowPlaceholder}
+              aria-label={ariaLabel}
+              className="min-w-0 flex-1 bg-transparent font-normal text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] outline-none placeholder:text-[rgba(0,0,0,0.26)]"
+            />
+            {value && (
+              <button
+                type="button"
+                aria-label="清空搜索"
+                onMouseDown={event => event.preventDefault()}
+                onClick={() => onValueChange("")}
+                className="flex size-[16px] shrink-0 cursor-pointer items-center justify-center"
+              >
+                <img src="/assets/f802d.svg" alt="" className="size-[12px]" />
+              </button>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            aria-label={ariaLabel}
+            onClick={() => setOpen(true)}
+            className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f2f2f2] active:bg-[#dcdcdc]"
+          >
+            <img src="/assets/project-search-btn.svg" alt="" className="size-[20px]" />
+          </button>
+        )}
+      </div>
+    </>
+  );
+}
+
+// Tag-2 组件 Size=L：Selected → #F7F7F7/r8；Default → 透明/r4；Hover → #F2F2F2/r8
+// 项目页「全部/我创建的/我参与的」与自动化任务页「已启用/已暂停/已结束」共用
+function TagTabs<T extends string>({ items, active, onChange }: {
+  items: readonly T[];
+  active: T;
+  onChange: (item: T) => void;
+}) {
+  return (
+    <div className="flex shrink-0 items-center gap-[16px] pb-[16px]">
+      {items.map(item => (
+        <button
+          key={item}
+          type="button"
+          onClick={() => onChange(item)}
+          aria-pressed={active === item}
+          className={`flex h-[36px] shrink-0 cursor-pointer items-center px-[16px] font-normal text-[16px] leading-[24px] tracking-[0.016px] text-[rgba(0,0,0,0.88)] ${active === item ? "rounded-[8px] bg-[#f7f7f7]" : "rounded-[4px] bg-transparent hover:rounded-[8px] hover:bg-[#f2f2f2]"}`}
+        >
+          {item}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// 列表页页头：标题 20px/28 Medium + 共享搜索 + 新建按钮插槽（响应式由插槽内按钮自行控制）
+function ListPageHeader({ title, query, onQueryChange, searchPlaceholder, searchAriaLabel, narrowSearchPlaceholder, children }: {
+  title: string;
+  query: string;
+  onQueryChange: (value: string) => void;
+  searchPlaceholder: string;
+  searchAriaLabel: string;
+  narrowSearchPlaceholder?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <header className="flex shrink-0 items-center gap-[12px] pb-[16px] pl-0 pr-0 pt-0">
+      <h1 className="min-w-fit shrink-0 font-['PingFang_SC:Medium'] text-[20px] font-medium leading-[28px] tracking-[0.02px] text-[rgba(0,0,0,0.88)]">
+        {title}
+      </h1>
+      <ListPageSearch
+        value={query}
+        onValueChange={onQueryChange}
+        placeholder={searchPlaceholder}
+        ariaLabel={searchAriaLabel}
+        narrowPlaceholder={narrowSearchPlaceholder}
+      />
+      {children}
+    </header>
+  );
+}
+
+const PROJECT_TABS = ["全部", "我创建的", "我参与的"] as const;
+const AUTOMATION_TABS = ["已启用", "已暂停", "已结束"] as const;
+
+function ProjectListView({ projects, onCreateProject, onSelectProject, onEditProject, onArchiveProject, onDeleteProject }: {
   projects: ProjectItem[];
   onCreateProject: (project: Omit<ProjectItem, "id">) => void;
   onSelectProject: (id: number) => void;
-  onRenameProject: (id: number, name: string) => void;
+  onEditProject: (id: number, updates: { name: string; description: string }) => void;
   onArchiveProject: (id: number) => void;
   onDeleteProject: (id: number) => void;
 }) {
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<ProjectItem | null>(null);
+  const [projectTab, setProjectTab] = useState<(typeof PROJECT_TABS)[number]>("全部");
+  const [projectQuery, setProjectQuery] = useState("");
+
+  const keyword = projectQuery.trim().toLowerCase();
+  const visibleProjects = projects.filter(project => {
+    if (project.archived) return false;
+    if (keyword && !`${project.name} ${project.description ?? ""}`.toLowerCase().includes(keyword)) return false;
+    if (projectTab === "我创建的") return !project.owner || project.owner === "我";
+    if (projectTab === "我参与的") return (project.members?.length ?? 0) > 0;
+    return true;
+  });
 
   return (
     <>
-      <main className="relative min-h-0 flex-1 overflow-y-auto bg-white px-[24px]">
+      <main className="relative min-h-0 flex-1 overflow-y-auto bg-white px-[16px] min-[800px]:px-[24px]">
         <div className="mx-auto flex min-h-full w-full max-w-[960px] flex-col">
-          <header className="flex shrink-0 items-center gap-[12px] pb-[32px] pl-0 pr-0 pt-0">
-            <h1 className="min-w-0 flex-1 font-['PingFang_SC:Medium'] text-[20px] font-medium leading-[28px] tracking-[0.02px] text-[rgba(0,0,0,0.88)]">
-              项目
-            </h1>
+          <ListPageHeader
+            title="项目"
+            query={projectQuery}
+            onQueryChange={setProjectQuery}
+            searchPlaceholder="搜索项目"
+            searchAriaLabel="搜索项目"
+          >
             <button
               type="button"
               onClick={() => setCreateProjectOpen(true)}
-              className="flex shrink-0 cursor-pointer items-center justify-center gap-[8px] overflow-hidden rounded-[4px] bg-[#1e63f5] px-[16px] py-[5px] hover:bg-[#1554d1]"
+              className="hidden shrink-0 cursor-pointer items-center justify-center gap-[8px] overflow-hidden rounded-[4px] bg-[#1e63f5] px-[16px] py-[5px] hover:bg-[#1554d1] min-[560px]:flex"
             >
               <img src="/assets/c136c.svg" alt="" className="shrink-0" />
               <span className="whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(255,255,255,0.98)]">
                 新建项目
               </span>
             </button>
-          </header>
+            {/* <560px：Filled Primary Button 收起为 32x32 蓝色 add-circle-fill 图标按钮 */}
+            <button
+              type="button"
+              aria-label="新建项目"
+              onClick={() => setCreateProjectOpen(true)}
+              className="hidden size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#ebf4ff] active:bg-[#99c3ff] max-[559px]:flex"
+            >
+              <img src="/assets/project-add-circle.svg" alt="" className="size-[20px]" />
+            </button>
+          </ListPageHeader>
 
-          {projects.length === 0 ? (
+          <TagTabs items={PROJECT_TABS} active={projectTab} onChange={setProjectTab} />
+
+          {visibleProjects.length === 0 ? (
             <div className="flex flex-1 items-center justify-center pb-[260px]">
               <div className="flex w-[320px] flex-col items-center justify-end">
                 <div className="mb-[-80px] size-[320px] shrink-0 overflow-hidden">
@@ -2817,15 +3168,12 @@ function ProjectListView({ projects, onCreateProject, onSelectProject, onRenameP
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-[16px] overflow-visible pb-[24px] max-[900px]:grid-cols-2 max-[620px]:grid-cols-1">
-              {projects.map(project => (
+              {visibleProjects.map(project => (
                 <ProjectCard
                   key={project.id}
                   project={project}
                   onOpen={() => onSelectProject(project.id)}
-                  onRename={() => {
-                    const name = window.prompt("请输入新的项目名称", project.name)?.trim();
-                    if (name) onRenameProject(project.id, name);
-                  }}
+                  onRename={() => setEditingProject(project)}
                   onArchive={() => onArchiveProject(project.id)}
                   onDelete={() => onDeleteProject(project.id)}
                 />
@@ -2835,11 +3183,322 @@ function ProjectListView({ projects, onCreateProject, onSelectProject, onRenameP
         </div>
       </main>
       <CreateProjectDialog
-        open={createProjectOpen}
-        onOpenChange={setCreateProjectOpen}
+        open={createProjectOpen || editingProject !== null}
+        onOpenChange={open => { setCreateProjectOpen(open); if (!open) setEditingProject(null); }}
         onCreate={onCreateProject}
+        editProject={editingProject}
+        onEdit={updates => { if (editingProject) onEditProject(editingProject.id, updates); setEditingProject(null); }}
       />
     </>
+  );
+}
+
+// Figma 9625:49728「自动化任务」：
+// 标题「自动化任务」(360,50 20px/28 Medium) / Search Input (943,48 256x32，占位「搜索自动化任务名称」)
+// / Filled Primary Button (1211,48 109x32，#1E63F5 r4，左加号 +「新建」+ 右下拉箭头)
+// / Tag-2 (360,96 275x36，已启用/已暂停/已结束，itemSpacing 16) / 内容区留白
+// 响应式规则、搜索组件、tabs 组件、交互与项目页完全一致（复用 ListPageHeader / ListPageSearch / TagTabs）
+function AutomationListView() {
+  const [query, setQuery] = useState("");
+  const [tab, setTab] = useState<(typeof AUTOMATION_TABS)[number]>("已启用");
+  return (
+    <main className="relative min-h-0 flex-1 overflow-y-auto bg-white px-[16px] min-[800px]:px-[24px]">
+      <div className="mx-auto flex min-h-full w-full max-w-[960px] flex-col">
+        <ListPageHeader
+          title="自动化任务"
+          query={query}
+          onQueryChange={setQuery}
+          searchPlaceholder="搜索自动化任务名称"
+          searchAriaLabel="搜索自动化任务"
+        >
+          {/* ≥560px：Filled Primary Button 9625:52211，109x32 / r4 / #1E63F5 / px16 gap8 */}
+          <button
+            type="button"
+            className="hidden shrink-0 cursor-pointer items-center justify-center gap-[8px] overflow-hidden rounded-[4px] bg-[#1e63f5] px-[16px] py-[5px] hover:bg-[#1554d1] min-[560px]:flex"
+          >
+            <img src="/assets/automation-create-add.svg" alt="" className="size-[16px] shrink-0" />
+            <span className="whitespace-nowrap font-['PingFang_SC:Regular'] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(255,255,255,0.98)]">
+              新建
+            </span>
+            <img src="/assets/automation-create-chevron.svg" alt="" className="size-[16px] shrink-0" />
+          </button>
+          {/* <560px：与项目页同一响应式规则，收起为 32x32 蓝色图标按钮 */}
+          <button
+            type="button"
+            aria-label="新建"
+            className="hidden size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] bg-[#1e63f5] hover:bg-[#1554d1] max-[559px]:flex"
+          >
+            <img src="/assets/automation-create-add.svg" alt="" className="size-[16px]" />
+          </button>
+        </ListPageHeader>
+
+        <TagTabs items={AUTOMATION_TABS} active={tab} onChange={setTab} />
+
+        {/* 内容区：Figma 9625:49728 为空态留白，不放列表/插图 */}
+        <div className="flex-1" />
+      </div>
+    </main>
+  );
+}
+
+// Figma 9446:47192（项目 tab 有数据）/ 9423:124200（任务 tab）/ 9638:46195（空态）：
+// 归档数据页 —— 标题 20px/28 Medium + Tag-2 胶囊 tab + 项目卡片网格 309x72 r12 / 任务分组列表 + 320px 空态插图
+const formatArchiveTime = (timestamp?: number) => {
+  if (!timestamp) return "";
+  const date = new Date(timestamp);
+  const pad = (value: number) => `${value}`.padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+// Figma 9244:31284「Action toast」：白底胶囊、描边 #38E38A、绿色对勾 +「已归档」+ 蓝色「撤销」
+function showArchiveToast(onUndo: () => void) {
+  const id = toast.custom(() => (
+    <div className="flex h-[44px] items-center gap-[8px] rounded-full border border-[#38e38a] bg-white pl-[8px] pr-[16px] shadow-[0_0_12px_rgba(0,0,0,0.08)]">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="shrink-0" aria-hidden>
+        <circle cx="12" cy="12" r="10" fill="#38e38a" />
+        <path d="M7.6 12.3l2.9 2.9 5.9-6.4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span className="min-w-0 flex-1 whitespace-nowrap text-[14px] font-normal leading-[22px] text-[rgba(0,0,0,0.88)]">已归档</span>
+      <button
+        type="button"
+        onClick={() => { toast.dismiss(id); onUndo(); }}
+        className="shrink-0 cursor-pointer bg-transparent text-[14px] font-normal leading-[22px] text-[#1e63f5]"
+      >撤销</button>
+    </div>
+  ), { duration: 5000 });
+}
+
+function ArchiveView({ projects, tasks, onUnarchiveProject, onEditProject, onTransferProject, onDeleteProject, onSelectTask, onUnarchiveTask, onDeleteTask }: {
+  projects: ProjectItem[];
+  tasks: HistoryItem[];
+  onUnarchiveProject: (id: number) => void;
+  onEditProject: (id: number, updates: { name: string; description: string }) => void;
+  onTransferProject: (id: number, member: string) => void;
+  onDeleteProject: (id: number) => void;
+  onSelectTask: (id: number) => void;
+  onUnarchiveTask: (id: number) => void;
+  onDeleteTask: (id: number) => void;
+}) {
+  const [tab, setTab] = useState<"任务" | "项目">("任务");
+  const [editingProject, setEditingProject] = useState<ProjectItem | null>(null);
+  const [cardMenu, setCardMenu] = useState<{ id: number; anchor: HTMLElement } | null>(null);
+  const [taskMenu, setTaskMenu] = useState<{ id: number; anchor: HTMLElement } | null>(null);
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [transferSubmenuOpen, setTransferSubmenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const transferTriggerRef = useRef<HTMLButtonElement>(null);
+  const closeTransferTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const archivedProjects = projects.filter(project => project.archived);
+  const archivedTasks = tasks.filter(task => task.archived);
+  const members = TRANSFER_MEMBERS.filter(member => member.includes(memberSearch.trim()));
+  const menuProject = archivedProjects.find(project => project.id === cardMenu?.id);
+  const menuTask = archivedTasks.find(task => task.id === taskMenu?.id);
+
+  useEffect(() => () => { if (closeTransferTimer.current) clearTimeout(closeTransferTimer.current); }, []);
+
+  useEffect(() => {
+    if (!cardMenu && !taskMenu) return;
+    const close = (event: PointerEvent) => {
+      if (event.target instanceof Node && !cardMenu?.anchor.contains(event.target) && !taskMenu?.anchor.contains(event.target) && !menuRef.current?.contains(event.target)) {
+        setCardMenu(null);
+        setTaskMenu(null);
+        setMemberSearch("");
+      }
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [cardMenu, taskMenu]);
+
+  const closeMenus = () => {
+    setCardMenu(null);
+    setTaskMenu(null);
+    setMemberSearch("");
+  };
+  const openTransfer = () => {
+    if (closeTransferTimer.current) clearTimeout(closeTransferTimer.current);
+    setCardMenu(menu => menu ? { ...menu } : menu);
+    setTransferSubmenuOpen(true);
+  };
+  const deferCloseTransfer = () => {
+    closeTransferTimer.current = setTimeout(() => setTransferSubmenuOpen(false), 140);
+  };
+
+  const emptyState = (text: string) => (
+    <div className="flex flex-col items-center pt-[32px]">
+      <img src="/assets/archive-empty.png" alt="" className="h-[260px] max-w-full object-contain" />
+      <p className="pb-[24px] text-[14px] font-medium leading-[22px] text-[rgba(0,0,0,0.38)]">{text}</p>
+    </div>
+  );
+
+  return (
+    <main className="relative min-h-0 flex-1 overflow-y-auto bg-white px-[16px] min-[800px]:px-[24px]">
+      <div className="mx-auto flex min-h-full w-full max-w-[960px] flex-col pb-[40px]">
+        <h1 className="flex h-[44px] items-end pb-[16px] pt-[20px] text-[20px] font-medium leading-[28px] tracking-[0.02px] text-[rgba(0,0,0,0.88)]">归档数据</h1>
+        <div role="tablist" aria-label="归档数据" className="flex shrink-0 items-center gap-[16px]">
+          {(["任务", "项目"] as const).map(item => (
+            <button key={item} type="button" role="tab" aria-selected={tab === item} onClick={() => { setTab(item); closeMenus(); }} className={`flex h-[36px] shrink-0 cursor-pointer items-center px-[16px] font-normal text-[16px] leading-[24px] tracking-[0.016px] transition-colors ${tab === item ? "rounded-[8px] bg-[#f7f7f7] text-[rgba(0,0,0,0.88)]" : "rounded-[8px] bg-transparent text-[rgba(0,0,0,0.6)] hover:bg-[#f2f2f2]"}`}>{item}</button>
+          ))}
+        </div>
+        {tab === "项目" ? (
+          archivedProjects.length > 0 ? (
+            <div className="mt-[16px] grid grid-cols-[repeat(3,1fr)] gap-[16px]">
+              {archivedProjects.map(project => (
+                <div
+                  key={project.id}
+                  onMouseEnter={() => setHoveredCard(project.id)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  className={`relative flex h-[72px] min-w-0 cursor-pointer items-center rounded-[12px] border border-[#e6e6e6] px-[12px] ${hoveredCard === project.id || cardMenu?.id === project.id ? "bg-[#e6e6e6]" : "bg-white"}`}
+                >
+                  <div className="flex size-[48px] shrink-0 items-center justify-center rounded-[8px] bg-[#f7f7f7]">
+                    <img src="/assets/e5ea3.svg" alt="" />
+                  </div>
+                  <div className="ml-[12px] min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">{project.name}</p>
+                    <p className="truncate text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">{project.description || "暂无描述"}</p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={`${project.name}归档操作`}
+                    aria-haspopup="menu"
+                    aria-expanded={cardMenu?.id === project.id}
+                    onClick={event => { event.stopPropagation(); const target = event.currentTarget; setCardMenu(menu => menu?.id === project.id ? null : { id: project.id, anchor: target }); setTransferSubmenuOpen(false); }}
+                    className={`flex size-[24px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] hover:bg-[rgba(0,0,0,0.06)] ${hoveredCard === project.id || cardMenu?.id === project.id ? "opacity-100" : "opacity-0 focus:opacity-100"}`}
+                  >
+                    <img src="/assets/bbe3b.svg" alt="" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : emptyState("暂无归档项目")
+        ) : archivedTasks.length > 0 ? (
+          <div className="mt-[16px] flex flex-col">
+            {archivedTasks.map(task => (
+              <div
+                key={task.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelectTask(task.id)}
+                onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelectTask(task.id); } }}
+                className="group relative flex h-[40px] cursor-pointer items-center gap-[16px] rounded-[8px] px-[8px] hover:bg-[#f2f2f2]"
+              >
+                <span className="min-w-0 flex-1 truncate text-[14px] font-normal leading-[22px] text-[rgba(0,0,0,0.88)]">{task.title}</span>
+                <span className="shrink-0 text-[14px] font-normal leading-[22px] text-[rgba(0,0,0,0.26)] transition-opacity group-hover:opacity-0">{formatArchiveTime(task.createdAt)}</span>
+                <button
+                  type="button"
+                  aria-label={`${task.title}归档操作`}
+                  aria-haspopup="menu"
+                  aria-expanded={taskMenu?.id === task.id}
+                  onClick={event => { event.stopPropagation(); const target = event.currentTarget; setTaskMenu(menu => menu?.id === task.id ? null : { id: task.id, anchor: target }); }}
+                  className={`absolute right-[8px] top-1/2 flex size-[24px] -translate-y-1/2 cursor-pointer items-center justify-center rounded-[4px] transition-opacity hover:bg-[rgba(0,0,0,0.06)] focus:opacity-100 ${taskMenu?.id === task.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                >
+                  <img src="/assets/bbe3b.svg" alt="" />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : emptyState("暂无归档任务")}
+      </div>
+      {cardMenu && menuProject && (
+        <OperationMenu
+          ref={menuRef}
+          role="menu"
+          aria-label="归档项目操作"
+          anchor={cardMenu.anchor}
+          align="end"
+          onKeyDown={event => { if (event.key === "Escape") { closeMenus(); cardMenu.anchor.focus(); } }}
+          className="w-[192px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+        >
+          <div className="flex w-full flex-col py-[4px]">
+            <button type="button" role="menuitem" onClick={() => { onUnarchiveProject(menuProject.id); closeMenus(); }} className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]">
+              <img src="/assets/ae0d0.svg" alt="" className="shrink-0" />
+              <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">取消归档</span>
+            </button>
+            <button type="button" role="menuitem" onClick={() => { setEditingProject(menuProject); closeMenus(); }} className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]">
+              <img src="/assets/e2b81.svg" alt="" className="shrink-0" />
+              <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">编辑项目信息</span>
+            </button>
+            <div className="relative" onMouseEnter={openTransfer} onMouseLeave={deferCloseTransfer}>
+              <button
+                type="button"
+                role="menuitem"
+                aria-haspopup="menu"
+                aria-expanded={transferSubmenuOpen}
+                ref={transferTriggerRef}
+                onClick={openTransfer}
+                className={`flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left ${transferSubmenuOpen ? "bg-[#f7f7f7]" : "hover:bg-[#f7f7f7]"}`}
+              >
+                <img src="/assets/65325.svg" alt="" className="shrink-0" />
+                <span className="min-w-0 flex-1 font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">移交项目</span>
+                <img src="/assets/fb6a4.svg" alt="" className="shrink-0" />
+              </button>
+              {transferSubmenuOpen && (
+                <OperationMenu submenu anchor={transferTriggerRef.current}
+                  role="menu"
+                  onMouseEnter={openTransfer}
+                  onMouseLeave={deferCloseTransfer}
+                  className="w-[224px] overflow-hidden rounded-[8px] bg-white shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+                >
+                  <div className="bg-white px-[16px] py-[4px]">
+                    <label className="flex h-[32px] items-center gap-[8px] border-b border-[#1e63f5]">
+                      <img src="/assets/16710.svg" alt="" className="shrink-0" />
+                      <input
+                        autoFocus
+                        value={memberSearch}
+                        onChange={event => setMemberSearch(event.target.value)}
+                        placeholder="搜索"
+                        className="min-w-0 flex-1 bg-transparent font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] outline-none placeholder:text-[rgba(0,0,0,0.26)]"
+                      />
+                    </label>
+                  </div>
+                  <div className="max-h-[240px] overflow-y-auto px-[8px]">
+                    {members.map((member, index) => (
+                      <button key={`${member}-${index}`} type="button" onClick={() => { onTransferProject(menuProject.id, member); closeMenus(); }} className="flex h-[40px] w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] text-left hover:bg-[#f7f7f7]">
+                        <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">{member}</span>
+                      </button>
+                    ))}
+                    {members.length === 0 && <p className="px-[8px] py-[12px] text-[14px] leading-[22px] text-[rgba(0,0,0,0.38)]">没有匹配的成员</p>}
+                  </div>
+                </OperationMenu>
+              )}
+            </div>
+            <button type="button" role="menuitem" onClick={() => { onDeleteProject(menuProject.id); closeMenus(); }} className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]">
+              <img src="/assets/5ff6b.svg" alt="" className="shrink-0" />
+              <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">删除</span>
+            </button>
+          </div>
+        </OperationMenu>
+      )}
+      {taskMenu && menuTask && (
+        <OperationMenu
+          ref={menuRef}
+          role="menu"
+          aria-label="归档任务操作"
+          anchor={taskMenu.anchor}
+          align="end"
+          onKeyDown={event => { if (event.key === "Escape") { closeMenus(); taskMenu.anchor.focus(); } }}
+          className="w-[160px] rounded-[12px] border border-[#f2f2f2] bg-white px-[8px] py-[4px] shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+        >
+          <div className="flex w-full flex-col py-[4px]">
+            <button type="button" role="menuitem" onClick={() => { onUnarchiveTask(menuTask.id); closeMenus(); }} className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]">
+              <img src="/assets/ae0d0.svg" alt="" className="shrink-0" />
+              <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">取消归档</span>
+            </button>
+            <button type="button" role="menuitem" onClick={() => { onDeleteTask(menuTask.id); closeMenus(); }} className="flex w-full cursor-pointer items-center gap-[8px] rounded-[8px] px-[8px] py-[11px] text-left hover:bg-[#f7f7f7]">
+              <img src="/assets/5ff6b.svg" alt="" className="shrink-0" />
+              <span className="font-['PingFang_SC:Regular'] text-[14px] leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)]">删除</span>
+            </button>
+          </div>
+        </OperationMenu>
+      )}
+      <CreateProjectDialog
+        open={editingProject !== null}
+        onOpenChange={open => { if (!open) setEditingProject(null); }}
+        onCreate={() => {}}
+        editProject={editingProject}
+        onEdit={updates => { if (editingProject) onEditProject(editingProject.id, updates); setEditingProject(null); }}
+      />
+    </main>
   );
 }
 
@@ -2858,6 +3517,9 @@ function ProjectHomeView({ project, projects, tasks, onSelectTask, onUpdateTask,
   const [instructionOpen, setInstructionOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
   const [tab, setTab] = useState<"任务" | "来源" | "产物">("任务");
+  const [filesQuery, setFilesQuery] = useState("");
+  const [filesSearchFocused, setFilesSearchFocused] = useState(false);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
   const [taskMenu, setTaskMenu] = useState<{ id: number; anchor: HTMLButtonElement } | null>(null);
   const [renamingTask, setRenamingTask] = useState<{ id: number; title: string } | null>(null);
   const [pendingTaskMoveId, setPendingTaskMoveId] = useState<number | null>(null);
@@ -2884,17 +3546,65 @@ function ProjectHomeView({ project, projects, tasks, onSelectTask, onUpdateTask,
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[16px] font-bold leading-[24px] tracking-[0.016px] text-[rgba(0,0,0,0.88)]">{project.name}</p>
-              <p className="truncate text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">描述</p>
+              <p className="truncate text-[12px] font-normal leading-[20px] tracking-[0.012px] text-[rgba(0,0,0,0.38)]">{project.description || "描述"}</p>
             </div>
           </div>
-          <div role="tablist" aria-label="项目内容" className="flex h-[48px] shrink-0 items-end gap-[24px] border-b border-[#e6e6e6]">
-            {(["任务", "来源", "产物"] as const).map(item => (
-              <button key={item} type="button" role="tab" aria-selected={tab === item} onClick={() => { setTab(item); setTaskMenu(null); }} className={`flex h-[48px] cursor-pointer items-center border-b-2 text-[16px] leading-[24px] tracking-[0.016px] ${tab === item ? "border-[#1e63f5] font-medium text-[#1e63f5]" : "border-transparent font-normal text-[rgba(0,0,0,0.6)]"}`}>{item}</button>
-            ))}
+          {/* Figma 9234:27120 / 9393:81788：Tag-2 胶囊 Tab（65x36 选中 r8 文字 0.88 / 默认 r4 文字 0.6，
+              hover 参照 Tag 变体 r8 #F2F2F2），右侧同行放 Search Input 256x32 + 筛选 32x32 +（来源）上传 141x32 */}
+          <div className="mt-[16px] flex h-[36px] shrink-0 items-center justify-between gap-[16px]">
+            <div role="tablist" aria-label="项目内容" className="flex shrink-0 items-center gap-[16px]">
+              {(["任务", "来源", "产物"] as const).map(item => (
+                <button key={item} type="button" role="tab" aria-selected={tab === item} onClick={() => { setTab(item); setTaskMenu(null); }} className={`flex h-[36px] shrink-0 cursor-pointer items-center px-[16px] font-normal text-[16px] leading-[24px] tracking-[0.016px] transition-colors ${tab === item ? "rounded-[8px] bg-[#f7f7f7] text-[rgba(0,0,0,0.88)]" : "rounded-[8px] bg-transparent text-[rgba(0,0,0,0.6)] hover:bg-[#f2f2f2]"}`}>{item}</button>
+              ))}
+            </div>
+            {tab !== "任务" && (
+              <div className="flex min-w-0 items-center gap-[16px]">
+                <label className={`flex h-[32px] w-[256px] min-w-0 flex-1 items-center gap-[8px] rounded-[4px] bg-[#f7f7f7] pl-[8px] pr-[8px] ${filesSearchFocused ? "" : "pr-[16px]"}`}>
+                  <img
+                    src={filesSearchFocused ? "/assets/search-dialog-search.svg" : "/assets/search-dialog-search-default.svg"}
+                    alt=""
+                    className="size-[16px] shrink-0"
+                  />
+                  <input
+                    aria-label="搜索文件名称"
+                    placeholder="搜索文件名称"
+                    value={filesQuery}
+                    onChange={event => setFilesQuery(event.target.value)}
+                    onFocus={() => setFilesSearchFocused(true)}
+                    onBlur={() => setFilesSearchFocused(false)}
+                    className="min-w-0 flex-1 bg-transparent text-[14px] font-normal leading-[22px] outline-none placeholder:text-[rgba(0,0,0,0.38)]"
+                  />
+                  {filesQuery && (
+                    <button type="button" aria-label="清空搜索" onMouseDown={event => event.preventDefault()} onClick={() => setFilesQuery("")} className="flex size-[16px] shrink-0 cursor-pointer items-center justify-center">
+                      <img src="/assets/f802d.svg" alt="" className="size-[12px]" />
+                    </button>
+                  )}
+                </label>
+                <button type="button" aria-label="筛选" onClick={() => toast.info("筛选功能暂未接入")} className="flex size-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] hover:bg-[#f2f2f2] active:bg-[#dcdcdc]">
+                  <img src="/assets/project-filter.svg" alt="" className="size-[20px]" />
+                </button>
+                {tab === "来源" && (
+                  <button type="button" onClick={() => uploadInputRef.current?.click()} className="flex h-[32px] shrink-0 cursor-pointer items-center gap-[8px] rounded-[4px] border border-[#1e63f5] px-[16px] text-[14px] font-normal leading-[22px] text-[#1e63f5] hover:bg-[#ebf4ff]">
+                    <img src="/assets/project-add-blue.svg" alt="" className="size-[16px] shrink-0" />
+                    上传文件
+                    <img src="/assets/project-direction-down-blue.svg" alt="" className="size-[16px] shrink-0" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
+          <input ref={uploadInputRef} aria-label="上传项目来源文件" type="file" multiple hidden onChange={event => {
+            const { additions, errors } = pickSourceFiles(event.target.files ?? new FileList());
+            errors.forEach(error => toast.error(error));
+            if (additions.length) {
+              const base = project.files ?? DEMO_PROJECT_FILES;
+              onUpdateProject({ files: { ...base, sources: [...base.sources, ...additions] } });
+            }
+            event.target.value = "";
+          }} />
           <div role="tabpanel" aria-label={tab} className={`min-h-0 flex-1 ${tab === "任务" ? "-mx-[8px] overflow-y-auto pt-[12px]" : "flex flex-col"}`}>
             {tab !== "任务" ? (
-              <ProjectFilesPanel key={tab} kind={tab === "来源" ? "sources" : "artifacts"} files={project.files ?? DEMO_PROJECT_FILES} onChange={files => onUpdateProject({ files })} />
+              <ProjectFilesPanel key={tab} kind={tab === "来源" ? "sources" : "artifacts"} files={project.files ?? DEMO_PROJECT_FILES} query={filesQuery} onChange={files => onUpdateProject({ files })} />
             ) : orderedTasks.length > 0 ? (
               <div className="flex flex-col gap-[8px]">
                 {orderedTasks.map(task => (
@@ -3396,8 +4106,11 @@ export default function App() {
   const [pptPages, setPptPages] = useState<PptPageCount>("智能匹配");
   const [stage, setStage] = useState<PptStage>("idle");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [projectConfigurationOpen, setProjectConfigurationOpen] = useState(true);
   const [projectListOpen, setProjectListOpen] = useState(false);
+  const [automationOpen, setAutomationOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState<number | null>(null);
   const [activeProjectId, setActiveProjectId] = useState<number | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
@@ -3542,6 +4255,7 @@ export default function App() {
     setMobileNavigationOpen(false);
     setStage("idle");
     setProjectListOpen(false);
+    setAutomationOpen(false);
     clearDraftAttachments(true);
     setInput("");
     setActiveHistoryId(id);
@@ -3559,6 +4273,7 @@ export default function App() {
     setPptGeneration(false);
     setStage("idle");
     setProjectListOpen(false);
+    setAutomationOpen(false);
     setActiveHistoryId(null);
     setActiveProjectId(id);
     setSelectedProjectId(null);
@@ -3666,6 +4381,8 @@ export default function App() {
     setPptPages("智能匹配");
     setStage("idle");
     setProjectListOpen(false);
+    setAutomationOpen(false);
+    setArchiveOpen(false);
     setActiveHistoryId(null);
     setActiveProjectId(null);
     setSelectedProjectId(null);
@@ -3679,6 +4396,40 @@ export default function App() {
     setPptGeneration(false);
     setStage("idle");
     setProjectListOpen(true);
+    setAutomationOpen(false);
+    setArchiveOpen(false);
+    setActiveHistoryId(null);
+    setActiveProjectId(null);
+    setSelectedProjectId(null);
+  };
+  // Figma 9625:49728：左侧导航「自动化任务」→ 自动化任务页（与项目页互斥，复用同一套组件/响应式）
+  const handleOpenAutomation = () => {
+    setMobileNavigationOpen(false);
+    activeRunId.current += 1;
+    setMessages([]);
+    clearDraftAttachments(true);
+    setInput("");
+    setPptGeneration(false);
+    setStage("idle");
+    setProjectListOpen(false);
+    setAutomationOpen(true);
+    setArchiveOpen(false);
+    setActiveHistoryId(null);
+    setActiveProjectId(null);
+    setSelectedProjectId(null);
+  };
+  // Figma 9446:47192 / 9423:124200 / 9638:46195：头像菜单「归档数据」→ 归档页（任务/项目两个 tab）
+  const handleOpenArchive = () => {
+    setMobileNavigationOpen(false);
+    activeRunId.current += 1;
+    setMessages([]);
+    clearDraftAttachments(true);
+    setInput("");
+    setPptGeneration(false);
+    setStage("idle");
+    setProjectListOpen(false);
+    setAutomationOpen(false);
+    setArchiveOpen(true);
     setActiveHistoryId(null);
     setActiveProjectId(null);
     setSelectedProjectId(null);
@@ -3725,12 +4476,16 @@ export default function App() {
           onClose={() => isMobile ? setMobileNavigationOpen(false) : setSidebarOpen(false)}
           onNewChat={handleNewChat}
           onOpenProjects={handleOpenProjects}
+          onOpenAutomation={handleOpenAutomation}
+          onOpenArchive={handleOpenArchive}
           onNewProjectTask={handleNewProjectTask}
           projectListOpen={projectListOpen}
+          automationOpen={automationOpen}
           activeId={activeHistoryId}
           activeProjectId={activeProjectId}
           onSelect={handleSelectHistory}
           onSelectProject={handleSelectProject}
+          onSearch={() => setSearchOpen(true)}
         />
   );
 
@@ -3774,14 +4529,19 @@ export default function App() {
               project={activeProject}
               panelOpen={projectConfigurationOpen}
               onTogglePanel={() => setProjectConfigurationOpen(open => !open)}
-              onRename={name => setProjects(current => current.map(project => project.id === activeProject.id ? { ...project, name } : project))}
+              onEdit={updates => setProjects(current => current.map(project => project.id === activeProject.id ? { ...project, name: updates.name, description: updates.description } : project))}
               onTransfer={owner => {
                 setProjects(current => current.map(project => project.id === activeProject.id ? { ...project, owner } : project));
                 toast.success(`本地示例：项目已移交给${owner}`);
               }}
               onArchive={() => {
-                setProjects(current => current.filter(project => project.id !== activeProject.id));
-                setHistory(current => current.filter(task => task.projectId !== activeProject.id));
+                const projectId = activeProject.id;
+                setProjects(current => current.map(project => project.id === projectId ? { ...project, archived: true } : project));
+                setHistory(current => current.map(task => task.projectId === projectId ? { ...task, archived: true } : task));
+                showArchiveToast(() => {
+                  setProjects(current => current.map(project => project.id === projectId ? { ...project, archived: false } : project));
+                  setHistory(current => current.map(task => task.projectId === projectId ? { ...task, archived: false } : task));
+                });
                 handleOpenProjects();
               }}
               onDelete={() => {
@@ -3807,7 +4567,37 @@ export default function App() {
           onSidebarToggle={() => setSidebarOpen(o => !o)}
           onNewChat={messages.length > 0 || activeProject !== null ? handleNewChat : undefined}
         />
-        {projectListOpen
+        {automationOpen
+          ? <AutomationListView />
+          : archiveOpen
+          ? <ArchiveView
+              projects={projects}
+              tasks={history}
+              onUnarchiveProject={id => {
+                setProjects(current => current.map(project => project.id === id ? { ...project, archived: false } : project));
+                setHistory(current => current.map(task => task.projectId === id ? { ...task, archived: false } : task));
+                toast.success("项目已取消归档");
+              }}
+              onEditProject={(id, updates) => {
+                setProjects(current => current.map(project => project.id === id ? { ...project, name: updates.name, description: updates.description } : project));
+                toast.success("项目信息已更新");
+              }}
+              onTransferProject={(id, member) => {
+                setProjects(current => current.map(project => project.id === id ? { ...project, owner: member } : project));
+                toast.success(`本地示例：项目已移交给${member}`);
+              }}
+              onDeleteProject={id => {
+                setProjects(current => current.filter(project => project.id !== id));
+                setHistory(current => current.filter(item => item.projectId !== id));
+              }}
+              onSelectTask={id => { setArchiveOpen(false); handleSelectHistory(id); }}
+              onUnarchiveTask={id => {
+                setHistory(current => current.map(task => task.id === id ? { ...task, archived: false } : task));
+                toast.success("任务已取消归档");
+              }}
+              onDeleteTask={id => setHistory(current => current.filter(task => task.id !== id))}
+            />
+          : projectListOpen
           ? <ProjectListView
               projects={projects}
               onSelectProject={handleSelectProject}
@@ -3816,12 +4606,16 @@ export default function App() {
                 setProjects(current => [...current, { ...project, id }]);
                 handleSelectProject(id);
               }}
-              onRenameProject={(id, name) => {
-                setProjects(current => current.map(project => project.id === id ? { ...project, name } : project));
+              onEditProject={(id, updates) => {
+                setProjects(current => current.map(project => project.id === id ? { ...project, name: updates.name, description: updates.description } : project));
               }}
               onArchiveProject={id => {
-                setProjects(current => current.filter(project => project.id !== id));
-                setHistory(current => current.filter(item => item.projectId !== id));
+                setProjects(current => current.map(project => project.id === id ? { ...project, archived: true } : project));
+                setHistory(current => current.map(item => item.projectId === id ? { ...item, archived: true } : item));
+                showArchiveToast(() => {
+                  setProjects(current => current.map(project => project.id === id ? { ...project, archived: false } : project));
+                  setHistory(current => current.map(item => item.projectId === id ? { ...item, archived: false } : item));
+                });
               }}
               onDeleteProject={id => {
                 setProjects(current => current.filter(project => project.id !== id));
@@ -3863,7 +4657,7 @@ export default function App() {
                   setProjects(current => [...current, { ...project, id }]);
                   return id;
                 }}
-                tasks={history.filter(task => task.projectId === activeProject.id)}
+                tasks={history.filter(task => task.projectId === activeProject.id && !task.archived)}
                 onSelectTask={handleSelectHistory}
                 onUpdateTask={(id, updates) => setHistory(current => current.map(task => task.id === id ? { ...task, ...updates } : task))}
                 onDeleteTask={id => setHistory(current => current.filter(task => task.id !== id))}
@@ -3939,6 +4733,7 @@ export default function App() {
         mainOffset={!isMobile && sidebarOpen ? 120 : 0}
       />
     </div>
+    <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     <Toaster position="top-center" />
     </Sheet>
   );

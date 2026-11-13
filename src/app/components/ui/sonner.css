@@ -9,6 +9,17 @@
   transform: translateX(-50%);
 }
 
+/* custom toast（toast.custom 渲染，data-styled=false）不套用上面的 --styled 规则，
+   其 li 默认 left:0 靠左对齐，这里改为在 toaster 内水平居中 */
+.toaster[data-sonner-toaster] [data-sonner-toast][data-styled='false'] {
+  left: 0;
+  right: 0;
+  width: max-content;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .toaster [data-sonner-toast][data-styled='true'] {
   left: 50%;
   translate: -50% 0;

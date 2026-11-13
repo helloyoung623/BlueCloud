@@ -46,15 +46,28 @@ function fileIcon(name: string) {
   return "75599";
 }
 
-export function ProjectFilesPanel({ kind, files, onChange }: {
+export function pickSourceFiles(fileList: FileList): { additions: ProjectFile[]; errors: string[] } {
+  const additions: ProjectFile[] = [];
+  const errors: string[] = [];
+  for (const file of Array.from(fileList)) {
+    const error = getAttachmentValidationError(file);
+    if (error) {
+      errors.push(`${file.name}：${error === "format" ? "不支持该文件格式" : error === "empty" ? "文件为空" : "文件大小超出限制"}`);
+      continue;
+    }
+    additions.push({ id: crypto.randomUUID(), name: file.name, blob: file, owner: "我", createdAt: Date.now(), status: "enabled" });
+  }
+  return { additions, errors };
+}
+
+export function ProjectFilesPanel({ kind, files, query, onChange }: {
   kind: "sources" | "artifacts";
   files: ProjectFiles;
+  query: string;
   onChange: (files: ProjectFiles) => void;
 }) {
-  const [query, setQuery] = useState("");
   const [menu, setMenu] = useState<{ id: string; anchor: HTMLButtonElement } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const uploadRef = useRef<HTMLInputElement>(null);
   const [downloading, setDownloading] = useState(false);
   const source = kind === "sources";
   const records = files[kind];
@@ -115,32 +128,6 @@ export function ProjectFilesPanel({ kind, files, onChange }: {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-project-files={kind}>
-      {(records.length > 0 || source) && (
-        <div className="flex h-[56px] shrink-0 items-center justify-between gap-[12px]">
-          <label className="flex h-[32px] w-[256px] min-w-0 items-center gap-[8px] rounded-[4px] bg-[#f7f7f7] pl-[8px] pr-[16px]">
-            <img src="/assets/11400.svg" alt="" className="shrink-0" />
-            <input aria-label="搜索文件名称" placeholder="搜索文件名称" value={query} onChange={event => { setQuery(event.target.value); setMenu(null); }} className="min-w-0 flex-1 bg-transparent text-[14px] font-normal leading-[22px] outline-none placeholder:text-[rgba(0,0,0,0.38)]" />
-          </label>
-          {source && (
-            <button type="button" onClick={() => uploadRef.current?.click()} className="flex h-[32px] w-[117px] shrink-0 cursor-pointer items-center justify-center gap-[8px] rounded-[4px] border border-[#1e63f5] px-[16px] text-[14px] font-normal leading-[22px] text-[#1e63f5]">
-              <img src="/assets/72ef3.svg" alt="" />上传文件
-            </button>
-          )}
-        </div>
-      )}
-      <input ref={uploadRef} aria-label="上传项目来源文件" type="file" multiple hidden onChange={event => {
-        const additions: ProjectFile[] = [];
-        for (const file of Array.from(event.target.files ?? [])) {
-          const error = getAttachmentValidationError(file);
-          if (error) {
-            toast.error(`${file.name}：${error === "format" ? "不支持该文件格式" : error === "empty" ? "文件为空" : "文件大小超出限制"}`);
-            continue;
-          }
-          additions.push({ id: crypto.randomUUID(), name: file.name, blob: file, owner: "我", createdAt: Date.now(), status: "enabled" });
-        }
-        if (additions.length) onChange({ ...files, sources: [...files.sources, ...additions] });
-        event.target.value = "";
-      }} />
       {visible.length > 0 ? (
         <div className="min-h-0 flex-1 overflow-auto">
           <table className={`w-full table-fixed border-collapse text-left text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.88)] ${source ? "min-w-[720px]" : "min-w-[600px]"}`}>
@@ -171,7 +158,7 @@ export function ProjectFilesPanel({ kind, files, onChange }: {
           </table>
         </div>
       ) : (
-        <div className={`flex flex-col items-center ${records.length ? "pt-[4px]" : source ? "-mt-[40px]" : "pt-[16px]"}`}>
+        <div className={`flex flex-col items-center pt-[16px]`}>
           <img src="/assets/c0d09.png" alt="" className="size-[320px] max-w-full object-contain" />
           <p className="-mt-[54px] pb-[32px] text-[14px] font-normal leading-[22px] tracking-[0.014px] text-[rgba(0,0,0,0.38)]">{records.length ? "没有匹配的文件" : "暂无文件"}</p>
         </div>

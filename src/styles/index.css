@@ -11,7 +11,7 @@
 }
 
 .conversation-content {
-  max-width: 900px;
+  max-width: 800px;
 }
 
 .conversation-messages {
@@ -42,4 +42,31 @@
   .artifact-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+
+/* 操作菜单文案统一为 Regular（400），与「移动到项目」保持一致。
+   全局 button 规则为 500，未显式声明字重的菜单项会被加粗。 */
+[data-operation-menu] [role="menuitem"],
+[data-operation-menu] [role="menuitem"] * {
+  font-weight: 400;
+}
+
+/* 附件选择面板：细滚动条贴面板右边缘 */
+.outlook-scroll {
+  scrollbar-color: auto;
+  scrollbar-width: auto;
+}
+
+.outlook-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.outlook-scroll::-webkit-scrollbar-thumb {
+  background-color: #c5c5c5;
+  border-radius: 999px;
+}
+
+.outlook-scroll::-webkit-scrollbar-track {
+  background: transparent;
 }

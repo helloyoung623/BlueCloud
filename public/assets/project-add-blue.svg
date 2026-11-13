@@ -1,0 +1,11 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="iconbase/add">
+<g id="Vector">
+<path d="M7.33333 7.33333V2H8.66667V7.33333H14V8.66667H8.66667V14H7.33333V8.66667H2V7.33333H7.33333Z" fill="#1e63f5" fill-opacity="0.98"/>
+<mask id="stroke0_0_56" fill="#1e63f5">
+<path d="M7.33333 7.33333V2H8.66667V7.33333H14V8.66667H8.66667V14H7.33333V8.66667H2V7.33333H7.33333Z"/>
+</mask>
+<path d="M7.33333 7.33333V2H8.66667V7.33333H14V8.66667H8.66667V14H7.33333V8.66667H2V7.33333H7.33333Z" stroke-width="1.33333" stroke="#1E63F5" mask="url(#stroke0_0_56)"/>
+</g>
+</g>
+</svg>
